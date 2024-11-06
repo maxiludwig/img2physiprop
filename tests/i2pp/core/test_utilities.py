@@ -6,8 +6,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import yaml
-from munch import munchify
 from i2pp.core.utilities import RunManager
+from munch import munchify
 
 
 def test_run_manager_init_run() -> None:

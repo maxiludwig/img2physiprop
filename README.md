@@ -1,5 +1,5 @@
 <h1 align="center">
-  img2physiprop 🐍🩻
+  img2physiprop
 </h1>
 
 <div align="center">

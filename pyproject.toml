@@ -7,9 +7,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "img2physiprop"
 version = "1.0"
-authors = [{ name = "David Rudlstorfer" }]
-maintainers = [{ name = "David Rudlstorfer" }]
-description = "A quick start Python skeleton with many amenities"
+authors = [{ name = "Laura Engelhardt" },{ name = "Maximilian Ludwig" }, { name = "Theodor Bayer" }]
+maintainers = [{ name = "Laura Engelhardt" },{ name = "Maximilian Ludwig" }]
+description = "Python tool to set physical properties in 4C according to medical image date."
 readme = "README.md"
 license = {file = "LICENSE.md"}
 keywords = ["Skeleton", "Documentation", "CICD", "Testing", "Pre-Commit"]

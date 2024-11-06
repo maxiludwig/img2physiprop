@@ -4,8 +4,8 @@ import argparse
 import os
 
 import yaml
-from munch import munchify
 from i2pp.core.run import run_i2pp
+from munch import munchify
 
 
 def main() -> None:
