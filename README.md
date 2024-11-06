@@ -4,13 +4,13 @@
 
 <div align="center">
 
-[![Pipeline](https://github.com/davidrudlstorfer/i2pp/actions/workflows/main_pipeline.yml/badge.svg)](https://github.com/davidrudlstorfer/i2pp/actions/workflows/main_pipeline.yml)
-[![Documentation](https://github.com/davidrudlstorfer/i2pp/actions/workflows/main_documentation.yml/badge.svg)](https://davidrudlstorfer.github.io/i2pp/)
-[![Coverage badge](https://github.com/davidrudlstorfer/i2pp/raw/python-coverage-comment-action-data/badge.svg)](https://github.com/davidrudlstorfer/i2pp/tree/python-coverage-comment-action-data)
+[![Pipeline](https://github.com/maxiludwig/i2pp/actions/workflows/main_pipeline.yml/badge.svg)](https://github.com/maxiludwig/i2pp/actions/workflows/main_pipeline.yml)
+[![Documentation](https://github.com/maxiludwig/i2pp/actions/workflows/main_documentation.yml/badge.svg)](https://maxiludwig.github.io/i2pp/)
+[![Coverage badge](https://github.com/maxiludwig/i2pp/raw/python-coverage-comment-action-data/badge.svg)](https://github.com/maxiludwig/i2pp/tree/python-coverage-comment-action-data)
 
 </div>
 
-img2physiprop (**Py**thon **Skel**eton) is a quick-start Python repository to act as a skeleton for various projects around the multiphysics research code [4C](https://www.4c-multiphysics.org/) and leverages utilities from [PyToDa](https://github.com/davidrudlstorfer/pytoda). It includes the following basic amenities and tools:
+img2physiprop (Image to Physical Property) is a quick-start Python repository to act as a skeleton for various projects around the multiphysics research code [4C](https://www.4c-multiphysics.org/) and leverages utilities from [PyToDa](https://github.com/davidrudlstorfer/pytoda). It includes the following basic amenities and tools:
 
 - [PyTest](https://docs.pytest.org/) testing framework including an enforced minimum coverage check
 - Automated [Github CI/CD](https://resources.github.com/devops/ci-cd/)
