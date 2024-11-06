@@ -1,17 +1,17 @@
-"""Runner which executes the main routine of PySkel."""
+"""Runner which executes the main routine of img2physiprop."""
 
 import logging
 import time
 from typing import Any
 
-from pyskel.core.example import exemplary_function
-from pyskel.core.utilities import RunManager
+from i2pp.core.example import exemplary_function
+from i2pp.core.utilities import RunManager
 
-log = logging.getLogger("pyskel")
+log = logging.getLogger("i2pp")
 
 
-def run_pyskel(config: Any) -> None:
-    """General run procedure of PySkel.
+def run_i2pp(config: Any) -> None:
+    """General run procedure of img2physiprop.
 
     Args:
         config (Any): Munch type object containing all configs for current

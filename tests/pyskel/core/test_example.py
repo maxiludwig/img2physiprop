@@ -1,6 +1,6 @@
 """Test example."""
 
-from pyskel.core.example import exemplary_function
+from i2pp.core.example import exemplary_function
 
 
 def test_exemplary_function() -> None:

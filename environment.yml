@@ -1,4 +1,4 @@
-name: pyskel
+name: i2pp
 channels:
   - conda-forge
   - nodefaults

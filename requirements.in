@@ -1,4 +1,4 @@
-# This file contains all the requirements for PySkel
+# This file contains all the requirements for img2physiprop
 
 # dependencies from conda environment.yml
 numba==0.59.1

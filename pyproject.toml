@@ -5,7 +5,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "PySkel"
+name = "img2physiprop"
 version = "1.0"
 authors = [{ name = "David Rudlstorfer" }]
 maintainers = [{ name = "David Rudlstorfer" }]
@@ -20,13 +20,13 @@ dynamic = ["dependencies"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["pyskel"]
+include = ["i2pp"]
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
 
 [project.scripts]
-pyskel = "pyskel.main:main"
+i2pp = "i2pp.main:main"
 
 ## Tools
 
@@ -46,8 +46,8 @@ relative_files = true
 profile = "black"
 line_length = 79
 filter_files = true
-src_paths = ["src/pyskel/", "tests/"]
+src_paths = ["src/i2pp/", "tests/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-p pytest_cov --cov-report=term --cov-report=html --cov-fail-under=90 --cov=src/pyskel/ --cov-append"
+addopts = "-p pytest_cov --cov-report=term --cov-report=html --cov-fail-under=90 --cov=src/i2pp/ --cov-append"

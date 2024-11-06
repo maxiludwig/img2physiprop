@@ -78,7 +78,7 @@ jobs:
           git submodule foreach --recursive pip install -e .
           pip install -e .
       - name: Generate documentation
-        run: pdoc --html --output-dir docs src/pyskel
+        run: pdoc --html --output-dir docs src/i2pp
       - name: Upload documentation artifact
         uses: actions/upload-pages-artifact@v3
         with:

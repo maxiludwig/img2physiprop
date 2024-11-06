@@ -1,15 +1,15 @@
-"""Main routine of PySkel."""
+"""Main routine of img2physiprop."""
 
 import argparse
 import os
 
 import yaml
 from munch import munchify
-from pyskel.core.run import run_pyskel
+from i2pp.core.run import run_i2pp
 
 
 def main() -> None:
-    """Call PySkel runner with config.
+    """Call img2physiprop runner with config.
 
     Raises:
         RuntimeError: If provided config is not a valid file.
@@ -20,21 +20,21 @@ def main() -> None:
         "-cfp",
         help="Path to config file.",
         type=str,
-        default="src/pyskel/main_example_config.yaml",
+        default="src/i2pp/main_example_config.yaml",
     )
     args = parser.parse_args()
 
     if not os.path.isfile(args.config_file_path):
         raise RuntimeError(
-            "Config file not found! PySkel can not be executed!"
+            "Config file not found! img2physiprop can not be executed!"
         )
 
     # load config and convert to simple namespace for easier access
     with open(args.config_file_path, "r") as file:
         config = munchify(yaml.safe_load(file))
 
-    # execute pyskel
-    run_pyskel(config)
+    # execute i2pp
+    run_i2pp(config)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -20,7 +20,7 @@ repos:
     rev: 1.7.9
     hooks:
       - id: bandit
-        args: ["-c", "pyproject.toml", "-r", "-ll", "src/pyskel/", "tests/"]
+        args: ["-c", "pyproject.toml", "-r", "-ll", "src/i2pp/", "tests/"]
         additional_dependencies: ["bandit[toml]"]
   - repo: https://github.com/psf/black
     rev: 24.4.2
@@ -32,7 +32,7 @@ repos:
     rev: v1.7.5
     hooks:
       - id: docformatter
-        args: ["--in-place", "--config=./pyproject.toml", "-r", "src/pyskel/", "tests/"]
+        args: ["--in-place", "--config=./pyproject.toml", "-r", "src/i2pp/", "tests/"]
   - repo: https://github.com/kplaube/pre-commit-dodgy
     rev: 0.0.2
     hooks:
@@ -45,12 +45,12 @@ repos:
     rev: 1.7.0
     hooks:
       - id: interrogate
-        args: [--fail-under=100, --ignore-init-module, --style=google, -vv, src/pyskel/, tests/]
+        args: [--fail-under=100, --ignore-init-module, --style=google, -vv, src/i2pp/, tests/]
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
       - id: isort
-        args: ["--profile", "black", "--line-length", "79", "--filter-files", "--src", "[src/pyskel/, tests/]"]
+        args: ["--profile", "black", "--line-length", "79", "--filter-files", "--src", "[src/i2pp/, tests/]"]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.10.0
     hooks:
