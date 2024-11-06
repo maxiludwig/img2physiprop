@@ -2,15 +2,15 @@
 
 
 
-| Name                            |    Stmts |     Miss |   Cover |   Missing |
-|-------------------------------- | -------: | -------: | ------: | --------: |
-| src/pyskel/\_\_init\_\_.py      |        0 |        0 |    100% |           |
-| src/pyskel/core/\_\_init\_\_.py |        0 |        0 |    100% |           |
-| src/pyskel/core/example.py      |        2 |        0 |    100% |           |
-| src/pyskel/core/run.py          |       12 |        0 |    100% |           |
-| src/pyskel/core/utilities.py    |       32 |        2 |     94% |     87-88 |
-| src/pyskel/main.py              |       14 |        0 |    100% |           |
-|                       **TOTAL** |   **60** |    **2** | **97%** |           |
+| Name                          |    Stmts |     Miss |   Cover |   Missing |
+|------------------------------ | -------: | -------: | ------: | --------: |
+| src/i2pp/\_\_init\_\_.py      |        0 |        0 |    100% |           |
+| src/i2pp/core/\_\_init\_\_.py |        0 |        0 |    100% |           |
+| src/i2pp/core/example.py      |        2 |        0 |    100% |           |
+| src/i2pp/core/run.py          |       12 |        0 |    100% |           |
+| src/i2pp/core/utilities.py    |       32 |        2 |     94% |     87-88 |
+| src/i2pp/main.py              |       14 |        0 |    100% |           |
+|                     **TOTAL** |   **60** |    **2** | **97%** |           |
 
 
 ## Setup coverage badge
