@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 import yaml
-from munch import munchify
 from i2pp.main import main
+from munch import munchify
 
 
 def test_main_config_file_exists(tmp_path: Path) -> None:

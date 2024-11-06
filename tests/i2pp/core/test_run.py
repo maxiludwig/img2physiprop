@@ -2,8 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
-from munch import munchify
 from i2pp.core.run import run_i2pp
+from munch import munchify
 
 
 def test_run_i2pp() -> None:
