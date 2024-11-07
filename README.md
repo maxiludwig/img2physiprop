@@ -2,15 +2,9 @@
   img2physiprop
 </h1>
 
-<div align="center">
-
-[![Pipeline](https://github.com/maxiludwig/i2pp/actions/workflows/main_pipeline.yml/badge.svg)](https://github.com/maxiludwig/i2pp/actions/workflows/main_pipeline.yml)
-[![Documentation](https://github.com/maxiludwig/i2pp/actions/workflows/main_documentation.yml/badge.svg)](https://maxiludwig.github.io/i2pp/)
-[![Coverage badge](https://github.com/maxiludwig/i2pp/raw/python-coverage-comment-action-data/badge.svg)](https://github.com/maxiludwig/i2pp/tree/python-coverage-comment-action-data)
-
 </div>
 
-img2physiprop (Image to Physical Property) is a quick-start Python repository to act as a skeleton for various projects around the multiphysics research code [4C](https://www.4c-multiphysics.org/) and leverages utilities from [PyToDa](https://github.com/davidrudlstorfer/pytoda). It includes the following basic amenities and tools:
+img2physiprop (Image to Physical Property) is a python package that maps medical image data to physical properties. This makes it possible to vary e.g. material parameters in FE simulations according to patient specific medical image data. The package includes the following features to ease the development process and ensure a high code quality:
 
 - [PyTest](https://docs.pytest.org/) testing framework including an enforced minimum coverage check
 - Automated [Github CI/CD](https://resources.github.com/devops/ci-cd/)
@@ -20,7 +14,6 @@ img2physiprop (Image to Physical Property) is a quick-start Python repository to
 
 The remaining parts of the readme are structured as follows:
 
-- [Setup](#setup)
 - [Installation](#installation)
 - [Execution](#execution)
   - [Execute img2physiprop](#execute-i2pp)
@@ -31,16 +24,6 @@ The remaining parts of the readme are structured as follows:
 - [License](#license)
 
 
-## Setup
-
-To setup a project based on img2physiprop simply follow these steps:
-
-1. On Github create a new repository with `Use this template` and `Create a new repository`.
-2. Clone your new repository to your local machine and setup the project according to the installation procedure down below.
-3. Rename all occurrences of img2physiprop to your new code project's name.
-4. Within your GitHub project's settings, enable GitHub Pages for GitHub Actions (`Settings` -> `Pages` -> `Source` = `GitHub Actions`).
-5. Create a new branch protection rule for the main branch on GitHub (`Settings` -> `Branches` -> `Add rule` -> Set up your rules`).
-6. Activate to automatically delete branches after merging (`Settings` -> `General` -> `Automatically delete head branches`)
 
 ## Installation
 
