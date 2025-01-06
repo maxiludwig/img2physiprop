@@ -1,88 +1,57 @@
-"""Utilities for img2physiprop main routine."""
+"""Useful function that are used in other modules."""
 
-import logging
-import os
-import time
-
-import yaml
-from pytoda.logger import log_full_width, print_header, setup_logging
-
-log = logging.getLogger("i2pp")
+import numpy as np
 
 
-class RunManager:
-    """Helper functions to manage a img2physiprop run."""
+def find_mins_maxs(points):
+    """Find maxima and minuma x-,y-,z-coordinate for a set of points."""
+    minx = maxx = miny = maxy = minz = maxz = None
+    CONST_ENLARGE = 2
 
-    def __init__(self, config):
+    for p in points:
+        # p contains (x, y, z)
 
-        self.config = config
+        if minx is None:
+            minx = p[0]
+            maxx = p[0]  # maxx
+            miny = p[1]  # miny
+            maxy = p[1]  # maxy
+            minz = p[2]  # minz
+            maxz = p[2]  # maxz
+        else:
+            minx = min(p[0], minx)  # minx
+            maxx = max(p[0], maxx)  # maxx
+            miny = min(p[1], miny)  # miny
+            maxy = max(p[1], maxy)  # maxy
+            minz = min(p[2], minz)  # minz
+            maxz = max(p[2], maxz)  # maxz
 
-    def init_run(self) -> None:
-        """Set up img2physiprop run including logger."""
+    limits = np.array(
+        [
+            minx - CONST_ENLARGE,
+            miny - CONST_ENLARGE,
+            minz - CONST_ENLARGE,
+            maxx + CONST_ENLARGE,
+            maxy + CONST_ENLARGE,
+            maxz + CONST_ENLARGE,
+        ],
+        dtype=float,
+    )
 
-        setup_logging(
-            self.config.general.log_to_console,
-            self.config.general.log_file,
-            self.config.general.output_directory,
-            self.config.general.sim_name,
-            "i2pp",
-        )
+    return limits
 
-        print_header(
-            title="img2physiprop",
-            description="General Python Skeleton",
-        )
 
-        log_full_width("RUN STARTED")
+def find_ids(points_to_find, nodes):
+    """Searches Points_to_find in a set of nodes and returns the position in
+    the array "nodes"."""
 
-        self.write_config()
+    nodes_array_as_tuples = [tuple(p) for p in nodes]
+    points_to_find_as_tuples = [tuple(p) for p in points_to_find]
 
-    def write_config(self) -> None:
-        """Export and write current setup config to .yaml file for future
-        reference."""
+    point_set = set(nodes_array_as_tuples)
 
-        log.info("Writing input config to file ...")
-        log.info("")
-
-        # create output folder structure
-        if (
-            self.config.general.output_directory is None
-            or self.config.general.sim_name is None
-        ):
-            raise ValueError(
-                "Output directory and sim name must be provided for output!"
-            )
-        os.makedirs(
-            os.path.join(
-                self.config.general.output_directory,
-                self.config.general.sim_name,
-            ),
-            exist_ok=True,
-        )
-
-        with open(
-            os.path.join(
-                self.config.general.output_directory,
-                self.config.general.sim_name,
-                "config.yaml",
-            ),
-            "w",
-        ) as file:
-            yaml.dump(self.config.toDict(), file)
-
-        log.info("     ... done.")
-        log.info("")
-
-    def finish_run(self, start_time: float) -> None:
-        """Finish run and close all loggers (Important if module is used within
-        other modules including a Python Logger!)"""
-
-        log_full_width()
-        log.info(f"Run took {time.time() - start_time} s.")
-        log_full_width("RUN FINISHED")
-
-        # close logger handlers (file)
-        handlers = log.handlers[:]
-        for handler in handlers:
-            log.removeHandler(handler)
-            handler.close()
+    indices = [
+        nodes_array_as_tuples.index(point) if point in point_set else -1
+        for point in points_to_find_as_tuples
+    ]
+    return indices

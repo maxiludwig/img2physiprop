@@ -1,5 +1,13 @@
 general:
+  #input_mesh_directory: /scratch/bayer/Dat_inputs/Wuerfel.dat
+  input_mesh_directory: /scratch/bayer/Git_respository/img2physiprop/Test_dat/inputfile_tutorial.dat
+  input_data_directory: /scratch/bayer/DICOM_Inputs/Human/
   output_directory: output
+  material type: Neohook
   sim_name: test_sim
-  log_file: i2pp.log
-  log_to_console: true
+Additional Information:
+  Pixel_Spacing: [1, 1]
+  Slice_Thickness: 1
+  Image_Position: [0, 0, 0]
+  Image_Orientation: [0, 1, 0, 1, 0, 0]
+  Modality: CT

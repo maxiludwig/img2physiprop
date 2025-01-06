@@ -1,99 +1,23 @@
-"""Test utilities."""
+"""Test Utilities Routine."""
 
-import os
-import time
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import yaml
-from i2pp.core.utilities import RunManager
-from munch import munchify
+import numpy as np
+from i2pp.core.utilities import find_ids, find_mins_maxs
 
 
-def test_run_manager_init_run() -> None:
-    """Test run manager init_run function."""
+def test_find_mins_maxs():
+    """Test find_mins_maxs."""
 
-    mock_config = MagicMock()
+    points = [[0, 4, 1], [4, 9, 100], [-200, 39, 1], [20, 50, -93]]
 
-    with (
-        patch("i2pp.core.utilities.setup_logging") as mock_setup_logging,
-        patch("i2pp.core.utilities.print_header") as mock_print_header,
-        patch("i2pp.core.utilities.log_full_width") as mock_log_full_width,
-        patch(
-            "i2pp.core.utilities.RunManager.write_config"
-        ) as mock_write_config,
-    ):
-        run_manager = RunManager(mock_config)
+    expected_output = np.array([-202, 2, -95, 22, 52, 102])
 
-        run_manager.init_run()
-
-        mock_setup_logging.assert_called_once_with(
-            mock_config.general.log_to_console,
-            mock_config.general.log_file,
-            mock_config.general.output_directory,
-            mock_config.general.sim_name,
-            "i2pp",
-        )
-        mock_print_header.assert_called_once()
-        mock_log_full_width.assert_called_once_with("RUN STARTED")
-        mock_write_config.assert_called_once()
+    assert np.array_equal(find_mins_maxs(points), expected_output)
 
 
-def test_write_config(tmp_path: Path) -> None:
-    """Test write_config function.
+def test_find_ids():
+    """Test find_ids."""
 
-    Args:
-        tmp_path (Path): Temporary from pytest.
-    """
+    points = [np.array([0, 0, 0]), np.array([1, 1, 1])]
+    nodes = [np.array([-1, 2, 3]), np.array([1, 1, 1]), np.array([0, 0, 0])]
 
-    mock_config = munchify(
-        {
-            "general": {
-                "output_directory": f"{tmp_path}",
-                "sim_name": "sim_name",
-            }
-        }
-    )
-
-    run_manager = RunManager(mock_config)
-
-    run_manager.write_config()
-
-    with open(os.path.join(tmp_path, "sim_name", "config.yaml"), "r") as file:
-        assert file.read() == yaml.dump(mock_config.toDict())
-
-    # check invalid input parameter combination
-    mock_config = munchify(
-        {
-            "general": {
-                "output_directory": None,
-                "sim_name": None,
-            }
-        }
-    )
-    run_manager = RunManager(mock_config)
-
-    try:
-        run_manager.write_config()
-    except ValueError as error:
-        assert str(error) == (
-            "Output directory and sim name must be provided for output!"
-        )
-
-
-def test_run_manager_finish_run() -> None:
-    """Test run manager finish_run function."""
-
-    mock_config = MagicMock()
-
-    with (
-        patch("i2pp.core.utilities.log_full_width") as mock_log_full_width,
-        patch("i2pp.core.utilities.log") as mock_log,
-    ):
-
-        run_manager = RunManager(mock_config)
-
-        run_manager.finish_run(start_time=time.time())
-
-        mock_log_full_width.assert_called_with("RUN FINISHED")
-        mock_log.info.assert_called_once()
+    assert find_ids(points, nodes) == [2, 1]

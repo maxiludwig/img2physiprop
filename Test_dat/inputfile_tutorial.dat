@@ -1,0 +1,201 @@
+-----------------------------------------------------------------------TITLE
+Testcase for testing mix_constituent_muscle_weickenmeier material (passive and active material behaviour)
+
+The setup of the test-case are 5 cubes, two for testing the passive (cube 1 and 3), and three for testing the active material response (cube 2, 4 and 5).
+In each case, one time a mixed material is tested (in a 50:50 proportion, i.e. mass fractions 0.5 and 0.5) and one time the unmixed material (muscle mixture constituent with a mass fraction of 1.0).
+Cube 5 additionally tests the velocity dependence of the active forces while cube 2 and 4 neglect this dependency.
+
+Fibers are aligned in z-direction.
+
+Boundary conditions:
+    Cube 1 and 3: uniaxial compression/extension
+    - fixed on the bottom surface (z=0) to zero displacement in z-direction
+    - fixed on the sides x=0 and y=0 to zero displacement in x- respectively y-direction
+    - linearly de-/increasing displacement on the top surface (z=1) down to dz=-0.5, and from thereon up to dz=0.4
+
+    Cube 2, 4 and 5: free contraction
+    - fixed on the bottom surface (z=0) to zero displacement in z-direction
+    - fixed on the sides x=2 and y=0 to zero displacement in x- respectively y-direction
+    - unconstrained top surface (z=1)
+
+Fibers:
+- Element fiber notation (FIBER1 FIBER 2): FIBER 1 in z-direction
+
+Elements:
+- HEX8
+
+Materials: Weickenmeier muscle material; units are kg, mm, s
+
+A) Cube 1 and 2 test the unmixed muscle material in passive and active state
+   - MAT1: passive material behaviour with parameters as in Weickenmeier/Thesis Engelhardt p.44 (GAMMA is 5.0)
+   - MAT2: active material behaviour with parameters as as in Weickenmeier/Thesis Engelhardt p.46/47 (medium twitch forces, Na (ACTMUNUM) was divided by 100 to decrease simulation runtime thus ACTMUNUM is 0.0052070)
+
+B) Cube 3 and cube 4 test the mixed muscle material
+   - MAT3: passive material behaviour with parameters as in Weickenmeier/Thesis Engelhardt p.44
+	* constituent 1 with GAMMA = 2.5
+	* constituent 2 with GAMMA = 7.5
+	mixing c1 and c2 50:50 should produce the same stress response as MAT1 due to linear relationship between GAMMA and stress
+   - MAT4: active material behaviour with parameters as as in Weickenmeier/Thesis Engelhardt p.46/47
+	* constituent 1 with ACTMUNUM = 0.0052070/2 and GAMMA = 0.1599/2
+	* constituent 2 with	ACTMUNUM = 0.0052070*2 and GAMMA = 0.1599*2
+	mixing c1 and c2 50:50 should produce the same stress response as MAT2 due to linear relationship between ACTMUNUM and active stress / GAMMA and passive stress
+
+C) Cube 5 tests the mixed muscle material including the velocity dependency
+   - active material behaviour with parameters as as in Weickenmeier/Thesis Engelhardt p.46/47
+   - velocity dependent parameters as in Table 3 on p. 502 in "M. Böl and S. Reese, ‘Micromechanical modelling of skeletal muscles based on the finite element method’, Computer Methods in Biomechanics and Biomedical Engineering, vol. 11, no. 5, 2008, doi: 10.1080/10255840701771750"
+	* constituent 1 with ACTMUNUM = 0.0052070/2
+	* constituent 2 with	ACTMUNUM = 0.0052070*2
+
+Note that incompressibility parameter kappa was divided by 10 to decrease simulation runtime
+
+Dynamictype: Static
+
+Resultscheck:
+    Cube 1 and 3: stresses in z-direction of top surface nodes
+    Cube 2, 4 and 5: displacements of top surface nodes
+
+-----------------------------------------------------------------PROBLEM TYP
+PROBLEMTYP                      Structure
+----------------------------------------------------------STRUCTURAL DYNAMIC
+INT_STRATEGY                    Standard
+LINEAR_SOLVER                   1
+DYNAMICTYP                      Statics
+RESULTSEVRY                     1
+RESTARTEVRY                     1
+NLNSOL                          fullnewton
+DIVERCONT                       adapt_step
+TIMESTEP                        0.0001
+NUMSTEP                         2100
+MAXTIME                         0.21
+PREDICT                         ConstDis
+NORM_DISP                       Abs
+NORM_RESF                       Abs
+NORMCOMBI_RESFDISP              And
+TOLDISP                         1.0E-09
+TOLRES                          1.0E-09
+ADAPTCONV                       no
+ADAPTCONV_BETTER                0.01
+MAXITER                         100
+MATERIALTANGENT                 analytical
+--------------------------------------------------------------------SOLVER 1
+NAME                            Structure_Solver
+SOLVER                          UMFPACK
+-----------------------------------------------------------------------IO
+OUTPUT_BIN                      yes
+STRUCT_DISP                     yes
+FILESTEPS                       1000
+STRUCT_STRAIN                   gl
+STRUCT_STRESS                   cauchy
+WRITE_FINAL_STATE               yes
+-----------------------------------------------------IO/RUNTIME VTK OUTPUT
+OUTPUT_DATA_FORMAT              binary
+INTERVAL_STEPS                  1
+EVERY_ITERATION                 no
+-------------------------------------------IO/RUNTIME VTK OUTPUT/STRUCTURE
+OUTPUT_STRUCTURE                yes
+DISPLACEMENT                    yes
+ELEMENT_OWNER                   yes
+STRESS_STRAIN                   yes
+------------------------------------------------STRUCT NOX/Printing
+Outer Iteration                 = yes
+Inner Iteration                 = yes
+Outer Iteration StatusTest      = No
+-------------------------------------------------RESULT DESCRIPTION
+STRUCTURE DIS structure NODE 1 QUANTITY stress_zz VALUE 1.44049177364090411e+02 TOLERANCE 1e-9 // top nodes passive material cube
+STRUCTURE DIS structure NODE 4 QUANTITY stress_zz VALUE 1.44049177364080776e+02 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 5 QUANTITY stress_zz VALUE 1.44049177364084812e+02 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 8 QUANTITY stress_zz VALUE 1.44049177364093111e+02 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 9 QUANTITY dispz VALUE -3.02116716379998818e-01 TOLERANCE 1e-9 // top nodes active material cube
+STRUCTURE DIS structure NODE 12 QUANTITY dispz VALUE -3.02116716379999262e-01 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 13 QUANTITY dispz VALUE -3.02116716379999262e-01 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 16 QUANTITY dispz VALUE -3.02116716379998873e-01 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 17 QUANTITY stress_zz VALUE 1.44049177364088848e+02 TOLERANCE 1e-9 // top nodes passive material cube
+STRUCTURE DIS structure NODE 20 QUANTITY stress_zz VALUE 1.44049177364092486e+02 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 21 QUANTITY stress_zz VALUE 1.44049177364088109e+02 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 24 QUANTITY stress_zz VALUE 1.44049177364075859e+02 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 25 QUANTITY dispz VALUE -3.02116716379999595e-01 TOLERANCE 1e-9 // top nodes active material cube
+STRUCTURE DIS structure NODE 28 QUANTITY dispz VALUE -3.02116716379998818e-01 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 29 QUANTITY dispz VALUE -3.02116716379998651e-01 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 32 QUANTITY dispz VALUE -3.02116716379999317e-01 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 33 QUANTITY dispz VALUE -2.03666107582177180e-01 TOLERANCE 1e-9 // top nodes active material cube with velocity dependence
+STRUCTURE DIS structure NODE 36 QUANTITY dispz VALUE -2.03666107582541167e-01 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 37 QUANTITY dispz VALUE -2.03666107582541139e-01 TOLERANCE 1e-9
+STRUCTURE DIS structure NODE 40 QUANTITY dispz VALUE -2.03666107582946038e-01 TOLERANCE 1e-9
+-------------------------------------------------------------------MATERIALS
+// active unmixed material used for cube 1 weickenmeier
+MAT 1 MAT_MixtureElastHyper NUMCONST 1 MATIDSCONST 11 MATIDMIXTURERULE 10
+MAT 10 MIX_Rule_Simple NUMCONST 1 MASSFRAC 1.0 DENS 1.0
+MAT 11 MIX_Constituent_Muscle_Weickenmeier ALPHA 19.69 BETA 1.19 GAMMA 0.1599 KAPPA 1000.0 OMEGA0 0.7388 ACTMUNUM 0.52070 MUTYPESNUM 3 INTERSTIM 0.0001 0.0001 0.0001 FRACACTMU 0.05 0.29 0.66 FTWITCH 2.50 4.40 76.80 TTWITCH 0.02 0.011 0.011 LAMBDAMIN 0.682 LAMBDAOPT 1.192 DOTLAMBDAMIN -17 KE 5 KC 5 DE 0.0 DC 0.0 ACTTIMESNUM 2 ACTTIMES 0.0 1.0 ACTINTERVALSNUM 1 ACTVALUES 1.0
+
+// active unmixed material used for cube 2 giantesio
+MAT 2 MAT_MixtureElastHyper NUMCONST 1 MATIDSCONST 21 MATIDMIXTURERULE 20
+MAT 20 MIX_Rule_Simple NUMCONST 1 MASSFRAC 1.0 DENS 1.0
+MAT 21 MIX_Constituent_Muscle_Giantesio_Actstress ALPHA 19.69 BETA 1.19 GAMMA 0.1599 KAPPA 1000.0 OMEGA0 0.7388 ACTMUNUM 0.52070 MUTYPESNUM 3 INTERSTIM 0.0001 0.0001 0.0001 FRACACTMU 0.05 0.29 0.66 FTWITCH 2.50 4.40 76.80 TTWITCH 0.02 0.011 0.011 LAMBDAMIN 0.682 LAMBDAOPT 1.192 DOTLAMBDAMIN -17 KE 5 KC 5 DE 0.0 DC 0.0 ACTTIMESNUM 2 ACTTIMES 0.0 1.0 ACTINTERVALSNUM 1 ACTVALUES 1.0
+------------------------------------------------DESIGN DESCRIPTION
+NDPOINT 16
+NDLINE  0
+NDSURF  0
+NDVOL   0
+----------------------------------------------------------------------FUNCT1
+// function for application of Dirichlet conditions on top surface of cube 1
+COMPONENT 0 FUNCTION a
+VARIABLE 0 NAME a TYPE linearinterpolation NUMPOINTS 5 TIMES 0 0.1 0.15 0.16 0.21 VALUES 0 0 -0.4 -0.4 0.4
+----------------------------------------------DESIGN POINT DIRICH CONDITIONS
+DPOINT		16
+// Dirichlet conditions for cube 1 (active material behaviour, uniaxial extension constraints)
+E 1 - NUMDOF 3 ONOFF 1 1 1 VAL 0.0 0.0 1.0 FUNCT 0 0 1 // node(0 0 1)
+E 2 - NUMDOF 3 ONOFF 1 1 1 VAL 0.0 0.0 0.0 FUNCT 0 0 0 // node(0 0 0)
+E 3 - NUMDOF 3 ONOFF 1 0 1 VAL 0.0 0.0 0.0 FUNCT 0 0 0 // node(0 1 0)
+E 4 - NUMDOF 3 ONOFF 1 0 1 VAL 0.0 0.0 1.0 FUNCT 0 0 1 // node(0 1 1)
+E 5 - NUMDOF 3 ONOFF 0 1 1 VAL 0.0 0.0 1.0 FUNCT 0 0 1 // node(1 0 1)
+E 6 - NUMDOF 3 ONOFF 0 1 1 VAL 0.0 0.0 0.0 FUNCT 0 0 0 // node(1 0 0)
+E 7 - NUMDOF 3 ONOFF 0 0 1 VAL 0.0 0.0 0.0 FUNCT 0 0 0 // node(1 1 0)
+E 8 - NUMDOF 3 ONOFF 0 0 1 VAL 0.0 0.0 1.0 FUNCT 0 0 1 // node(1 1 1)
+
+// Dirichlet conditions for cube 2 (active material behaviour, uniaxial extension constraints)
+E 9  - NUMDOF 3 ONOFF 1 1 1 VAL 0.0 0.0 1.0 FUNCT 0 0 1 // node(2 0 1)
+E 10 - NUMDOF 3 ONOFF 1 1 1 VAL 0.0 0.0 0.0 FUNCT 0 0 0 // node(2 0 0)
+E 11 - NUMDOF 3 ONOFF 1 0 1 VAL 0.0 0.0 0.0 FUNCT 0 0 0 // node(2 1 0)
+E 12 - NUMDOF 3 ONOFF 1 0 1 VAL 0.0 0.0 1.0 FUNCT 0 0 1 // node(2 1 1)
+E 13 - NUMDOF 3 ONOFF 0 1 1 VAL 0.0 0.0 1.0 FUNCT 0 0 1 // node(3 0 1)
+E 14 - NUMDOF 3 ONOFF 0 1 1 VAL 0.0 0.0 0.0 FUNCT 0 0 0 // node(3 0 0)
+E 15 - NUMDOF 3 ONOFF 0 0 1 VAL 0.0 0.0 0.0 FUNCT 0 0 0 // node(3 1 0)
+E 16 - NUMDOF 3 ONOFF 0 0 1 VAL 0.0 0.0 1.0 FUNCT 0 0 1 // node(3 1 1)
+------------------------------------------------DNODE-NODE TOPOLOGY
+NODE 1 DNODE 1
+NODE 2 DNODE 2
+NODE 3 DNODE 3
+NODE 4 DNODE 4
+NODE 5 DNODE 5
+NODE 6 DNODE 6
+NODE 7 DNODE 7
+NODE 8 DNODE 8
+NODE 9 DNODE 9
+NODE 10 DNODE 10
+NODE 11 DNODE 11
+NODE 12 DNODE 12
+NODE 13 DNODE 13
+NODE 14 DNODE 14
+NODE 15 DNODE 15
+NODE 16 DNODE 16
+-------------------------------------------------------NODE COORDS
+NODE 1 COORD  0.0 0.0 1201.0
+NODE 2 COORD  0.0 0.0 1200.0
+NODE 3 COORD  0.0 1.0 1200.0
+NODE 4 COORD  0.0 1.0 1201.0
+NODE 5 COORD  1.0 0.0 1201.0
+NODE 6 COORD  1.0 0.0 1200.0
+NODE 7 COORD  1.0 1.0 1200.0
+NODE 8 COORD  1.0 1.0 1201.0
+NODE 9 COORD  2.0 0.0 1201.0
+NODE 10 COORD  2.0 0.0 1200.0
+NODE 11 COORD  2.0 1.0 1200.0
+NODE 12 COORD  2.0 1.0 1201.0
+NODE 13 COORD  3.0 0.0 1201.0
+NODE 14 COORD  3.0 0.0 1200.0
+NODE 15 COORD  3.0 1.0 1200.0
+NODE 16 COORD  3.0 1.0 1201.0
+------------------------------------------------STRUCTURE ELEMENTS
+1 SOLIDH8 HEX8 1 2 3 4 5 6 7 8 MAT 1 KINEM nonlinear EAS none FIBER1 0.0 0.0 1.0
+2 SOLIDH8 HEX8 9 10 11 12 13 14 15 16 MAT 2 KINEM nonlinear EAS none FIBER1 0.0 0.0 1.0
+---------------------------------------------------------------END
