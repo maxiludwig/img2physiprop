@@ -4,26 +4,26 @@ array with pixel values."""
 from dataclasses import dataclass
 
 import numpy as np
+from scipy.spatial import cKDTree
+from tqdm import tqdm
 
 
 @dataclass
-class ImageDataConverted:
+class ImageData:
     """Dataclass for Converted image-data."""
 
     coord_array: np.ndarray
     pxl_value: np.ndarray
-    Modality: str
+    modality: str
 
 
 class ImageDataConverter:
     """Class to convert slices in usable data."""
 
-    def __init__(self, coord_array, pxl_value, Modality):
+    def __init__(self, image_data):
         """Init ImageDataConverter."""
 
-        self.coord_array = coord_array
-        self.pxl_value = pxl_value
-        self.Modality = Modality
+        self.image_data = image_data
 
     def _pxlpos_to_pxlcoord(self, slices, row, col):
         """Convertes array-position to x-y-z coordinate for an voxel."""
@@ -119,16 +119,16 @@ class ImageDataConverter:
 
     def slices_2_mat(self, slices, limits):
         """Converts slices of the image-data in an array with pixel-coordinates
-        and an array with pixel values For Perfomance Optimization only the
-        Pixels inside the Mesh-limits are processed."""
+        and an array with pixel values. For Perfomance Optimization only the
+        Pixels inside the Mesh-limits are processed.
 
-        num_slices = len(slices)
+        Raises:
+            Runtimerror: If Mesh is not in Image_data
+        """
 
-        relevant_slices = 0
-
-        for i in range(0, num_slices):
+        for slice in tqdm(slices, desc="Process slices"):
             # coordinate top-left corner
-            starting_coordinate = slices[i].ImagePositionPatient
+            starting_coordinate = slice.ImagePositionPatient
 
             # skip all cols and rows if the vectors dont have a component
             # in z-value direction an z-value is not in limits
@@ -137,28 +137,25 @@ class ImageDataConverter:
                 limits,
                 starting_coordinate,
                 "slice",
-                slices[i].ImageOrientationPatient,
+                slice.ImageOrientationPatient,
             ):
                 continue
 
             # array for gray values
-            gray_values_array = slices[i].PixelData
+            gray_values_array = slice.PixelData
 
             # size gray-array
-            img_shape = slices[i].image_shape
+            img_shape = slice.image_shape
 
             # ortintation of image
-            orientation = slices[i].ImageOrientationPatient
-
-            print(f"processing of slice:{i+1} of {num_slices}")
-            relevant_slices += 1
+            orientation = slice.ImageOrientationPatient
 
             for j in range(0, img_shape[0]):
 
                 # skip all rows-iterations if no coordinate
                 # will be inside the crop
                 # => pxl coordinates can't be in mesh
-                coord = self._pxlpos_to_pxlcoord(slices[i], j, 0)
+                coord = self._pxlpos_to_pxlcoord(slice, j, 0)
 
                 if self._iteration_irrelevant(
                     limits, coord, "col", orientation
@@ -168,7 +165,7 @@ class ImageDataConverter:
                 for m in range(0, img_shape[1]):
 
                     # checks if point is in limits
-                    coord = self._pxlpos_to_pxlcoord(slices[i], j, m)
+                    coord = self._pxlpos_to_pxlcoord(slice, j, m)
                     if (
                         self._iteration_irrelevant(
                             limits, coord, "all", orientation
@@ -178,30 +175,61 @@ class ImageDataConverter:
 
                         gray_value = gray_values_array[m][j]
 
-                        self.coord_array.append([coord[0], coord[1], coord[2]])
+                        self.image_data.coord_array.append(
+                            [coord[0], coord[1], coord[2]]
+                        )
 
-                        self.pxl_value.append(gray_value)
+                        self.image_data.pxl_value.append(gray_value)
 
-        if not self.coord_array:
+        self.image_data.coord_array = np.array(self.image_data.coord_array)
+        self.image_data.pxl_value = np.array(self.image_data.pxl_value)
+
+        if not self.image_data.coord_array.any():
             raise RuntimeError(
                 "Mesh coordinates are not in image data!"
                 "img2physiprop can not be executed!"
             )
 
-        print(f"relevant slices: {relevant_slices}")
+        self.image_data.modality = slices[0].Modality
 
-        ImageData = ImageDataConverted(
-            coord_array=self.coord_array,
-            pxl_value=self.pxl_value,
-            Modality=slices[0].Modality,
-        )
+        return self.image_data
 
-        return ImageData
+    def smooth_data(self, k):
+        """Find the k nearest neighbors for each point and calculate the
+        average -> Prevent measurement errors."""
+
+        coords = self.image_data.coord_array
+        values = self.image_data.pxl_value
+        """colors_normalized = values / 255.0.
+
+        x = [p[0] for p in coords] y = [p[1] for p in coords]
+
+        plt.scatter(x, y, c=colors_normalized, s=100)
+        plt.savefig("not_smoothed", dpi=300)
+        """
+
+        tree = cKDTree(coords)
+        smoothed_pxl_value = []
+
+        for i, (x, y, z) in tqdm(
+            enumerate(self.image_data.coord_array), desc="Smooth Data"
+        ):
+
+            _, indices = tree.query((x, y, z), k=k)
+            smoothed_value = np.mean(values[indices], axis=0)
+            smoothed_pxl_value.append((smoothed_value))
+
+        self.image_data.pxl_value = smoothed_pxl_value
+        return self.image_data
 
 
 def convert_imagedata(slices, limits):
     """Calls Image Data Converter."""
 
-    image_data = ImageDataConverter([], [], "")
+    image_dataclass = ImageData(coord_array=[], pxl_value=[], modality="")
 
-    return image_data.slices_2_mat(slices, limits)
+    image_data = ImageDataConverter(image_dataclass)
+
+    image_data.slices_2_mat(slices, limits)
+
+    return image_data.smooth_data(27)

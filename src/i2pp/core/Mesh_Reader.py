@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import lnmmeshio
 import numpy as np
 import trimesh
+from i2pp.core.utilities import find_mins_maxs
 
 
 @dataclass
@@ -13,8 +14,7 @@ class MeshData:
     """Class for Mesh-data."""
 
     nodes: list
-    element_coords: list
-    element_ids: list
+    element_ids: np.array
     limits: np.array
 
 
@@ -58,38 +58,30 @@ class MeshReader:
 
             self.mesh = MeshData(
                 nodes=input_mesh.vertices,
-                elements=input_mesh.faces,
+                element_coords=[],
+                element_ids=input_mesh.faces,
                 limits=np.array([]),
             )
 
         elif file_extension == ".dat":
 
-            self.mesh = MeshData(
-                nodes=[],
-                element_coords=[],
-                element_ids=[],
-                limits=np.array([]),
-            )
+            self.mesh = MeshData(nodes=[], element_ids=[], limits=np.array([]))
 
             directory = str(directory)
-            input_dat = lnmmeshio.read(directory)
+            mesh_read = lnmmeshio.read(directory)
+            print(mesh_read.elements.structure[0].nodes[0].id)
+            mesh_read.compute_ids(True)
+            self.mesh.nodes = mesh_read.get_node_coords()
 
-            nodes = []
-            element_coords = []
-
-            for node in input_dat.nodes:
-
-                nodes.append(np.array(node.coords))
-
-            for ele in input_dat.elements.structure:
+            element_ids = []
+            for ele in mesh_read.elements.structure:
                 element = []
                 for node in ele.nodes:
-                    element.append(node.coords)
+                    element.append(node.id)
 
-                element_coords.append(np.array(element))
+                element_ids.append(np.array(element))
 
-            self.mesh.nodes = nodes
-            self.mesh.element_coords = element_coords
+            self.mesh.element_ids = element_ids
 
         return self.mesh
 
@@ -97,8 +89,12 @@ class MeshReader:
 def verify_and_load_mesh(directory):
     """Calls Mesh Reader functions."""
 
-    mesh = MeshReader([])
-    mesh.verify_input(directory)
-    mesh.load_mesh(directory)
+    mesh_data = MeshReader([])
 
-    return mesh.mesh
+    mesh_data.verify_input(directory)
+
+    mesh_data.load_mesh(directory)
+
+    mesh_data.mesh.limits = find_mins_maxs(mesh_data.mesh.nodes)
+
+    return mesh_data.mesh

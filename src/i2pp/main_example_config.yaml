@@ -1,6 +1,7 @@
 general:
   #input_mesh_directory: /scratch/bayer/Dat_inputs/Wuerfel.dat
   input_mesh_directory: /scratch/bayer/Git_respository/img2physiprop/Test_dat/inputfile_tutorial.dat
+  #input_mesh_directory: /scratch/bayer/01_ComputationalAnalysisAAA/Wuerfel/Wuerfelnomesh.mesh
   input_data_directory: /scratch/bayer/DICOM_Inputs/Human/
   output_directory: output
   material type: Neohook

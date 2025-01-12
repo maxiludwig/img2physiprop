@@ -6,7 +6,6 @@ from pathlib import Path
 from i2pp.core.Image_Data_Converter import convert_imagedata
 from i2pp.core.Image_Reader import verify_and_load_imagedata
 from i2pp.core.Interpolator import interpolate_image_2_mesh
-from i2pp.core.Mesh_Data import process_mesh
 from i2pp.core.Mesh_Reader import verify_and_load_mesh
 
 
@@ -19,14 +18,13 @@ def run_i2pp(config_i2pp):
     # output_directory = Path(config_i2pp["general"]["output_directory"])
 
     # load mesh
-    input_mesh = verify_and_load_mesh(directory_Mesh)
+    mesh_data = verify_and_load_mesh(directory_Mesh)
     # Assign mesh to class Mesh_data
 
-    mesh_data = process_mesh(input_mesh)
+    # mesh_data.limits = [-10000, -10000, 1201, 10000, 10000, 1201]
 
-    # mesh_data.limits=[-1000,-1000,0,1000,10000,3]
     slices = verify_and_load_imagedata(directory_imagedata, config_i2pp)
-    print("test")
+
     image_data = convert_imagedata(slices, mesh_data.limits)
 
     interpolate_image_2_mesh(image_data, mesh_data)

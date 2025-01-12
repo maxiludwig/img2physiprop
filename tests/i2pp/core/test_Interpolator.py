@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock
 
 import numpy as np
-from i2pp.core.Image_Data_Converter import ImageDataConverted
+from i2pp.core.Image_Data_Converter import ImageData
 from i2pp.core.Interpolator import InterpolatorClass, InterpolData
 from i2pp.core.Mesh_Reader import MeshData
 
@@ -16,11 +16,9 @@ def test_ImageValues_2_MeshCoords():
     points_image = np.array([[0, 0], [1, 2], [2, 0]])
     values_image = np.array([5, 3, 0])
 
-    image_data = ImageDataConverted(points_image, values_image, "")
+    image_data = ImageData(points_image, values_image, "")
 
-    mesh_data = MeshData(
-        nodes=points_mesh, element_coords=[], element_ids=[], limits=[]
-    )
+    mesh_data = MeshData(nodes=points_mesh, element_ids=[], limits=[])
     interpol_data = InterpolData(
         points=[], points_value=[], element_ids=[], element_value=[]
     )

@@ -2,8 +2,7 @@
 
 import glob
 import os
-
-# from abc import abstractmethod
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 import numpy as np
@@ -24,74 +23,73 @@ class SlicesData:
     Modality: list
 
 
-class ImageReader:
+def verify_input(directory):
+    """Verifies if data exists, is readable and determines fomat-type.
+
+    Raises:
+        RuntimeError: If Path not exists.
+        RuntimeError: If Path has no readable data.
+        RuntimeError: If Path has two or more formats of readable data.
+    """
+
+    if not os.path.exists(directory):
+        raise RuntimeError(
+            "Imagedata file not found!" "img2physiprop can not be executed!"
+        )
+
+    # check if imagedata is png-format
+    files_check_png = []
+    directory_png = directory + "*.png"
+    for fname in glob.glob(directory_png, recursive=False):
+        files_check_png.append(Image.open(fname))
+
+    # check if imagedata is dicom-format
+    files_check_dicom = []
+    directory_dicom = directory + "*.dcm"
+
+    for fname in glob.glob(directory_dicom, recursive=False):
+        files_check_dicom.append(pydicom.dcmread(fname))
+
+    if files_check_png == [] and files_check_dicom != []:
+        format_input = "dicom"
+
+    elif files_check_png != [] and files_check_dicom == []:
+        format_input = "png"
+
+    elif files_check_png == [] and files_check_dicom == []:
+        raise RuntimeError(
+            "Input data file is empty or has no readible data!"
+            "Please make sure the input file has the correct format"
+            "(dicom/png). Img2physiprop can not be executed!"
+        )
+
+    elif files_check_png != [] and files_check_dicom != []:
+        raise RuntimeError(
+            "Input data file has two different format types!"
+            "Img2physiprop can not be executed!"
+        )
+
+    return format_input
+
+
+class ImageReader(ABC):
     """Class to read image-data."""
 
-    def __init__(self, format_input, slices):
+    def __init__(self, format_input, config, slices):
         """Init ImageReader."""
-        self.slices = slices
         self.format_input = format_input
+        self.config = config
+        self.slices = slices
 
-    def verify_input(self, directory):
-        """Verifies if data exists, is readable and determines fomat-type.
-
-        Raises:
-            RuntimeError: If Path not exists.
-            RuntimeError: If Path has no readable data.
-            RuntimeError: If Path has two or more formats of readable data.
-        """
-
-        if not os.path.exists(directory):
-            raise RuntimeError(
-                "Imagedata file not found!"
-                "img2physiprop can not be executed!"
-            )
-
-        # check if imagedata is png-format
-        files_check_png = []
-        directory_png = directory + "*.png"
-        for fname in glob.glob(directory_png, recursive=False):
-            files_check_png.append(Image.open(fname))
-
-        # check if imagedata is dicom-format
-        files_check_dicom = []
-        directory_dicom = directory + "*.dcm"
-
-        for fname in glob.glob(directory_dicom, recursive=False):
-            files_check_dicom.append(pydicom.dcmread(fname))
-
-        if files_check_png == [] and files_check_dicom != []:
-            self.format_input = "dicom"
-
-        elif files_check_png != [] and files_check_dicom == []:
-            self.format_input = "png"
-
-        elif files_check_png == [] and files_check_dicom == []:
-            raise RuntimeError(
-                "Input data file is empty or has no readible data!"
-                "Please make sure the input file has the correct format"
-                "(dicom/png). Img2physiprop can not be executed!"
-            )
-
-        elif files_check_png != [] and files_check_dicom != []:
-            raise RuntimeError(
-                "Input data file has two different format types!"
-                "Img2physiprop can not be executed!"
-            )
-
-        return self.format_input
-
-    """
     @abstractmethod
     def load_image(self, directory):
-
-        raise NotImplementedError()
+        """Load image data."""
+        pass
 
     @abstractmethod
     def image_2_slices(self, image):
-
-        raise NotImplementedError()
-"""
+        """Turn Image data into slices."""
+        pass
 
 
 class DicomReader(ImageReader):
@@ -225,7 +223,7 @@ class PngReader(ImageReader):
 
         return png
 
-    def image_2_slices(self, png, config):
+    def image_2_slices(self, png):
         """Turns input-data into usable data (for png)"""
 
         for i in range(0, len(png)):
@@ -233,19 +231,19 @@ class PngReader(ImageReader):
             pxl_data = np.array(png[i])
             img_shape = np.array(pxl_data.shape)
             spacing = np.array(
-                config["Additional Information"]["Pixel_Spacing"]
+                self.config["Additional Information"]["Pixel_Spacing"]
             )
             slice_thickness = float(
-                config["Additional Information"]["Slice_Thickness"]
+                self.config["Additional Information"]["Slice_Thickness"]
             )
             start_pos = np.array(
-                config["Additional Information"]["Image_Position"]
+                self.config["Additional Information"]["Image_Position"]
             )
             pos = start_pos + np.array([0, 0, i * slice_thickness])
             orientation = np.array(
-                config["Additional Information"]["Image_Orientation"]
+                self.config["Additional Information"]["Image_Orientation"]
             )
-            mod = str(config["Additional Information"]["Modality"])
+            mod = str(self.config["Additional Information"]["Modality"])
 
             self.slices.append(
                 SlicesData(
@@ -264,23 +262,19 @@ class PngReader(ImageReader):
 def verify_and_load_imagedata(directory, config):
     """Calls Image Reader."""
 
-    # Check Format of Imagedata
-    input_data = ImageReader("", [])
-    input_data.verify_input(directory)
+    format_image = verify_input(directory)
 
     # Import Image-data
-    if input_data.format_input == "dicom":
+    if format_image == "dicom":
 
-        image_data = DicomReader(input_data.format_input, [])
-        dicom = image_data.load_image(directory)
-        slices = image_data.image_2_slices(dicom)
+        image_data = DicomReader(format_image, config, [])
 
-        return slices
+    elif format_image == "png":
 
-    elif image_data.format_input == "png":
-
-        image_data = PngReader(input_data.format_input, [])
+        image_data = PngReader(format_image, config, [])
         image_data.verify_additional_informations
-        png = image_data.load_image(directory)
-        slices = image_data.image_2_slices(png, config)
+
+    image = image_data.load_image(directory)
+    slices = image_data.image_2_slices(image)
+
     return slices

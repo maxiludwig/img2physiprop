@@ -1,5 +1,6 @@
 """Useful function that are used in other modules."""
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -8,23 +9,17 @@ def find_mins_maxs(points):
     minx = maxx = miny = maxy = minz = maxz = None
     CONST_ENLARGE = 2
 
-    for p in points:
-        # p contains (x, y, z)
+    x = [p[0] for p in points]
+    y = [p[1] for p in points]
+    z = [p[2] for p in points]
 
-        if minx is None:
-            minx = p[0]
-            maxx = p[0]  # maxx
-            miny = p[1]  # miny
-            maxy = p[1]  # maxy
-            minz = p[2]  # minz
-            maxz = p[2]  # maxz
-        else:
-            minx = min(p[0], minx)  # minx
-            maxx = max(p[0], maxx)  # maxx
-            miny = min(p[1], miny)  # miny
-            maxy = max(p[1], maxy)  # maxy
-            minz = min(p[2], minz)  # minz
-            maxz = max(p[2], maxz)  # maxz
+    minx = min(x)
+    miny = min(y)
+    minz = min(z)
+
+    maxx = max(x)
+    maxy = max(y)
+    maxz = max(z)
 
     limits = np.array(
         [
@@ -55,3 +50,35 @@ def find_ids(points_to_find, nodes):
         for point in points_to_find_as_tuples
     ]
     return indices
+
+
+def save_plot(coords, values, name):
+    """Save plot to verify results."""
+
+    x = [p[0] for p in coords]
+    y = [p[1] for p in coords]
+    z = [p[2] for p in coords]
+
+    print(set(z))
+
+    dynamic_min = min(values)
+    dynamic_max = max(values)
+
+    print(dynamic_min)
+    print(dynamic_max)
+
+    normalized_values = [
+        (v - dynamic_min) / (dynamic_max - dynamic_min) for v in values
+    ]
+    normalized_values = np.clip(normalized_values, 0, 1)
+
+    plt.scatter(
+        x, y, c=normalized_values, cmap="gray", s=1, edgecolors="black"
+    )
+    plt.gca().invert_yaxis()
+
+    plt.xlabel("X-Koordinate")
+    plt.ylabel("Y-Koordinate")
+    plt.title("2D-Punkte mit Grauwerten")
+
+    plt.savefig(name, dpi=300)

@@ -58,7 +58,7 @@ class InterpolatorClass:
         value_image = self.image_data.pxl_value
 
         target_points = self.mesh_data.nodes
-        """print(points_image) print(value_image) print(target_points)"""
+
         print("Starting Interpolation!")
 
         interpolated_values = griddata(

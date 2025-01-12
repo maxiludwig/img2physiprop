@@ -8,9 +8,9 @@ import pydicom
 import pytest
 from i2pp.core.Image_Reader import (
     DicomReader,
-    ImageReader,
     PngReader,
     verify_and_load_imagedata,
+    verify_input,
 )
 from PIL import Image
 from pydicom.data import get_testdata_file
@@ -20,11 +20,10 @@ from pydicom.data import get_testdata_file
 def test_verify_input_imagedata_not_exist():
     """Test verify_input when Path not exist."""
 
-    test_input = ImageReader("", [])
     directory = "not_existing_path"
 
     with pytest.raises(RuntimeError, match="Imagedata file not found!"):
-        test_input.verify_input(directory)
+        verify_input(directory)
 
 
 def test_verify_input_dicom(tmp_path: Path):
@@ -35,12 +34,9 @@ def test_verify_input_dicom(tmp_path: Path):
     dicom_file_path = tmp_path / "testdicom.dcm"
     ds.save_as(dicom_file_path, enforce_file_format=False)
 
-    test_input = ImageReader("", [])
-
     input_path = str(tmp_path) + "/"
-    test_input.verify_input(input_path)
 
-    assert test_input.format_input == "dicom"
+    assert verify_input(input_path) == "dicom"
 
 
 def test_verify_input_png(tmp_path: Path):
@@ -52,11 +48,9 @@ def test_verify_input_png(tmp_path: Path):
     png_file_path = tmp_path / "testpng.png"
     image.save(png_file_path)
 
-    test_input = ImageReader("", [])
     input_path = str(tmp_path) + "/"
-    test_input.verify_input(input_path)
 
-    assert test_input.format_input == "png"
+    assert verify_input(input_path) == "png"
 
 
 def test_verify_input_png_and_dicom(tmp_path: Path):
@@ -73,25 +67,23 @@ def test_verify_input_png_and_dicom(tmp_path: Path):
     dicom_file_path = tmp_path / "testdicom.dcm"
     ds.save_as(dicom_file_path, enforce_file_format=False)
 
-    test_input = ImageReader("", [])
     input_path = str(tmp_path) + "/"
 
     with pytest.raises(
         RuntimeError, match="Input data file has two different format types!"
     ):
-        test_input.verify_input(input_path)
+        verify_input(input_path)
 
 
 def test_verify_input_no_data(tmp_path: Path):
     """Test verify_input when Path has no readable data."""
 
-    test_input = ImageReader("", [])
     input_path = str(tmp_path) + "/"
 
     with pytest.raises(
         RuntimeError, match="Input data file is empty or has no readible data!"
     ):
-        test_input.verify_input(input_path)
+        verify_input(input_path)
 
 
 def test_load_dicom(tmp_path: Path):
@@ -107,7 +99,7 @@ def test_load_dicom(tmp_path: Path):
     ds1.save_as(dicom_file_path1, enforce_file_format=False)
     ds2.save_as(dicom_file_path2, enforce_file_format=False)
 
-    test_input = DicomReader("dicom", [])
+    test_input = DicomReader("dicom", [], [])
     input_path = str(tmp_path) + "/"
     with patch("pydicom.dcmread", wraps=pydicom.dcmread) as mock_dcmread:
         # load_dicom aufrufen
@@ -129,7 +121,7 @@ def test_dicom_2_slices():
     ds.append(pydicom.dcmread(example_file1))
     ds.append(pydicom.dcmread(example_file2))
 
-    test_class = DicomReader("dicom", [])
+    test_class = DicomReader("dicom", [], [])
     slice = test_class.image_2_slices(ds)
 
     assert slice[0].Modality == "MR"
@@ -148,7 +140,7 @@ def test_verify_additional_informations_wrong_Spacing():
             "Modality": "CT",
         }
     }
-    test_class = PngReader("", [])
+    test_class = PngReader("png", test_config, [])
     with pytest.raises(
         RuntimeError, match="Parameter 'Spacing' not readable."
     ):
@@ -167,7 +159,7 @@ def test_verify_additional_informations_wrong_Slice_Thickness():
             "Modality": "CT",
         }
     }
-    test_class = PngReader("", [])
+    test_class = PngReader("png", test_config, [])
     with pytest.raises(
         RuntimeError, match="Parameter 'Slice_Thickness' not readable."
     ):
@@ -186,7 +178,7 @@ def test_verify_additional_informations_wrong_Image_Position():
             "Modality": "CT",
         }
     }
-    test_class = PngReader("", [])
+    test_class = PngReader("png", test_config, [])
     with pytest.raises(
         RuntimeError, match="Parameter 'Image_Position' not readable."
     ):
@@ -205,7 +197,7 @@ def test_verify_additional_informations_wrong_Image_Orientation():
             "Modality": "CT",
         }
     }
-    test_class = PngReader("", [])
+    test_class = PngReader("png", test_config, [])
     with pytest.raises(
         RuntimeError, match="Parameter 'Image_Orientation' not readable."
     ):
@@ -224,7 +216,7 @@ def test_verify_additional_informations_wrong_Modality():
             "Modality": [1, 2, 4],
         }
     }
-    test_class = PngReader("", [])
+    test_class = PngReader("png", test_config, [])
     with pytest.raises(
         RuntimeError, match="Parameter 'Modality' not readable."
     ):
@@ -243,7 +235,7 @@ def test_load_png(tmp_path: Path):
     image_1.save(png_file_path_1)
     image_2.save(png_file_path_2)
 
-    test_input = PngReader("png", [])
+    test_input = PngReader("png", [], [])
     input_path = str(tmp_path) + "/"
 
     with patch("PIL.Image.open", wraps=Image.open) as mock_image_open:
@@ -269,8 +261,8 @@ def test_load_png_2_slices():
     png.append([[1, 1], [2, 2]])
     png.append([[3, 3], [4, 4]])
 
-    test_input = PngReader("png", [])
-    slice = test_input.image_2_slices(png, test_config)
+    test_input = PngReader("png", test_config, [])
+    slice = test_input.image_2_slices(png)
 
     assert slice[0].Modality == "CT"
     assert np.array_equal(slice[1].ImagePositionPatient, np.array([0, 0, 1]))
