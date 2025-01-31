@@ -1,11 +1,28 @@
 """Useful function that are used in other modules."""
 
+from dataclasses import dataclass
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def find_mins_maxs(points):
-    """Find maxima and minuma x-,y-,z-coordinate for a set of points."""
+@dataclass
+class Limits:
+    """Dataclass for Limits of a set of points."""
+
+    max: np.ndarray
+    min: np.ndarray
+
+
+def find_mins_maxs(points: np.ndarray) -> Limits:
+    """Find the minimum and maximum values of a set of points.
+
+    Arguments:
+        points {np.ndarray} -- Set of points
+
+    Returns:
+        object -- Limits of the points
+    """
     minx = maxx = miny = maxy = minz = maxz = None
     CONST_ENLARGE = 2
 
@@ -13,46 +30,34 @@ def find_mins_maxs(points):
     y = [p[1] for p in points]
     z = [p[2] for p in points]
 
-    minx = min(x)
-    miny = min(y)
-    minz = min(z)
+    minx = min(x) - CONST_ENLARGE
+    miny = min(y) - CONST_ENLARGE
+    minz = min(z) - CONST_ENLARGE
 
-    maxx = max(x)
-    maxy = max(y)
-    maxz = max(z)
+    maxx = max(x) + CONST_ENLARGE
+    maxy = max(y) + CONST_ENLARGE
+    maxz = max(z) + CONST_ENLARGE
 
-    limits = np.array(
-        [
-            minx - CONST_ENLARGE,
-            miny - CONST_ENLARGE,
-            minz - CONST_ENLARGE,
-            maxx + CONST_ENLARGE,
-            maxy + CONST_ENLARGE,
-            maxz + CONST_ENLARGE,
-        ],
-        dtype=float,
+    return Limits(
+        max=np.array([maxx, maxy, maxz]), min=np.array([minx, miny, minz])
     )
 
-    return limits
+
+def plot_png(
+    coords: np.ndarray, values: np.ndarray, range: np.ndarray
+) -> None:
+    """Plot the points in a 2D-Plot."""
+
+    colors_normalized = values / range[1]
+
+    x = [p[0] for p in coords]
+    y = [p[1] for p in coords]
+
+    plt.scatter(x, y, c=colors_normalized, s=100)
+    plt.savefig("not_smoothed", dpi=300)
 
 
-def find_ids(points_to_find, nodes):
-    """Searches Points_to_find in a set of nodes and returns the position in
-    the array "nodes"."""
-
-    nodes_array_as_tuples = [tuple(p) for p in nodes]
-    points_to_find_as_tuples = [tuple(p) for p in points_to_find]
-
-    point_set = set(nodes_array_as_tuples)
-
-    indices = [
-        nodes_array_as_tuples.index(point) if point in point_set else -1
-        for point in points_to_find_as_tuples
-    ]
-    return indices
-
-
-def save_plot(coords, values, name):
+def save_plot(coords: np.ndarray, values: np.ndarray, name: str) -> None:
     """Save plot to verify results."""
 
     x = [p[0] for p in coords]

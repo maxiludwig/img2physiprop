@@ -6,8 +6,9 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import yaml
-from i2pp.core.Image_Data_Converter import convert_imagedata
-from i2pp.core.Image_Reader import verify_and_load_imagedata
+from i2pp.core.image_data_converter import convert_imagedata
+from i2pp.core.import_image import verify_and_load_imagedata
+from i2pp.core.utilities import Limits
 from munch import munchify
 
 directory = "/scratch/bayer/Git_respository/img2physiprop/Test_png/"
@@ -30,11 +31,13 @@ if not os.path.isfile(args.config_file_path):
 with open(args.config_file_path, "r") as file:
     config = munchify(yaml.safe_load(file))
 
-slices = verify_and_load_imagedata(directory, config)
+slices, range = verify_and_load_imagedata(config)
 
-limits = [-1000, -1000, 0, 1000, 1000, 0]
 
-image_data = convert_imagedata(slices, limits)
+limits = Limits(max=np.array([1000, 1000, 0]), min=np.array([-1000, -1000, 0]))
+
+
+image_data = convert_imagedata(slices, limits, config)
 
 x = [p[0] for p in image_data.coord_array]
 y = [p[1] for p in image_data.coord_array]
