@@ -29,7 +29,7 @@ def test_verify_input_wrong_format(tmp_path: Path) -> None:
     test_path = tmp_path / "test_mesh.stl"
 
     with patch("pathlib.Path.is_file", returnValue=True):
-        with pytest.raises(RuntimeError, match="Mesh data not readable!"):
+        with pytest.raises(RuntimeError, match=".stl not readable!"):
             verify_input(Path(test_path))
 
 

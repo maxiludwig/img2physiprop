@@ -2,30 +2,11 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 
 import numpy as np
 from i2pp.core.utilities import get_node_position_of_element
 from tqdm import tqdm
-
-
-class ModelFormat(Enum):
-    """ModelFormat (Enum): Defines the supported file formats for model data.
-
-    Attributes:
-        MESH: Represents the model data in the .mesh format, commonly used
-              for 3D models.
-        DAT: Represents the model data in the .dat format, typically used
-             for storing node and element data.
-
-    This enum helps identify the format of the model data being processed
-    and guides the appropriate handling of the data based on its format
-    (e.g., .mesh vs. .dat).
-    """
-
-    MESH = ".mesh"
-    DAT = ".dat"
 
 
 @dataclass

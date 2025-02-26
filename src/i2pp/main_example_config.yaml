@@ -12,7 +12,7 @@ Processing options:
   Matarial_IDs:
   Smoothing: False
   Smoothing_area: 5
-  calculation_type: elementcenter
+  calculation_type: nodes
   normalize_values: False
   user_script: /scratch/bayer/user_functions/user_function.py
   user_function: user_function

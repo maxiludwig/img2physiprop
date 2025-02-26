@@ -175,7 +175,11 @@ class InterpolatorClass:
             center_coords_array
         )
 
-        for i, ele in enumerate(self.model_data.elements):
+        for i, ele in tqdm(
+            enumerate(self.model_data.elements),
+            total=len(self.model_data.elements),
+            desc="Processing Elements",
+        ):
             ele.value = ele_center_values[i]
 
         return self.model_data.elements

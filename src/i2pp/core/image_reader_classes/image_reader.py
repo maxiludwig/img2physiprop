@@ -75,24 +75,6 @@ class SlicesData:
     PixelType: PixelValueType
 
 
-class ImageFormat(Enum):
-    """ImageFormat (Enum): Represents the supported formats for image data.
-
-    Attributes:
-        Dicom: Represents the DICOM image format, commonly used in medical
-            imaging.
-        PNG: Represents the PNG (Portable Network Graphics) image format,
-            typically used for color images.
-
-    This enum is used to define the input format of raw image data and helps
-    in determining how the image data should be processed based on its format
-    (e.g., DICOM vs. PNG).
-    """
-
-    Dicom = ".dcm"
-    PNG = ".png"
-
-
 class ImageReader(ABC):
     """Abstract base class for reading and processing image data.
 

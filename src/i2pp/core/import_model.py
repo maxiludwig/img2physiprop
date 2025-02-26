@@ -1,7 +1,8 @@
 """Import Mesh data."""
 
+from enum import Enum
 from pathlib import Path
-from typing import cast
+from typing import Type, cast
 
 from i2pp.core.interpolator import CalculationType
 from i2pp.core.model_reader_classes.dat_reader import DatReader
@@ -9,10 +10,37 @@ from i2pp.core.model_reader_classes.mesh_reader import MeshReader
 from i2pp.core.model_reader_classes.model_reader import (
     Limits,
     ModelData,
-    ModelFormat,
     ModelReader,
 )
 from i2pp.core.utilities import find_mins_maxs
+
+
+class ModelFormat(Enum):
+    """ModelFormat (Enum): Defines the supported file formats for model data.
+
+    Attributes:
+        MESH: Represents the model data in the '.mesh' format, commonly used
+              for 3D models.
+        DAT: Represents the model data in the '.dat' format, typically used
+             for storing node and element data.
+
+    This enum helps identify the format of the model data being processed
+    and guides the appropriate handling of the data based on its format
+    (e.g., .mesh vs. .dat).
+    """
+
+    MESH = ".mesh"
+    DAT = ".dat"
+
+    def get_class(self) -> Type[ModelReader]:
+        """Returns the appropriate model reader class based on the model
+        format.
+
+        Returns:
+            Type[ModelReader]: A class that is a subclass of `ModelReader`,
+                either `MeshReader` or `DatReader`.
+        """
+        return {ModelFormat.MESH: MeshReader, ModelFormat.DAT: DatReader}[self]
 
 
 def verify_input(directory: Path) -> ModelFormat:
@@ -40,7 +68,8 @@ def verify_input(directory: Path) -> ModelFormat:
 
     if directory.suffix not in [".mesh", ".dat"]:
         raise RuntimeError(
-            "Mesh data not readable! Format has to be '.mesh' or '.dat'"
+            f"{directory.suffix} not readable! Format has to be '.mesh'"
+            "or '.dat'"
         )
 
     return ModelFormat(directory.suffix)
@@ -66,11 +95,9 @@ def verify_and_load_model(config: dict) -> ModelData:
     """
     directory = Path(config["Input Informations"]["model_file_path"])
 
-    suffix = verify_input(directory)
+    model_format = verify_input(directory)
 
-    readers = {ModelFormat.MESH: MeshReader, ModelFormat.DAT: DatReader}
-
-    model_reader = cast(ModelReader, readers[suffix]())
+    model_reader = cast(ModelReader, model_format.get_class())
 
     model = model_reader.load_model(directory, config["Processing options"])
 

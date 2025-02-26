@@ -1,6 +1,5 @@
 """Runner which executes the main routine of img2physiprop."""
 
-# import matplotlib.pyplot as plt
 from i2pp.core.export_data import export_data
 from i2pp.core.image_data_converter import convert_imagedata
 from i2pp.core.import_image import verify_and_load_imagedata

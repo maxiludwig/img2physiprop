@@ -1,18 +1,49 @@
 """Import image data and convert it into slices."""
 
+from enum import Enum
 from pathlib import Path
-from typing import cast
+from typing import Type, cast
 
 import numpy as np
 from i2pp.core.image_reader_classes.dicom_reader import DicomReader
 from i2pp.core.image_reader_classes.image_reader import (
-    ImageFormat,
     ImageReader,
     PixelValueType,
     SlicesData,
 )
 from i2pp.core.image_reader_classes.png_reader import PngReader
 from i2pp.core.model_reader_classes.model_reader import Limits
+
+
+class ImageFormat(Enum):
+    """ImageFormat (Enum): Represents the supported formats for image data.
+
+    Attributes:
+        Dicom: Represents the DICOM image format, commonly used in medical
+            imaging.
+        PNG: Represents the PNG (Portable Network Graphics) image format,
+            typically used for color images.
+
+    This enum is used to define the input format of raw image data and helps
+    in determining how the image data should be processed based on its format
+    (e.g., DICOM vs. PNG).
+    """
+
+    Dicom = ".dcm"
+    PNG = ".png"
+
+    def get_class(self) -> Type[ImageReader]:
+        """Returns the appropriate image reader class based on the image
+        format.
+
+        Returns:
+            Type[ImageReader]: A class that is a subclass of `ImageReader`,
+                either `DicomReader` or `PngReader`.
+        """
+        return {
+            ImageFormat.Dicom: DicomReader,
+            ImageFormat.PNG: PngReader,
+        }[self]
 
 
 def verify_input(directory: Path) -> ImageFormat:
@@ -93,11 +124,9 @@ def verify_and_load_imagedata(
     """
     directory = Path(config["Input Informations"]["image_folder_path"])
 
-    format_image = verify_input(directory)
+    image_format = verify_input(directory)
 
-    readers = {ImageFormat.Dicom: DicomReader, ImageFormat.PNG: PngReader}
-
-    image_reader = cast(ImageReader, readers[format_image](config, limits))
+    image_reader = cast(ImageReader, image_format.get_class()(config, limits))
 
     raw_image = image_reader.load_image(directory)
     slices = image_reader.image_to_slices(raw_image)
