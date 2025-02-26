@@ -20,6 +20,9 @@ docs/
 ### PNG ###
 *.png
 
+### Pattern ###
+*.pattern
+
 ### DAT ###
 *.dat
 

@@ -1,52 +1,48 @@
-"""Import image data and convert it in slices."""
+"""Import image data and convert it into slices."""
 
-import glob
-import os
-from enum import Enum
-from typing import Union
+from pathlib import Path
+from typing import cast
 
 import numpy as np
 from i2pp.core.image_reader_classes.dicom_reader import DicomReader
 from i2pp.core.image_reader_classes.image_reader import (
+    ImageFormat,
+    ImageReader,
     PixelValueType,
     SlicesData,
 )
 from i2pp.core.image_reader_classes.png_reader import PngReader
+from i2pp.core.model_reader_classes.model_reader import Limits
 
 
-class ImageFormat(Enum):
-    """Options for image-data format."""
+def verify_input(directory: Path) -> ImageFormat:
+    """Verifies the existence and readability of image data and determines the
+    format type.
 
-    Dicom = 1
-    PNG = 2
-
-
-def verify_input(directory: str) -> ImageFormat:
-    """Verifies if data exists, is readable and determines fomat-type.
+    This function checks whether the provided directory exists, contains
+    readable image data, and determines the format of the image data (either
+    DICOM or PNG). If the directory is empty, contains both DICOM and PNG
+    files, or is otherwise invalid, an appropriate error is raised.
 
     Arguments:
-        directory {str} -- Path to the image-data folder.
+        directory (Path): Path to the image-data folder.
 
     Raises:
-        RuntimeError: If Path not exists.
-        RuntimeError: If Path has no readable data.
-        RuntimeError: If Path has two or more formats of readable data.
-    """
+        RuntimeError: If the specified path does not exist.
+        RuntimeError: If the path has no readable data.
+        RuntimeError: If the path contains more than one type of readable data
+            (both PNG and DICOM).
 
-    if not os.path.exists(directory):
+    Returns:
+        ImageFormat: The format of the image data (either DICOM or PNG).
+    """
+    if not Path(directory).is_dir():
         raise RuntimeError(
-            "Imagedata file not found!" "img2physiprop can not be executed!"
+            "Imagedata file not found! img2physiprop cannot be executed!"
         )
 
-    png_exist = False
-    directory_png = directory + "*.png"
-    if glob.glob(directory_png, recursive=False):
-        png_exist = True
-
-    dicom_exist = False
-    directory_dicom = directory + "*.dcm"
-    if glob.glob(directory_dicom, recursive=False):
-        dicom_exist = True
+    png_exist = any(directory.glob("*.png"))
+    dicom_exist = any(directory.glob("*.dcm"))
 
     if not png_exist and dicom_exist:
         format_input = ImageFormat.Dicom
@@ -56,55 +52,60 @@ def verify_input(directory: str) -> ImageFormat:
 
     elif not png_exist and not dicom_exist:
         raise RuntimeError(
-            "Input data file is empty or has no readible data!"
-            "Please make sure the input file has the correct format"
-            "(dicom/png). Img2physiprop can not be executed!"
+            "Input data file is empty or has no readable data! "
+            "Please make sure the input file has the correct format "
+            "(dicom/png). Img2physiprop cannot be executed!"
         )
 
     elif png_exist and dicom_exist:
         raise RuntimeError(
-            "Input data file has two different format types!"
-            "Img2physiprop can not be executed!"
+            "Input data file has two different format types! "
+            "Img2physiprop cannot be executed!"
         )
 
     return format_input
 
 
-def verify_and_load_imagedata(config) -> tuple[list[SlicesData], np.ndarray]:
-    """Calls Image Reader.
+def verify_and_load_imagedata(
+    config: dict, limits: Limits
+) -> tuple[list[SlicesData], np.ndarray]:
+    """Verifies input data format and loads the image data.
+
+    This function first checks the input directory for valid image data,
+    verifies the format (either DICOM or PNG), and then uses the corresponding
+    image reader to load the image data. The data is then converted into a
+    list of slices, and the pixel range is determined based on the pixel type
+    (MRT or other).
 
     Arguments:
-        config {object} -- User Configuration"""
+        config (dict): User configuration containing the directory for input
+            data and other settings.
+        limits (Limits): Model boundaries used for processing image data.
 
-    directory = config["general"]["input_data_directory"]
+    Returns:
+        tuple (list[SlicesData], np.ndarray): A tuple containing a list of
+            SlicesData objects representing the image slices, and an ndarray
+            containing the pixel range.
+
+    Raises:
+        RuntimeError: If the input data directory is invalid or contains
+            unsupported data formats.
+    """
+    directory = Path(config["Input Informations"]["image_folder_path"])
 
     format_image = verify_input(directory)
 
-    image_reader: Union[DicomReader, PngReader]
+    readers = {ImageFormat.Dicom: DicomReader, ImageFormat.PNG: PngReader}
 
-    if format_image == ImageFormat.Dicom:
-
-        image_reader = DicomReader(config)
-
-    elif format_image == ImageFormat.PNG:
-
-        image_reader = PngReader(config)
-        image_reader.verify_additional_informations
+    image_reader = cast(ImageReader, readers[format_image](config, limits))
 
     raw_image = image_reader.load_image(directory)
-    slices = image_reader.image_2_slices(raw_image)
+    slices = image_reader.image_to_slices(raw_image)
 
-    if slices[0].Modality == PixelValueType.CT:
-
-        pxl_range = np.array([-1024, 3071])
-
-    elif slices[0].Modality == PixelValueType.MRT:
-
-        all_pxls = np.array([s.PixelData for s in slices])
-
-        pxl_range = np.array([np.min(all_pxls), np.max(all_pxls)])
-
+    if slices[0].PixelType == PixelValueType.MRT:
+        all_pxls = np.concatenate([s.PixelData.flatten() for s in slices])
+        pxl_range = np.array([all_pxls.min(), all_pxls.max()])
     else:
-        pxl_range = np.array([0, 255])
+        pxl_range = slices[0].PixelType.pxl_range
 
     return slices, pxl_range

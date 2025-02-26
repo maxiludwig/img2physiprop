@@ -14,15 +14,15 @@ from i2pp.core.import_image import (
     verify_and_load_imagedata,
     verify_input,
 )
+from i2pp.core.model_reader_classes.model_reader import Limits
 from PIL import Image
 from pydicom.data import get_testdata_file
 
 
-# class test_input_reader(unittest.TestCase):
 def test_verify_input_imagedata_not_exist():
     """Test verify_input when Path not exist."""
 
-    directory = "not_existing_path"
+    directory = Path("not_existing_path")
 
     with pytest.raises(RuntimeError, match="Imagedata file not found!"):
         verify_input(directory)
@@ -36,7 +36,7 @@ def test_verify_input_dicom(tmp_path: Path):
     dicom_file_path = tmp_path / "testdicom.dcm"
     ds.save_as(dicom_file_path, enforce_file_format=False)
 
-    input_path = str(tmp_path) + "/"
+    input_path = tmp_path
 
     assert verify_input(input_path) == ImageFormat.Dicom
 
@@ -50,7 +50,7 @@ def test_verify_input_png(tmp_path: Path):
     png_file_path = tmp_path / "testpng.png"
     image.save(png_file_path)
 
-    input_path = str(tmp_path) + "/"
+    input_path = tmp_path
 
     assert verify_input(input_path) == ImageFormat.PNG
 
@@ -69,7 +69,7 @@ def test_verify_input_png_and_dicom(tmp_path: Path):
     dicom_file_path = tmp_path / "testdicom.dcm"
     ds.save_as(dicom_file_path, enforce_file_format=False)
 
-    input_path = str(tmp_path) + "/"
+    input_path = tmp_path
 
     with pytest.raises(
         RuntimeError, match="Input data file has two different format types!"
@@ -80,10 +80,10 @@ def test_verify_input_png_and_dicom(tmp_path: Path):
 def test_verify_input_no_data(tmp_path: Path):
     """Test verify_input when Path has no readable data."""
 
-    input_path = str(tmp_path) + "/"
+    input_path = tmp_path
 
     with pytest.raises(
-        RuntimeError, match="Input data file is empty or has no readible data!"
+        RuntimeError, match="Input data file is empty or has no readable data"
     ):
         verify_input(input_path)
 
@@ -101,10 +101,10 @@ def test_load_dicom(tmp_path: Path):
     ds1.save_as(dicom_file_path1, enforce_file_format=False)
     ds2.save_as(dicom_file_path2, enforce_file_format=False)
 
-    test_input = DicomReader([])
-    input_path = str(tmp_path) + "/"
+    test_input = DicomReader({}, Limits(max=[0, 0, 1000], min=[1, 1, -1000]))
+    input_path = tmp_path
     with patch("pydicom.dcmread", wraps=pydicom.dcmread) as mock_dcmread:
-        # load_dicom aufrufen
+
         dicom = test_input.load_image(input_path)
 
         assert mock_dcmread.call_count == 2
@@ -114,7 +114,7 @@ def test_load_dicom(tmp_path: Path):
         )
 
 
-def test_dicom_2_slices():
+def test_dicom_to_slices():
     """Test dicom_2_slices if slices are processed correctly."""
 
     ds = []
@@ -123,14 +123,55 @@ def test_dicom_2_slices():
     ds.append(pydicom.dcmread(example_file1))
     ds.append(pydicom.dcmread(example_file2))
 
-    test_class = DicomReader([])
-    slice = test_class.image_2_slices(ds)
+    test_class = DicomReader([], Limits(min=[1, 1, -1000], max=[0, 0, 1000]))
+    slice = test_class.image_to_slices(ds)
 
-    assert slice[0].Modality == PixelValueType.MRT
-    assert slice[1].Modality == PixelValueType.CT
+    assert slice[0].PixelType == PixelValueType.MRT
+    assert slice[1].PixelType == PixelValueType.CT
 
 
-def test_verify_additional_informations_wrong_Spacing():
+def test_verify_additional_informations_input_missing():
+    """verify_additional_informations if information is missing."""
+
+    test_config = {
+        "Additional Information": {
+            "Pixel_Spacing": [1, 1],
+            "Slice_Thickness": 1,
+            "Image_Position": None,
+            "Image_Orientation": [0, 1, 0, 1, 0, 0],
+        }
+    }
+    test_class = PngReader(test_config, [])
+    with pytest.raises(
+        RuntimeError,
+        match="Missing parameter 'Image_Position' in additional information.",
+    ):
+        test_class._verify_additional_informations(
+            test_config["Additional Information"]
+        )
+
+
+def test_verify_additional_informations_wrong_type():
+    """verify_additional_informations when information has wrong type."""
+
+    test_config = {
+        "Additional Information": {
+            "Pixel_Spacing": [1, 1],
+            "Slice_Thickness": 1,
+            "Image_Position": 1,
+            "Image_Orientation": [0, 1, 0, 1, 0, 0],
+        }
+    }
+    test_class = PngReader(test_config, [])
+    with pytest.raises(
+        RuntimeError, match="Parameter 'Image_Position' has the wrong type."
+    ):
+        test_class._verify_additional_informations(
+            test_config["Additional Information"]
+        )
+
+
+def test_verify_additional_informations_wrong_shape():
     """verify_additional_informations when Spacing is wrong."""
 
     test_config = {
@@ -139,14 +180,15 @@ def test_verify_additional_informations_wrong_Spacing():
             "Slice_Thickness": 1,
             "Image_Position": [0, 0, 0],
             "Image_Orientation": [0, 1, 0, 1, 0, 0],
-            "Modality": "CT",
         }
     }
-    test_class = PngReader(test_config)
+    test_class = PngReader(test_config, [])
     with pytest.raises(
-        RuntimeError, match="Parameter 'Spacing' not readable."
+        RuntimeError, match="Parameter 'Pixel_Spacing' has the wrong shape."
     ):
-        test_class.verify_additional_informations(test_config)
+        test_class._verify_additional_informations(
+            test_config["Additional Information"]
+        )
 
 
 def test_verify_additional_informations_wrong_Slice_Thickness():
@@ -155,74 +197,44 @@ def test_verify_additional_informations_wrong_Slice_Thickness():
     test_config = {
         "Additional Information": {
             "Pixel_Spacing": [1, 1],
-            "Slice_Thickness": [1, 3],  # [3, 1],
+            "Slice_Thickness": [1, 3],
             "Image_Position": [0, 0, 0],
             "Image_Orientation": [0, 1, 0, 1, 0, 0],
-            "Modality": "CT",
         }
     }
-    test_class = PngReader(test_config)
+    test_class = PngReader(
+        test_config, Limits(max=[0, 0, 1000], min=[1, 1, -1000])
+    )
     with pytest.raises(
-        RuntimeError, match="Parameter 'Slice_Thickness' not readable."
+        RuntimeError, match="Parameter 'Slice_Thickness' must be a number"
     ):
-        test_class.verify_additional_informations(test_config)
+        test_class._verify_additional_informations(
+            test_config["Additional Information"]
+        )
 
 
-def test_verify_additional_informations_wrong_Image_Position():
-    """verify_additional_informations when Image_Position is wrong."""
-
-    test_config = {
-        "Additional Information": {
-            "Pixel_Spacing": [1, 1],
-            "Slice_Thickness": 1,
-            "Image_Position": [0, 0],
-            "Image_Orientation": [0, 1, 0, 1, 0, 0],
-            "Modality": "CT",
-        }
-    }
-    test_class = PngReader(test_config)
-    with pytest.raises(
-        RuntimeError, match="Parameter 'Image_Position' not readable."
-    ):
-        test_class.verify_additional_informations(test_config)
-
-
-def test_verify_additional_informations_wrong_Image_Orientation():
-    """verify_additional_informations when Image_Orientation is wrong."""
+def test_verify_additional_informations_default_orientation():
+    """Test verify_additional_informations if all config_parameters are
+    None."""
 
     test_config = {
         "Additional Information": {
             "Pixel_Spacing": [1, 1],
             "Slice_Thickness": 1,
             "Image_Position": [0, 0, 0],
-            "Image_Orientation": [0, 1, 0, 1, 0],
-            "Modality": "CT",
-        }
-    }
-    test_class = PngReader(test_config)
-    with pytest.raises(
-        RuntimeError, match="Parameter 'Image_Orientation' not readable."
-    ):
-        test_class.verify_additional_informations(test_config)
-
-
-def test_verify_additional_informations_only_none():
-    """Test verify_additional_informations if all
-    config_parameters are None."""
-
-    test_config = {
-        "Additional Information": {
-            "Pixel_Spacing": None,
-            "Slice_Thickness": None,
-            "Image_Position": None,
             "Image_Orientation": None,
-            "Modality": "CT",
         }
     }
-    test_class = PngReader(test_config)
-    test_class.verify_additional_informations(test_config)
+    test_class = PngReader(
+        test_config, Limits(max=[0, 0, 1000], min=[1, 1, -1000])
+    )
 
-    assert test_class.verify_additional_informations(test_config) is None
+    assert (
+        test_class._verify_additional_informations(
+            test_config["Additional Information"]
+        )
+        is None
+    )
 
 
 def test_load_png(tmp_path: Path):
@@ -237,14 +249,18 @@ def test_load_png(tmp_path: Path):
     image_1.save(png_file_path_1)
     image_2.save(png_file_path_2)
 
-    test_input = PngReader([])
-    input_path = str(tmp_path) + "/"
+    test_config = {"Additional Information": "Test"}
+
+    test_input = PngReader(test_config, Limits([], []))
+    input_path = tmp_path
 
     with patch("PIL.Image.open", wraps=Image.open) as mock_image_open:
-        # load_dicom aufrufen
-        test_input.load_image(input_path)
+        with patch.object(
+            PngReader, "_verify_additional_informations", return_value=None
+        ):
+            test_input.load_image(input_path)
 
-        assert mock_image_open.call_count == 2
+            assert mock_image_open.call_count == 2
 
 
 def test_load_png_2_slices():
@@ -256,44 +272,45 @@ def test_load_png_2_slices():
             "Slice_Thickness": 1,
             "Image_Position": [0, 0, 0],
             "Image_Orientation": [0, 1, 0, 1, 0, 0],
-            "Modality": "CT",
         }
     }
     png = []
     png.append([[1, 1], [2, 2]])
     png.append([[3, 3], [4, 4]])
 
-    test_input = PngReader(test_config)
-    slice = test_input.image_2_slices(png)
+    test_input = PngReader(
+        test_config, Limits(max=[0, 0, 1000], min=[1, 1, -1000])
+    )
+    slice = test_input.image_to_slices(png)
 
-    assert slice[0].Modality == PixelValueType.RGB
+    assert slice[0].PixelType == PixelValueType.RGB
     assert np.array_equal(slice[1].ImagePositionPatient, np.array([0, 0, 1]))
 
 
-def test_load_png_2_slices_only_none():
+def test_load_png_to_slices_dafaul_orientation():
     """Test load_png_2_slices if config_parameters are None."""
 
     test_config = {
         "Additional Information": {
-            "Pixel_Spacing": None,
-            "Slice_Thickness": None,
-            "Image_Position": None,
+            "Pixel_Spacing": [1, 1],
+            "Slice_Thickness": 1,
+            "Image_Position": [0, 0, 0],
             "Image_Orientation": None,
-            "Modality": "CT",
         }
     }
     png = []
     png.append([[1, 1], [2, 2]])
     png.append([[1, 1], [2, 2]])
+    png.append([[1, 1], [2, 2]])
 
-    test_input = PngReader(test_config)
-    slice = test_input.image_2_slices(png)
+    test_input = PngReader(test_config, Limits(max=[0, 0, 2], min=[1, 1, 1]))
+    slice = test_input.image_to_slices(png)
 
     assert np.array_equal(slice[0].PixelSpacing, np.array([1, 1]))
-    assert np.array_equal(slice[0].ImagePositionPatient, np.array([0, 0, 0]))
-    assert np.array_equal(slice[1].ImagePositionPatient, np.array([0, 0, 1]))
+    assert np.array_equal(slice[0].ImagePositionPatient, np.array([0, 0, 1]))
+    assert np.array_equal(slice[1].ImagePositionPatient, np.array([0, 0, 2]))
     assert np.array_equal(
-        slice[0].ImageOrientationPatient, np.array([0, 1, 0, 1, 0, 0])
+        slice[0].ImageOrientationPatient, np.array([0, -1, 0, 1, 0, 0])
     )
 
 
@@ -304,10 +321,12 @@ def test_verify_and_load_dicom(tmp_path: Path):
     ds = pydicom.dcmread(example_file)
     dicom_file_path = tmp_path / "testdicom.dcm"
     ds.save_as(dicom_file_path, enforce_file_format=False)
-    input_path = str(tmp_path) + "/"
+    input_path = tmp_path
 
-    config = {"general": {"input_data_directory": input_path}}
+    config = {"Input Informations": {"image_folder_path": input_path}}
 
-    slices = verify_and_load_imagedata(config)
+    slices = verify_and_load_imagedata(
+        config, Limits(max=[0, 0, 1000], min=[1, 1, -1000])
+    )
 
     assert slices

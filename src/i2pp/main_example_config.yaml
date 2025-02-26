@@ -1,25 +1,26 @@
-general:
-  #input_mesh_directory: /scratch/bayer/Dat_inputs/Wuerfel.dat
-  input_mesh_directory: /scratch/bayer/Git_respository/img2physiprop/Test_dat/inputfile_tutorial.dat
-  #input_mesh_directory: /scratch/bayer/01_ComputationalAnalysisAAA/Wuerfel/Wuerfelmesh.mesh
-  input_data_directory: /scratch/bayer/DICOM_Inputs/Human/
-  #input_data_directory: "/scratch/bayer/Git_respository/img2physiprop/Test_png/"
-  output_directory: output
+Input Informations:
+  model_file_path: /scratch/bayer/Git_respository/img2physiprop/Test_dat/inputfile_tutorial.dat
+  #model_file_path: /scratch/bayer/Dat_inputs/Wuerfel.dat
+  image_folder_path: /scratch/bayer/DICOM_Inputs/Human/
+#Necessary information for the PNG import
+Additional Information:
+  Pixel_Spacing: [1, 1]
+  Slice_Thickness: 1
+  Image_Position: [0, 0, 0]
+  Image_Orientation: [0, 1, 0, 1, 0, 0] #default: [0, -1, 0, 1, 0, 0]
+Processing options:
+  Matarial_IDs:
+  Smoothing: False
+  Smoothing_area: 5
+  calculation_type: elementcenter
+  normalize_values: False
   user_script: /scratch/bayer/user_functions/user_function.py
   user_function: user_function
-  sim_name: test_sim
-Further customizations:
-  #Smoothing
-  Smoothing: False #defaut: False. (True: Smoothin active, False: No Smoothin)
-  Smoothing_area: 27 #default: 27 (Takes mean value of n voxels around each voxel to compensate measurement errors)
-  #calculation_type:
-  # nodes: mean of element-nodes
-  # elementcenter: value of element-center
-  # allVoxel: mean of all Voxel inside the Mesh
-  calculation_type: nodes
-#Needed information for PNG-Image-data
-Additional Information:
-  Pixel_Spacing: [1, 1] #default: [1,1]
-  Slice_Thickness: 1 #default: 1
-  Image_Position: [0, 0, 0] #default: [0,0,0]
-  Image_Orientation: [0, 1, 0, 1, 0, 0] #default: [0,1,0,1,0,0]
+Output options:
+  Output_path: #/scratch/bayer/Git_respository/img2physiprop/  #default: current folder
+  Output_name: #pattern_test  #default: 'Output'
+
+#calculation_type:
+# nodes: mean of element-nodes
+# elementcenter: value of element-center
+# allVoxel: mean of all Voxel inside the Mesh

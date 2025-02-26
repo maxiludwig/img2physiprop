@@ -1,6 +1,7 @@
 """Main routine of img2physiprop."""
 
 import argparse
+import logging
 import os
 
 import yaml
@@ -14,6 +15,8 @@ def main() -> None:
     Raises:
         RuntimeError: If provided config is not a valid file.
     """
+
+    logging.basicConfig(level=logging.DEBUG)
     parser = argparse.ArgumentParser(description="Process some integers.")
     parser.add_argument(
         "--config_file_path",

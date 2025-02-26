@@ -1,80 +1,87 @@
 """Import Mesh data."""
 
-import os
-from enum import Enum
 from pathlib import Path
-from typing import Union
+from typing import cast
 
+from i2pp.core.interpolator import CalculationType
 from i2pp.core.model_reader_classes.dat_reader import DatReader
 from i2pp.core.model_reader_classes.mesh_reader import MeshReader
-from i2pp.core.model_reader_classes.model_reader import ModelData
+from i2pp.core.model_reader_classes.model_reader import (
+    Limits,
+    ModelData,
+    ModelFormat,
+    ModelReader,
+)
 from i2pp.core.utilities import find_mins_maxs
 
 
-class ModelFormat(Enum):
-    """Options for model-data format."""
-
-    Mesh = 1
-    Dat = 2
-
-
 def verify_input(directory: Path) -> ModelFormat:
-    """Verify if model exists and is readable.
+    """Verifies if the model file exists, is readable, and has a supported
+    format.
+
+    This function checks whether the provided model file exists and if its
+    format is valid (either `.mesh` or `.dat`). If the file is missing or
+    has an unsupported format, it raises an error.
 
     Arguments:
-        directory {str} -- Path to the model-data file.
+        directory (Path): Path to the model data file.
+
+    Returns:
+        ModelFormat: The format of the model file (`.mesh` or `.dat`).
 
     Raises:
-        RuntimeError: If Mesh is not a valid file
-        RuntimeError: If Mesh has wrong format-type.
+        RuntimeError: If the specified file does not exist.
+        RuntimeError: If the file format is not `.mesh` or `.dat`.
     """
-
-    if not os.path.isfile(directory):
+    if not directory.is_file():
         raise RuntimeError(
-            "Mesh data not found! img2physiprop can not be executed!"
+            "Mesh data not found! img2physiprop cannot be executed!"
         )
 
-    file_extension = directory.suffix
-
-    if file_extension == ".mesh":
-        format_input = ModelFormat.Mesh
-    elif file_extension == ".dat":
-        format_input = ModelFormat.Dat
-    else:
+    if directory.suffix not in [".mesh", ".dat"]:
         raise RuntimeError(
             "Mesh data not readable! Format has to be '.mesh' or '.dat'"
         )
 
-    return format_input
+    return ModelFormat(directory.suffix)
 
 
-def verify_and_load_mesh(config) -> ModelData:
-    """Calls Mesh Reader functions.
+def verify_and_load_model(config: dict) -> ModelData:
+    """Loads and processes mesh data based on the user configuration.
+
+    This function verifies the input mesh file, selects the appropriate reader
+    (MeshReader or DatReader), and loads the model data. If element center
+    calculations are required, it processes the model accordingly. Finally,
+    it determines the model's bounding limits.
 
     Arguments:
-        config {object} -- User Configuration.
+        config (dict): User configuration containing paths and processing
+            options.
 
     Returns:
-        object -- ModelData object."""
+        ModelData: The loaded and processed mesh data.
 
-    directory = Path(config["general"]["input_mesh_directory"])
+    Raises:
+        RuntimeError: If the mesh file is not valid or in the wrong format.
+    """
+    directory = Path(config["Input Informations"]["model_file_path"])
 
     suffix = verify_input(directory)
 
-    model_reader: Union[MeshReader, DatReader]
+    readers = {ModelFormat.MESH: MeshReader, ModelFormat.DAT: DatReader}
 
-    if suffix == ModelFormat.Mesh:
+    model_reader = cast(ModelReader, readers[suffix]())
 
-        model_reader = MeshReader()
+    model = model_reader.load_model(directory, config["Processing options"])
 
-    elif suffix == ModelFormat.Dat:
-        model_reader = DatReader()
-
-    model = model_reader.load_model(str(directory))
-
-    if config["Further customizations"]["calculation_type"] == "elementcenter":
+    if (
+        CalculationType(config["Processing options"]["calculation_type"])
+        == CalculationType.CENTER
+    ):
         model = model_reader.get_center(model)
 
-    model.limits = find_mins_maxs(model.nodes)
+    limits = find_mins_maxs(model.nodes.coords)
+
+    model.limits = Limits(min=limits[0], max=limits[1])
 
     return model

@@ -1,181 +1,299 @@
 """Interpolates pixel values from image-data to mesh-data."""
 
-from dataclasses import dataclass
+import logging
+from enum import Enum
+from typing import Callable
 
 import numpy as np
 from i2pp.core.image_data_converter import ProcessedImageData
-from i2pp.core.model_reader_classes.model_reader import ModelData
+from i2pp.core.model_reader_classes.model_reader import Element, ModelData
+from i2pp.core.utilities import get_node_position_of_element
 from scipy.interpolate import griddata
-from scipy.spatial import ConvexHull, Delaunay
+from scipy.spatial import ConvexHull, Delaunay, KDTree
 from tqdm import tqdm
 
 
-@dataclass
-class InterpolData:
-    """Dataclass for Interpolation-Data."""
-
-    points: list
-    element_ids: list
-    element_values: list
-
-
 class InterpolatorClass:
-    """Class to interpolate between Image-data and Mesh-data."""
+    """Class to interpolate pixel values from 3D image data to FEM model
+    elements.
+
+    This class provides methods to interpolate pixel values from
+    processed 3D image data onto the finite element model (FEM) by
+    associating the image data with model elements. Interpolation is
+    performed at various locations such as the nodes, element centers,
+    or based on all voxels inside the element. The class supports
+    multiple interpolation strategies based on user configuration.
+    """
 
     def __init__(self, image_data: ProcessedImageData, model_data: ModelData):
-        """Init InterpolatorClass."""
+        """Initialize the InterpolatorClass."""
         self.image_data = image_data
         self.model_data = model_data
 
     def _point_in_hull(self, point: np.ndarray, hull: ConvexHull) -> bool:
-        """Check if point is inside a hull
+        """Determines whether a given point is inside a convex hull.
+
+        This function checks if a specified point lies within the convex hull
+        using Delaunay triangulation. It returns `True` if the point is inside
+        the hull and `False` otherwise.
 
         Arguments:
-            point {np.ndarray} -- Point to check
-            hull {object} -- ConvexHull object
+            point (np.ndarray): The point to check (1D array of coordinates).
+            hull (ConvexHull): The convex hull object defining the boundary.
 
         Returns:
-            bool -- True if point is inside the hull"""
+            bool: True if the point is inside the convex hull, False
+                otherwise.
+        """
 
         deln = Delaunay(hull.points[hull.vertices])
         return deln.find_simplex(point) >= 0
 
     def _get_voxels_in_element(self, element_points: np.ndarray) -> np.ndarray:
-        """Returns all points from the image-data, that are inside an element
+        """Identifies and returns the pixel values of all voxels inside a give
+        mesh element.
+
+        This function determines which points from the image data fall within
+        the convex hull of a specified element. It first checks if a point is
+        within the element's bounding box for an initial filter, then verifies
+        if the point is inside the convex hull.
 
         Arguments:
-            element_points {np.ndarray} -- Points of the element
+            element_points (np.ndarray): Coordinates of the element's vertices.
 
         Returns:
-            np.ndarray -- Pixel values of the voxels inside the element"""
+            np.ndarray: An array containing pixel values of the voxels inside
+                the element.
+        """
 
-        values_in_mesh = []
         hull = ConvexHull(element_points)
+        bbox_min, bbox_max = element_points.min(axis=0), element_points.max(
+            axis=0
+        )
 
-        bbox_min = element_points.min(axis=0)
-        bbox_max = element_points.max(axis=0)
+        tree = KDTree(self.image_data.coord_array)
+        candidates = tree.query_ball_point(
+            hull.points[hull.vertices].mean(axis=0),
+            r=np.linalg.norm(bbox_max - bbox_min),
+        )
 
-        for i, point in enumerate(self.image_data.coord_array):
-
-            if np.any(point < bbox_min) or np.any(point > bbox_max):
-                continue
-
-            if self._point_in_hull(point, hull):
-                values_in_mesh.append(self.image_data.pxl_value[i])
+        values_in_mesh = [
+            self.image_data.pxl_value[i]
+            for i in candidates
+            if np.all(self.image_data.coord_array[i] >= bbox_min)
+            and np.all(self.image_data.coord_array[i] <= bbox_max)
+            and self._point_in_hull(self.image_data.coord_array[i], hull)
+        ]
 
         return np.array(values_in_mesh)
 
     def interpolate_imagevalues_to_points(
         self, target_points: np.ndarray
     ) -> np.ndarray:
-        """Interpolates the pixel values to target_points
+        """Interpolates pixel values from the image data onto specified target
+        points.
+
+        This function uses scattered data interpolation to estimate pixel
+        values at given target points based on the known pixel data from the
+        image. Linear interpolation is used to ensure a smooth transition of
+        values.
 
         Arguments:
-            target_points {np.ndarray} -- Points to interpolate the values to
+            target_points (np.ndarray): An array of coordinates where pixel
+                values should be interpolated.
 
         Returns:
-            np.ndarray -- Interpolated pixel values"""
+            np.ndarray: An array of interpolated pixel values at the target
+                points.
+        """
 
         points_image = self.image_data.coord_array
         values_image = self.image_data.pxl_value
 
-        print("Starting Interpolation!")
-
-        interpolated_values = griddata(
+        logging.info("Start Interpolation!")
+        target_points_values = griddata(
             points_image, values_image, target_points, method="linear"
         )
+        logging.info("Finished Interpolation!")
 
-        print("Interpolation done!")
+        return np.array(target_points_values)
 
-        return interpolated_values
+    def get_elementvalues_nodes(self) -> list[Element]:
+        """Computes the mean pixel value for each FEM element in the model
+        based on its node values.
 
-    def get_value_of_elements_nodes(
-        self, node_values: np.ndarray
-    ) -> np.ndarray:
-        """Calculates the mean pixel-value for each FEM-element in the model.
-        For calculation_type: nodes (mean of all element nodes)
+        This function interpolates pixel values at the coordinates of each
+        element's nodes and calculates the mean value for the element. It
+        applies when the `calculation_type` is set to "nodes".
+
+        Returns:
+            list[Element]: A list of FEM elements with their mean pixel values
+                assigned.
+        """
+
+        node_values = self.interpolate_imagevalues_to_points(
+            self.model_data.nodes.coords
+        )
+
+        node_positions = np.array(
+            [
+                get_node_position_of_element(
+                    ele.node_ids, self.model_data.nodes.ids
+                )
+                for ele in self.model_data.elements
+            ]
+        )
+
+        for i, ele in tqdm(
+            enumerate(self.model_data.elements),
+            total=len(self.model_data.elements),
+            desc="Processing Elements",
+        ):
+
+            ele.value = np.mean(node_values[node_positions[i]], axis=0)
+
+        return self.model_data.elements
+
+    def get_elementvalues_center(self) -> list[Element]:
+        """Computes the pixel value for each FEM element in the model based on
+        its center coordinate.
+
+        This function interpolates pixel values at the center coordinates of
+        each element and assigns the interpolated value to the element. It
+        applies when the `calculation_type` is set to "elementcenter".
+
+        Returns:
+            list[Element]: A list of FEM elements with their pixel values
+                assigned.
+        """
+
+        center_coords_array = np.array(
+            [ele.center_coord for ele in self.model_data.elements]
+        )
+
+        ele_center_values = self.interpolate_imagevalues_to_points(
+            center_coords_array
+        )
+
+        for i, ele in enumerate(self.model_data.elements):
+            ele.value = ele_center_values[i]
+
+        return self.model_data.elements
+
+    def get_elementvalues_all_voxels(self) -> list[Element]:
+        """Computes the mean pixel value for each FEM element based on all
+        voxels inside the element.
+
+        This function retrieves all voxel values contained within each FEM
+        element and calculates their mean. It applies when the
+        `calculation_type` is set to "allVoxel".
+
+        Returns:
+            list[Element]: A list of FEM elements with their pixel values
+                assigned.
+        """
+
+        node_positions = np.array(
+            [
+                get_node_position_of_element(
+                    ele.node_ids, self.model_data.nodes.ids
+                )
+                for ele in self.model_data.elements
+            ]
+        )
+
+        for i, ele in tqdm(
+            enumerate(self.model_data.elements),
+            total=len(self.model_data.elements),
+            desc="Element values",
+        ):
+
+            element_coords = self.model_data.nodes.coords[node_positions[i]]
+
+            voxels_in_mesh = self._get_voxels_in_element(element_coords)
+            ele.value = np.mean(voxels_in_mesh, axis=0)
+
+        return self.model_data.elements
+
+
+class CalculationType(Enum):
+    """Enum representing different calculation types for element value
+    determination.
+
+    This enum defines the available calculation types for mapping image data
+    to finite element model elements. The calculation type determines how the
+    image pixel values are assigned to the elements in the model.
+
+    Attributes:
+        NODES (str): Represents the calculation method where the pixel value
+            is averaged over the nodes of the element.
+        CENTER (str): Represents the calculation method where the pixel value
+            is based on the center of the element.
+        ALLVOXELS (str): Represents the calculation method where the pixel
+            value is averaged over all voxels inside the element.
+    """
+
+    NODES = "nodes"
+    CENTER = "elementcenter"
+    ALLVOXELS = "allvoxels"
+
+    def get_method(
+        self, interpol: InterpolatorClass
+    ) -> Callable[[], list[Element]]:
+        """Returns the interpolation method corresponding to the current
+        calculation type.
+
+        Depending on the value of the enum, this method selects the correct
+        interpolation function from the given interpolator instance, which
+        performs pixel value assignment for FEM elements.
 
         Arguments:
-            node_values {np.ndarray} -- Interpolated values for each model node
+            interpolator (InterpolatorClass): An instance of the interpolator
+                class that contains the interpolation methods for elements
+                (e.g., for nodes, center, or all voxels).
 
         Returns:
-            np.ndarray -- Mean pixel values for each element"""
-
-        element_values = []
-
-        for ele_ids in tqdm(
-            self.model_data.element_ids, desc="Element values"
-        ):
-
-            pxl_value = node_values[ele_ids]
-
-            element_values.append(np.mean(pxl_value, axis=0))
-
-        return np.array(element_values)
-
-    def get_value_of_elements_all_Voxels(self) -> np.ndarray:
-        """Calculates the mean pixel-value for each FEM-element in the mesh.
-        For calculation_type: allVoxel (mean of all voxels in the element)
-
-        Returns:
-            np.ndarray -- Mean pixel values for each element"""
-
-        element_values = []
-
-        for ele_ids in tqdm(
-            self.model_data.element_ids, desc="Element values"
-        ):
-
-            element_points = self.model_data.nodes[ele_ids]
-
-            voxels_in_mesh = self._get_voxels_in_element(element_points)
-
-            element_values.append(np.mean(voxels_in_mesh, axis=0))
-
-        return np.array(element_values)
+            Callable[[], list[Element]]: A function corresponding to the
+                selected calculation method (nodes, element center, or all
+                voxels).
+        """
+        return {
+            CalculationType.NODES: interpol.get_elementvalues_nodes,
+            CalculationType.ALLVOXELS: interpol.get_elementvalues_all_voxels,
+            CalculationType.CENTER: interpol.get_elementvalues_center,
+        }[self]
 
 
-def interpolate_image_2_mesh(
-    image_data: ProcessedImageData, model_data: ModelData, config
-) -> InterpolData:
-    """Call Interpolation functions.
+def interpolate_image_to_mesh(
+    image_data: ProcessedImageData, model_data: ModelData, config: dict
+) -> list[Element]:
+    """Performs interpolation of image data onto the FEM model based on the
+    specified calculation type.
+
+    This function applies different interpolation methods depending on the
+    user configuration. The pixel values are assigned to the FEM elements
+    using one of the following approaches:
+
+    - "nodes": Computes the mean pixel value for each element based on its
+        node values.
+    - "allVoxel": Computes the mean pixel value for each element based on
+        all voxels inside it.
+    - "elementcenter": Assigns pixel values based on the center of each
+        element.
 
     Arguments:
-        image_data {object} -- Processed image data
-        model_data {object} -- Model data
-        config {object} -- User configuration
+        image_data (ProcessedImageData): The processed 3D image data.
+        model_data (ModelData): The finite element model data.
+        config (dict): User-defined configuration settings.
 
     Returns:
-        object -- Interpolated data"""
+        list[Element]: A list of FEM elements with interpolated pixel values.
+    """
 
-    calculation_type = config["Further customizations"]["calculation_type"]
-
-    interpol_data = InterpolData(
-        points=model_data.nodes,
-        element_ids=model_data.element_ids,
-        element_values=[],
+    calculation_type = CalculationType(
+        config["Processing options"]["calculation_type"]
     )
+
     interpolator = InterpolatorClass(image_data, model_data)
 
-    match calculation_type:
-        case "nodes":
-            node_values = interpolator.interpolate_imagevalues_to_points(
-                model_data.nodes
-            )
-            interpol_data.element_values = (
-                interpolator.get_value_of_elements_nodes(node_values)
-            )
-
-        case "allVoxel":
-            interpol_data.element_values = (
-                interpolator.get_value_of_elements_all_Voxels()
-            )
-
-        case "elementcenter":
-            interpol_data.element_values = (
-                interpolator.interpolate_imagevalues_to_points(
-                    model_data.element_center
-                )
-            )
-
-    return interpol_data
+    return calculation_type.get_method(interpolator)()

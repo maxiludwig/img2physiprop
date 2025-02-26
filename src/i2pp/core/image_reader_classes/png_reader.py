@@ -1,7 +1,7 @@
-"""Import image data and convert it in slices."""
+"""Import image data and convert it into slices."""
 
-import glob
-from typing import Tuple, Union
+import logging
+from pathlib import Path
 
 import numpy as np
 from i2pp.core.image_reader_classes.image_reader import (
@@ -13,174 +13,155 @@ from PIL import Image
 
 
 class PngReader(ImageReader):
-    """Class to read PNG-data."""
+    """Class for reading and processing PNG image data.
 
-    def _check_array(
-        self, array: Union[list, np.ndarray], needed_size: Tuple[int]
-    ) -> bool:
-        """Private funtion to check if array has the correct size or is none.
-        This Function is used to verify the 'Additional Informations'.
+    This class extends `ImageReader` to handle 2D PNG images and convert them
+    into structured 3D slice representations. It validates additional metadata,
+    loads PNG files from a specified directory, and processes them into
+    standardized `SlicesData` objects.
+    """
 
-        Arguments:
-            array {Union[list, np.ndarray]} -- Array to check
-            needed_size {Tuple[int]} -- Needed size of the array
+    def _verify_additional_informations(self, additional_info: dict) -> None:
+        """Validates the format and dimensions of the additional information
+        provided.
 
-        Returns:
-            bool -- True if the array has not the correct size or is none"""
-
-        if array is None:
-            return False
-
-        elif isinstance(array, (list, np.ndarray)):
-            array = np.array(array)
-            if array.shape == needed_size:
-                return False
-            else:
-                return True
-        else:
-            return True
-
-    def verify_additional_informations(self, config) -> None:
-        """Checks if all additional informations have the correct format and
-        dimension.
+        This method checks that each required parameter in the dictionary
+        config["additional_info"] is present and has the correct shape or data
+        type. It performs validation for:
+        - Pixel_Spacing: Must be a 2x1 array.
+        - Slice_Thickness: Must be an integer or float.
+        - Image_Position: Must be a 3x1 array.
+        - Image_Orientation: Must be a 6x1 array or None.
 
         Arguments:
-            config {dict} -- Config with the additional informations.
+            additional_info (dict): Dictionary containing additional
+                information with keys: 'Pixel_Spacing', 'Slice_Thickness',
+                'Image_Position' and 'Image_Orientation'.
 
         Raises:
-           RuntimeError: If Pixel_Spacing is not an 2x1 Array and not none.
-           RuntimeError: If Slice_Thickness is not an int/float and not none.
-           RuntimeError: If Image_Position is not an 3x1 Array and not none.
-           RuntimeError: If Image_Orientation is not an 6x1 Array and not none.
-           RuntimeError: If Modality is not in the list of the
-                            accepted Modalities.
+            RuntimeError: If any of the parameters ('Pixel_Spacing',
+                'Slice_Thickness', 'Image_Position' and 'Image_Orientation')
+                are missing, of incorrect data type, or have an incorrect
+                shape.
         """
 
-        # Check Pixel_Spacing
-        spacing = config["Additional Information"]["Pixel_Spacing"]
+        expected_shapes = {
+            "Pixel_Spacing": (2,),
+            "Image_Position": (3,),
+            "Image_Orientation": (6,),
+        }
 
-        if self._check_array(spacing, (2,)):
+        for key, shape in expected_shapes.items():
+            value = additional_info.get(key)
+
+            if key == "Image_Orientation" and value is None:
+                continue
+
+            if value is None:
+                raise RuntimeError(
+                    f"Missing parameter '{key}' in additional information."
+                )
+
+            if not isinstance(value, (list, tuple, np.ndarray)):
+                raise RuntimeError(
+                    f"Parameter '{key}' has the wrong type. Expected: list, "
+                    "tuple, or np.ndarray."
+                )
+
+            array_value = np.array(value)
+            if array_value.shape != shape:
+                raise RuntimeError(
+                    f"Parameter '{key}' has the wrong shape. Expected: "
+                    "{shape}, but got: {array_value.shape}."
+                )
+
+        thickness = additional_info.get("Slice_Thickness")
+        if not isinstance(thickness, (int, float)):
             raise RuntimeError(
-                "Parameter 'Spacing' not readable."
-                "Spacing has to be an Array with size 2x1"
+                "Parameter 'Slice_Thickness' must be a number (int or float)."
             )
 
-        # Check Slice_Thickness
-        allowed_types_thickness = (int, float)
-        thickness = config["Additional Information"]["Slice_Thickness"]
-        if (
-            not isinstance(thickness, allowed_types_thickness)
-            and thickness is not None
-        ):
+    def load_image(self, directory: Path) -> list[np.ndarray]:
+        """Loads and processes PNG image data from a specified directory.
 
-            raise RuntimeError(
-                "Parameter 'Slice_Thickness' not readable."
-                "Slice_Thickness has to be a float"
-            )
-
-        # Check Image_Position
-        start_pos = config["Additional Information"]["Image_Position"]
-
-        if self._check_array(start_pos, (3,)):
-
-            raise RuntimeError(
-                "Parameter 'Image_Position' not readable."
-                "Image_Position has to be an Array with size 3x1"
-            )
-
-        # Check Image_Orientation
-        orientation = config["Additional Information"]["Image_Orientation"]
-
-        if self._check_array(orientation, (6,)):
-            raise RuntimeError(
-                "Parameter 'Image_Orientation' not readable. "
-                "Image_Orientation has to be an Array with size 6x1"
-            )
-
-    def load_image(self, directory: str) -> np.ndarray:
-        """Load raw-image-data for png format.
+        This function reads all PNG files in the given directory, verifies
+        the format of the additional information in the configuration, and
+        converts the images to RGB format. The 2-dimensional PNG images
+        together represent a 3D image.
 
         Arguments:
-            directory {str} -- Path to the png folder.
+            directory (Path): The directory containing the PNG image files.
 
         Returns:
-            np.ndarray -- Raw image data"""
+            list[np.ndarray]: A list of RGB images as NumPy arrays, each
+                representing a loaded image.
 
-        print("Load image data!")
+        Raises:
+            RuntimeError: If the additional information does not meet the
+                expected format or dimension.
+        """
+
+        logging.info("Load image data!")
+
+        self._verify_additional_informations(
+            self.config["Additional Information"]
+        )
 
         raw_png = []
-        directory_png = directory + "*.png"
-        for fname in glob.glob(directory_png, recursive=False):
+
+        for fname in directory.glob("*.png"):
             image_png = Image.open(fname)
             rgb_image = image_png.convert("RGB")
             raw_png.append(rgb_image)
 
         return raw_png
 
-    def image_2_slices(self, raw_png: np.ndarray) -> list[SlicesData]:
-        """Import 'Additional Informations'.
-        If 'Additional Informations' are not given -> default values.
-        Then turn raw-image-data into slices.
+    def image_to_slices(self, raw_pngs: list[np.ndarray]) -> list[SlicesData]:
+        """Converts a list of 2D PNG images into structured slice data.
+
+        This function processes the provided PNG images, converting each one
+        into a slice based on the slice thickness and the start position
+        defined in the additional information. It filters out slices that
+        fall outside the defined Z-axis limits of the 3D model. Relevant
+        metadata, including pixel spacing, image position, and orientation,
+        is extracted from the configuration, and each slice is stored as a
+        `SlicesData` object.
 
         Arguments:
-            raw_png {np.ndarray} -- Raw image data
+            raw_png (list[np.ndarray]): A list of 2D PNG images, each
+                representing a slice in a 3D volume.
 
         Returns:
-            object -- SlicesData of the image data"""
+            list[SlicesData]: A list of `SlicesData` objects, each containing
+                processed slice data with associated metadata.
+        """
 
         slices = []
+        additional_info: dict = self.config["Additional Information"]
 
-        for i in range(0, len(raw_png)):
+        spacing = np.array(additional_info["Pixel_Spacing"])
+        slice_thickness = float(additional_info["Slice_Thickness"])
+        start_pos = np.array(additional_info["Image_Position"])
+        orientation = np.array(
+            additional_info.get("Image_Orientation") or [0, -1, 0, 1, 0, 0]
+        )
 
-            pxl_data = np.array(raw_png[i])
-            img_shape = np.array(pxl_data.shape)
+        for i, png in enumerate(raw_pngs):
 
-            if self.config["Additional Information"]["Pixel_Spacing"] is None:
-                spacing = np.array([1, 1])
-            else:
-                spacing = np.array(
-                    self.config["Additional Information"]["Pixel_Spacing"]
-                )
-
-            if (
-                self.config["Additional Information"]["Slice_Thickness"]
-                is None
-            ):
-                slice_thickness = float(1)
-            else:
-                slice_thickness = float(
-                    self.config["Additional Information"]["Slice_Thickness"]
-                )
-
-            if self.config["Additional Information"]["Image_Position"] is None:
-                start_pos = np.array([0, 0, 0])
-
-            else:
-                start_pos = np.array(
-                    self.config["Additional Information"]["Image_Position"]
-                )
+            pxl_data = np.array(png)
 
             pos = start_pos + np.array([0, 0, i * slice_thickness])
 
-            if (
-                self.config["Additional Information"]["Image_Orientation"]
-                is None
-            ):
-                orientation = np.array([0, 1, 0, 1, 0, 0])
-            else:
-                orientation = np.array(
-                    self.config["Additional Information"]["Image_Orientation"]
-                )
+            if self.limits.min[2] <= pos[2] <= self.limits.max[2]:
 
-            slices.append(
-                SlicesData(
-                    PixelData=pxl_data,
-                    image_shape=img_shape,
-                    PixelSpacing=spacing,
-                    ImagePositionPatient=pos,
-                    ImageOrientationPatient=orientation,
-                    Modality=PixelValueType.RGB,
+                slices.append(
+                    SlicesData(
+                        PixelData=pxl_data,
+                        PixelSpacing=spacing,
+                        ImagePositionPatient=pos,
+                        ImageOrientationPatient=orientation,
+                        PixelType=PixelValueType.RGB,
+                    )
                 )
-            )
 
         return slices

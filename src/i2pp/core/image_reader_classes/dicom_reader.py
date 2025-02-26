@@ -1,6 +1,7 @@
-"""Import image data and convert it in slices."""
+"""Import image data and convert it into slices."""
 
-import glob
+import logging
+from pathlib import Path
 
 import numpy as np
 import pydicom
@@ -14,22 +15,38 @@ from pydicom.pixels import pixel_array
 
 
 class DicomReader(ImageReader):
-    """Class to read dicom-data."""
+    """A class for reading and processing DICOM image data.
 
-    def load_image(self, directory: str) -> FileDataset:
-        """Load raw-image-data for dicom format and sort it by Slice-Position.
+    This class provides functionality to load DICOM image slices from a
+    specified directory, filter and sort them based on their spatial
+    attributes, and convert them into structured slice data. It enables
+    the reconstruction of a 3D image from 2D DICOM slices while
+    preserving important metadata such as pixel spacing, position, and
+    orientation.
+    """
+
+    def load_image(self, directory: Path) -> list[FileDataset]:
+        """Loads and sorts DICOM image data from the specified directory.
+
+        This function searches for all `.dcm` files in the given directory,
+        reads them using `pydicom`, and filters out any files that do not
+        contain the `ImagePositionPatient` attribute. The remaining DICOM
+        files, which represent 2D slices of a 3D image, are then sorted
+        based on their Z-axis position to reconstruct the correct order of
+        the 3D volume.
 
         Arguments:
-            directory {str} -- Path to the dicom folder.
+            directory (Path): Path to the directory containing DICOM files.
 
         Returns:
-                object -- Raw image data
+            list[FileDataset]: A sorted list of DICOM datasets with valid
+                image data, representing a 3D image when combined.
         """
 
-        print("Load image data!")
-        directory_Dicom_new = directory + "*.dcm"
+        logging.info("Load image data!")
+
         files = []
-        for fname in glob.glob(directory_Dicom_new, recursive=False):
+        for fname in directory.glob("*.dcm"):
             files.append(pydicom.dcmread(fname))
 
         raw_dicom = []
@@ -39,46 +56,65 @@ class DicomReader(ImageReader):
             if hasattr(f, "ImagePositionPatient"):
                 raw_dicom.append(f)
             else:
-                skipcount = skipcount + 1
+                skipcount += 1
 
-        raw_dicom = sorted(raw_dicom, key=lambda s: s.ImagePositionPatient[2])
+        raw_dicoms = sorted(raw_dicom, key=lambda s: s.ImagePositionPatient[2])
 
-        return raw_dicom
+        return raw_dicoms
 
-    def image_2_slices(self, raw_dicom: FileDataset) -> list[SlicesData]:
-        """Turns the raw-image-data in SlicesData
+    def image_to_slices(
+        self, raw_dicoms: list[FileDataset]
+    ) -> list[SlicesData]:
+        """Converts a list of DICOM files into structured slice data.
+
+        This function processes DICOM image slices, filtering out those that
+        are outside the defined Z-axis limits of the 3D model. It extracts
+        relevant metadata, including pixel spacing, position, and orientation,
+        and assigns a pixel value type based on the modality (CT or MR).
+        The processed slices are stored as `SlicesData` objects.
 
         Arguments:
-            raw_dicom {object} -- Raw image data
+            raw_dicoms (list[FileDataset]): A list of DICOM datasets
+                representing 2D slices of a 3D image.
 
         Returns:
-            object -- SlicesData of the image data"""
+            list[SlicesData]: A list of `SlicesData` objects containing
+                structured pixel data and metadata for each valid slice.
+
+        Raises:
+            RuntimeError: If the modality of a DICOM file is not supported.
+        """
 
         slices = []
 
-        for i in range(0, len(raw_dicom)):
-            pxl_data = np.array(pixel_array(raw_dicom[i]))
-            img_shape = np.array((pxl_data.shape))
-            spacing = np.array(raw_dicom[i].PixelSpacing)
-            pos = np.array(raw_dicom[i].ImagePositionPatient)
-            orientation = np.array(raw_dicom[i].ImageOrientationPatient)
+        for dicom in raw_dicoms:
+            if (
+                self.limits.min[2]
+                <= dicom.ImagePositionPatient[2]
+                <= self.limits.max[2]
+            ):
 
-            if raw_dicom[i].Modality == "CT":
-                mod = PixelValueType.CT
-            elif raw_dicom[i].Modality == "MR":
-                mod = PixelValueType.MRT
-            else:
-                RuntimeError("Modality not supported")
+                pxl_data = np.array(pixel_array(dicom))
+                spacing = np.array(dicom.PixelSpacing)
+                pos = np.array(dicom.ImagePositionPatient)
+                orientation = np.array(dicom.ImageOrientationPatient)
 
-            slices.append(
-                SlicesData(
-                    PixelData=pxl_data,
-                    image_shape=img_shape,
-                    PixelSpacing=spacing,
-                    ImagePositionPatient=pos,
-                    ImageOrientationPatient=orientation,
-                    Modality=mod,
+                try:
+                    pxl_type = PixelValueType(dicom.Modality)
+
+                except ValueError:
+                    raise RuntimeError("Modality not supported")
+
+                slices.append(
+                    SlicesData(
+                        PixelData=pxl_data,
+                        PixelSpacing=spacing,
+                        ImagePositionPatient=pos,
+                        ImageOrientationPatient=orientation,
+                        PixelType=pxl_type,
+                    )
                 )
-            )
+            else:
+                continue
 
         return slices
