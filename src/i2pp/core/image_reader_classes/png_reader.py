@@ -5,61 +5,59 @@ from pathlib import Path
 
 import numpy as np
 from i2pp.core.image_reader_classes.image_reader import (
+    ImageMetaData,
     ImageReader,
     PixelValueType,
-    SlicesData,
+    Slice,
+    SlicesAndMetadata,
 )
 from PIL import Image
 
 
 class PngReader(ImageReader):
-    """Class for reading and processing PNG image data.
+    """Handles reading and processing of PNG image data.
 
-    This class extends `ImageReader` to handle 2D PNG images and convert them
-    into structured 3D slice representations. It validates additional metadata,
-    loads PNG files from a specified directory, and processes them into
-    standardized `SlicesData` objects.
+    This class extends `ImageReader` to process 2D PNG images and convert them
+    into structured slices. It validates image metadata, loads PNG files
+    from a directory, and processes them into `SlicesAndMetadata` objects.
     """
 
-    def _verify_additional_informations(self, additional_info: dict) -> None:
-        """Validates the format and dimensions of the additional information
-        provided.
+    def _verify_image_metadata(self, image_metadata: dict) -> None:
+        """Validates the format and dimensions of the image_metadata provided.
 
         This method checks that each required parameter in the dictionary
-        config["additional_info"] is present and has the correct shape or data
+        config["image_metadata"] is present and has the correct shape or data
         type. It performs validation for:
-        - Pixel_Spacing: Must be a 2x1 array.
-        - Slice_Thickness: Must be an integer or float.
-        - Image_Position: Must be a 3x1 array.
-        - Image_Orientation: Must be a 6x1 array or None.
+        - pixel_spacing: Must be a 2x1 array.
+        - slice_thickness: Must be an integer or float.
+        - image_position: Must be a 3x1 array.
+        - image_orientation: Must be a 6x1 array or None.
 
         Arguments:
-            additional_info (dict): Dictionary containing additional
-                information with keys: 'Pixel_Spacing', 'Slice_Thickness',
-                'Image_Position' and 'Image_Orientation'.
+            image_metadata (dict): Dictionary containing image_metadata
+                with keys: 'pixel_spacing', 'slice_thickness',
+                'image_position' and 'image_orientation'.
 
         Raises:
-            RuntimeError: If any of the parameters ('Pixel_Spacing',
-                'Slice_Thickness', 'Image_Position' and 'Image_Orientation')
-                are missing, of incorrect data type, or have an incorrect
-                shape.
+            RuntimeError: If any of the parameters are missing, of incorrect
+                data type, or have an incorrect shape.
         """
 
         expected_shapes = {
-            "Pixel_Spacing": (2,),
-            "Image_Position": (3,),
-            "Image_Orientation": (6,),
+            "pixel_spacing": (2,),
+            "image_position": (3,),
+            "image_orientation": (6,),
         }
 
         for key, shape in expected_shapes.items():
-            value = additional_info.get(key)
+            value = image_metadata.get(key)
 
-            if key == "Image_Orientation" and value is None:
+            if key == "image_orientation" and value is None:
                 continue
 
             if value is None:
                 raise RuntimeError(
-                    f"Missing parameter '{key}' in additional information."
+                    f"Missing parameter '{key}' in image_metadata."
                 )
 
             if not isinstance(value, (list, tuple, np.ndarray)):
@@ -75,17 +73,17 @@ class PngReader(ImageReader):
                     "{shape}, but got: {array_value.shape}."
                 )
 
-        thickness = additional_info.get("Slice_Thickness")
+        thickness = image_metadata.get("slice_thickness")
         if not isinstance(thickness, (int, float)):
             raise RuntimeError(
-                "Parameter 'Slice_Thickness' must be a number (int or float)."
+                "Parameter 'slice_thickness' must be a number (int or float)."
             )
 
     def load_image(self, directory: Path) -> list[np.ndarray]:
         """Loads and processes PNG image data from a specified directory.
 
         This function reads all PNG files in the given directory, verifies
-        the format of the additional information in the configuration, and
+        the format of the image_metadata in the configuration, and
         converts the images to RGB format. The 2-dimensional PNG images
         together represent a 3D image.
 
@@ -97,15 +95,13 @@ class PngReader(ImageReader):
                 representing a loaded image.
 
         Raises:
-            RuntimeError: If the additional information does not meet the
+            RuntimeError: If the image_metadata does not meet the
                 expected format or dimension.
         """
 
         logging.info("Load image data!")
 
-        self._verify_additional_informations(
-            self.config["Additional Information"]
-        )
+        self._verify_image_metadata(self.config["image_metadata"])
 
         raw_png = []
 
@@ -116,35 +112,40 @@ class PngReader(ImageReader):
 
         return raw_png
 
-    def image_to_slices(self, raw_pngs: list[np.ndarray]) -> list[SlicesData]:
-        """Converts a list of 2D PNG images into structured slice data.
+    def image_to_slices(self, raw_pngs: list[np.ndarray]) -> SlicesAndMetadata:
+        """Converts 2D PNG images into structured slice data.
 
-        This function processes the provided PNG images, converting each one
-        into a slice based on the slice thickness and the start position
-        defined in the additional information. It filters out slices that
-        fall outside the defined Z-axis limits of the 3D model. Relevant
-        metadata, including pixel spacing, image position, and orientation,
-        is extracted from the configuration, and each slice is stored as a
-        `SlicesData` object.
+        Processes the provided PNG images and extracts relevant metadata,
+        including pixel spacing, image position, and orientation. The images
+        are then filtered based on the defined Z-axis limits to ensure valid
+        slices are included.
 
         Arguments:
             raw_png (list[np.ndarray]): A list of 2D PNG images, each
                 representing a slice in a 3D volume.
 
         Returns:
-            list[SlicesData]: A list of `SlicesData` objects, each containing
-                processed slice data with associated metadata.
+            SlicesAndMetadata: A structured representation of slices with
+                metadata.
         """
 
-        slices = []
-        additional_info: dict = self.config["Additional Information"]
+        image_metadata: dict = self.config["image_metadata"]
 
-        spacing = np.array(additional_info["Pixel_Spacing"])
-        slice_thickness = float(additional_info["Slice_Thickness"])
-        start_pos = np.array(additional_info["Image_Position"])
+        spacing = np.array(image_metadata["pixel_spacing"])
         orientation = np.array(
-            additional_info.get("Image_Orientation") or [0, -1, 0, 1, 0, 0]
+            image_metadata.get("image_orientation") or [0, -1, 0, 1, 0, 0]
         )
+
+        metadata = ImageMetaData(
+            pixel_spacing=spacing,
+            orientation=orientation,
+            pixel_type=PixelValueType.RGB,
+        )
+
+        slice_thickness = float(image_metadata["slice_thickness"])
+        start_pos = np.array(image_metadata["image_position"])
+
+        slices = []
 
         for i, png in enumerate(raw_pngs):
 
@@ -155,13 +156,10 @@ class PngReader(ImageReader):
             if self.limits.min[2] <= pos[2] <= self.limits.max[2]:
 
                 slices.append(
-                    SlicesData(
-                        PixelData=pxl_data,
-                        PixelSpacing=spacing,
-                        ImagePositionPatient=pos,
-                        ImageOrientationPatient=orientation,
-                        PixelType=PixelValueType.RGB,
+                    Slice(
+                        pixel_data=pxl_data,
+                        position=pos,
                     )
                 )
 
-        return slices
+        return SlicesAndMetadata(slices, metadata)

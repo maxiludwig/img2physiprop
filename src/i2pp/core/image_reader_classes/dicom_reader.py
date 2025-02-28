@@ -6,23 +6,24 @@ from pathlib import Path
 import numpy as np
 import pydicom
 from i2pp.core.image_reader_classes.image_reader import (
+    ImageMetaData,
     ImageReader,
     PixelValueType,
-    SlicesData,
+    Slice,
+    SlicesAndMetadata,
 )
 from pydicom.dataset import FileDataset
 from pydicom.pixels import pixel_array
 
 
 class DicomReader(ImageReader):
-    """A class for reading and processing DICOM image data.
+    """Handles reading and processing of DICOM image data.
 
-    This class provides functionality to load DICOM image slices from a
-    specified directory, filter and sort them based on their spatial
-    attributes, and convert them into structured slice data. It enables
-    the reconstruction of a 3D image from 2D DICOM slices while
-    preserving important metadata such as pixel spacing, position, and
-    orientation.
+    This class loads DICOM image slices from a directory, filters and
+    sorts them based on their spatial attributes, and converts them into
+    structured slice data. It facilitates the reconstruction of a 3D
+    image from 2D DICOM slices while preserving essential metadata such
+    as pixel spacing, position, and orientation.
     """
 
     def load_image(self, directory: Path) -> list[FileDataset]:
@@ -64,28 +65,39 @@ class DicomReader(ImageReader):
 
     def image_to_slices(
         self, raw_dicoms: list[FileDataset]
-    ) -> list[SlicesData]:
-        """Converts a list of DICOM files into structured slice data.
+    ) -> SlicesAndMetadata:
+        """Converts DICOM datasets into structured slice data.
 
-        This function processes DICOM image slices, filtering out those that
-        are outside the defined Z-axis limits of the 3D model. It extracts
-        relevant metadata, including pixel spacing, position, and orientation,
-        and assigns a pixel value type based on the modality (CT or MR).
-        The processed slices are stored as `SlicesData` objects.
+        This method extracts pixel data and metadata from DICOM slices while
+        ensuring that only slices within the specified Z-axis limits are
+        included. Metadata such as pixel spacing, orientation, and pixel type
+        is stored alongside the extracted slice data.
 
-        Arguments:
+        Args:
             raw_dicoms (list[FileDataset]): A list of DICOM datasets
                 representing 2D slices of a 3D image.
 
         Returns:
-            list[SlicesData]: A list of `SlicesData` objects containing
-                structured pixel data and metadata for each valid slice.
+            SlicesAndMetadata: Structured pixel data and metadata for valid
+                slices.
 
         Raises:
             RuntimeError: If the modality of a DICOM file is not supported.
         """
 
         slices = []
+
+        try:
+            pxl_type = PixelValueType(raw_dicoms[0].Modality)
+
+        except ValueError:
+            raise RuntimeError("Modality not supported")
+
+        metadata = ImageMetaData(
+            pixel_spacing=np.array(raw_dicoms[0].PixelSpacing),
+            orientation=np.array(raw_dicoms[0].ImageOrientationPatient),
+            pixel_type=pxl_type,
+        )
 
         for dicom in raw_dicoms:
             if (
@@ -95,26 +107,10 @@ class DicomReader(ImageReader):
             ):
 
                 pxl_data = np.array(pixel_array(dicom))
-                spacing = np.array(dicom.PixelSpacing)
                 pos = np.array(dicom.ImagePositionPatient)
-                orientation = np.array(dicom.ImageOrientationPatient)
 
-                try:
-                    pxl_type = PixelValueType(dicom.Modality)
-
-                except ValueError:
-                    raise RuntimeError("Modality not supported")
-
-                slices.append(
-                    SlicesData(
-                        PixelData=pxl_data,
-                        PixelSpacing=spacing,
-                        ImagePositionPatient=pos,
-                        ImageOrientationPatient=orientation,
-                        PixelType=pxl_type,
-                    )
-                )
+                slices.append(Slice(pixel_data=pxl_data, position=pos))
             else:
                 continue
 
-        return slices
+        return SlicesAndMetadata(slices, metadata)

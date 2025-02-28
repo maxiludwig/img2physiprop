@@ -1,26 +1,26 @@
-Input Informations:
-  model_file_path: /scratch/bayer/Git_respository/img2physiprop/Test_dat/inputfile_tutorial.dat
-  #model_file_path: /scratch/bayer/Dat_inputs/Wuerfel.dat
-  image_folder_path: /scratch/bayer/DICOM_Inputs/Human/
+input informations:
+  discretization_file_path: Test_dat/inputfile_tutorial.dat
+  #discretization_file_path: /scratch/bayer/Dat_inputs/Wuerfel.dat
+  image_folder_path: Dicom_inputs/Human/
 #Necessary information for the PNG import
-Additional Information:
-  Pixel_Spacing: [1, 1]
-  Slice_Thickness: 1
-  Image_Position: [0, 0, 0]
-  Image_Orientation: [0, 1, 0, 1, 0, 0] #default: [0, -1, 0, 1, 0, 0]
-Processing options:
-  Matarial_IDs:
-  Smoothing: False
-  Smoothing_area: 5
-  calculation_type: nodes
+image_metadata:
+  pixel_spacing: [1, 1]
+  slice_thickness: 1
+  image_position: [0, 0, 0]
+  image_orientation: [0, 1, 0, 1, 0, 0] #default: [0, -1, 0, 1, 0, 0]
+processing options:
+  material_ids:
+  smoothing: False
+  smoothing_area: 5
+  calculation_type: allvoxels
   normalize_values: False
-  user_script: /scratch/bayer/user_functions/user_function.py
+  user_script: user_functions/user_function.py
   user_function: user_function
-Output options:
-  Output_path: #/scratch/bayer/Git_respository/img2physiprop/  #default: current folder
-  Output_name: #pattern_test  #default: 'Output'
+output options:
+  output_path: #/scratch/bayer/Git_respository/img2physiprop/  #default: current folder
+  output_name: #pattern_test  #default: 'Output'
 
 #calculation_type:
 # nodes: mean of element-nodes
 # elementcenter: value of element-center
-# allVoxel: mean of all Voxel inside the Mesh
+# allvoxels: mean of all Voxel inside the Mesh

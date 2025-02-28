@@ -2,6 +2,8 @@
 
 import os
 import tempfile
+from pathlib import Path
+from unittest import mock
 
 import pytest
 from i2pp.core.export_data import Exporter
@@ -49,3 +51,27 @@ def test_load_user_function_not_callable():
         exporter.load_user_function(script_path, "test_function")
 
         os.remove(script_path)
+
+
+def test_write_data_creates_file():
+    """Test write_data creates file."""
+    export_string = "test."
+
+    test_config = {
+        "output options": {
+            "output_path": str(Path.cwd() / "test_directory"),
+            "output_name": "test_output",
+        }
+    }
+    exporter = Exporter()
+    file_path = (
+        Path(test_config["output options"]["output_path"])
+        / "test_output.pattern"
+    )
+
+    with mock.patch("builtins.open", mock.mock_open()) as mocked_file:
+        exporter.write_data(export_string, test_config)
+
+        mocked_file.assert_called_once_with(file_path, "w", encoding="utf-8")
+
+        mocked_file().write.assert_called_once_with(export_string)

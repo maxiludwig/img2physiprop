@@ -1,12 +1,16 @@
 """Test Image Data Converter Routine."""
 
 import numpy as np
+from i2pp.core.discretization_reader_classes.discretization_reader import (
+    Limits,
+)
 from i2pp.core.image_data_converter import ImageDataConverter
 from i2pp.core.image_reader_classes.image_reader import (
+    ImageMetaData,
     PixelValueType,
-    SlicesData,
+    Slice,
+    SlicesAndMetadata,
 )
-from i2pp.core.model_reader_classes.model_reader import Limits
 
 
 def test_gridposition_to_voxelcoord():
@@ -14,18 +18,31 @@ def test_gridposition_to_voxelcoord():
 
     test_data = ImageDataConverter()
 
-    slices = SlicesData([], [0.5, 0.5], [10, 20, 30], [0, 1, 0, 1, 0, 0], "")
-    assert np.array_equal(
-        test_data._gridposition_to_voxelcoord(slices, 0, 0), [10, 20, 30]
+    metadata = ImageMetaData(
+        pixel_spacing=[0.5, 0.5],
+        orientation=[0, 1, 0, 1, 0, 0],
+        pixel_type=PixelValueType.CT,
     )
-    assert np.array_equal(
-        test_data._gridposition_to_voxelcoord(slices, 20, 10), [15, 30, 30]
-    )
-
-    slices = SlicesData([], [0.5, 0.5], [10, 20, 30], [1, 0, 0, 0, 1, 0], "")
+    slice = Slice(pixel_data=np.array([]), position=[10, 20, 30])
 
     assert np.array_equal(
-        test_data._gridposition_to_voxelcoord(slices, 40, 20), [30, 30, 30]
+        test_data._gridposition_to_voxelcoord(slice, metadata, 0, 0),
+        [10, 20, 30],
+    )
+    assert np.array_equal(
+        test_data._gridposition_to_voxelcoord(slice, metadata, 20, 10),
+        [15, 30, 30],
+    )
+
+    metadata = ImageMetaData(
+        pixel_spacing=[0.5, 0.5],
+        orientation=[1, 0, 0, 0, 1, 0],
+        pixel_type=PixelValueType.CT,
+    )
+
+    assert np.array_equal(
+        test_data._gridposition_to_voxelcoord(slice, metadata, 40, 20),
+        [30, 30, 30],
     )
 
 
@@ -43,13 +60,13 @@ def test_ray_intersecs_rectangle():
     assert not test_data._ray_intersects_rectangle(coord, direction, limits)
 
 
-def test_slice_2_mat_dicom():
-    """Test slice_2_mat if pixelvalue is float."""
+def test_slices_to_3D_data_dicom():
+    """Test slices_to_3D_data if pixelvalue is float."""
 
     volume = np.array(
         [
-            [[10, 2, 3], [3, 4, 3], [5, 6, 10]],  # Ebene 1
-            [[1, 2, 3], [3, 4, 3], [5, 6, 3]],  # Ebene 2
+            [[10, 2, 3], [3, 4, 3], [5, 6, 10]],
+            [[1, 2, 3], [3, 4, 3], [5, 6, 3]],
             [[1, 2, 3], [3, 4, 3], [5, 5, 3]],
         ],
         dtype=np.uint16,
@@ -57,28 +74,28 @@ def test_slice_2_mat_dicom():
 
     limits = Limits(max=np.array([2, 1, 0]), min=np.array([1.5, 0.5, 0]))
 
-    slices_new = []
+    slices = []
+
+    metadata = ImageMetaData(
+        pixel_spacing=[0.5, 0.5],
+        orientation=[0, 1, 0, 1, 0, 0],
+        pixel_type=PixelValueType.CT,
+    )
 
     for i in range(0, 3):
 
-        PixelSpacing = [0.5, 0.5]
-        ImagePositionPatient = [1, 0, i]
-        PixelData = volume[i]
-        orientation = [0, 1, 0, 1, 0, 0]
-        slices_new.append(
-            SlicesData(
-                PixelData=PixelData,
-                PixelSpacing=PixelSpacing,
-                ImagePositionPatient=ImagePositionPatient,
-                ImageOrientationPatient=orientation,
-                PixelType=PixelValueType.CT,
+        slices.append(
+            Slice(
+                pixel_data=volume[i],
+                position=[1, 0, i],
             )
         )
 
     dicom_data = ImageDataConverter()
+    slices_and_metadata = SlicesAndMetadata(slices, metadata)
 
-    processed_data = dicom_data.slices_to_3D_data(slices_new, limits)
-    # self.assertEqual(mesh_data.find_mins_maxs(input)[0],-200)
+    processed_data = dicom_data.slices_to_3D_data(slices_and_metadata, limits)
+
     expected_coordarray = [
         [1.5, 0.5, 0.0],
         [2.0, 0.5, 0.0],
@@ -89,11 +106,11 @@ def test_slice_2_mat_dicom():
     expected_pxlarray = [4, 3, 6, 10]
 
     assert np.array_equal(processed_data.coord_array, expected_coordarray)
-    assert np.array_equal(processed_data.pxl_value, expected_pxlarray)
+    assert np.array_equal(processed_data.pixel_values, expected_pxlarray)
 
 
-def test_slice_2_mat_png():
-    """Test slice_2_mat if pixel value is rgb."""
+def test_slices_to_3D_data_png():
+    """Test slices_to_3D_data if pixel value is rgb."""
 
     volume = np.array(
         [[[0, 0, 1], [1, 2, 3], [2, 5, 2]], [[2, 4, 9], [5, 2, 3], [3, 4, 3]]],
@@ -102,17 +119,14 @@ def test_slice_2_mat_png():
 
     limits = Limits(max=np.array([0.5, 1, 1]), min=np.array([0, 0, 0]))
 
-    PixelSpacing = [1, 1]
-    ImagePositionPatient = [0, 0, 0]
-    PixelData = volume
-    orientation = [0, 1, 0, 1, 0, 0]
-    slices = SlicesData(
-        PixelData=PixelData,
-        PixelSpacing=PixelSpacing,
-        ImagePositionPatient=ImagePositionPatient,
-        ImageOrientationPatient=orientation,
-        PixelType=PixelValueType.CT,
+    metadata = ImageMetaData(
+        pixel_spacing=[1, 1],
+        orientation=[0, 1, 0, 1, 0, 0],
+        pixel_type=PixelValueType.RGB,
     )
+    slice = Slice(pixel_data=volume, position=[0, 0, 0])
+
+    slices_and_metadata = SlicesAndMetadata(slice, metadata)
 
     png_data = ImageDataConverter()
 
@@ -120,10 +134,10 @@ def test_slice_2_mat_png():
 
     expected_pxlarray = [[0, 0, 1], [2, 4, 9]]
 
-    processed_data = png_data.slices_to_3D_data(slices, limits)
+    processed_data = png_data.slices_to_3D_data(slices_and_metadata, limits)
 
     assert np.array_equal(processed_data.coord_array, expected_coordarray)
-    assert np.array_equal(processed_data.pxl_value, expected_pxlarray)
+    assert np.array_equal(processed_data.pixel_values, expected_pxlarray)
 
 
 def test_smoothing_dicom():
@@ -141,39 +155,30 @@ def test_smoothing_dicom():
     )
     slices = []
     slices.append(
-        SlicesData(
-            PixelData=array_slice1,
-            PixelSpacing=[],
-            ImagePositionPatient=[],
-            ImageOrientationPatient=[],
-            PixelType=PixelValueType.CT,
+        Slice(
+            pixel_data=array_slice1,
+            position=[],
         )
     )
 
     slices.append(
-        SlicesData(
-            PixelData=array_slice2,
-            PixelSpacing=[],
-            ImagePositionPatient=[],
-            ImageOrientationPatient=[],
-            PixelType=PixelValueType.CT,
+        Slice(
+            pixel_data=array_slice2,
+            position=[],
         )
     )
 
     slices.append(
-        SlicesData(
-            PixelData=array_slice3,
-            PixelSpacing=[],
-            ImagePositionPatient=[],
-            ImageOrientationPatient=[],
-            PixelType=PixelValueType.CT,
+        Slice(
+            pixel_data=array_slice3,
+            position=[],
         )
     )
 
     converter = ImageDataConverter()
     smoothed_slices = converter.smooth_data(slices, 3)
 
-    assert smoothed_slices[1].PixelData[1][1] == 5
+    assert smoothed_slices[1].pixel_data[1][1] == 5
 
 
 def test_smoothing_rgb():
@@ -208,32 +213,23 @@ def test_smoothing_rgb():
 
     slices = []
     slices.append(
-        SlicesData(
-            PixelData=array_slice1,
-            PixelSpacing=[],
-            ImagePositionPatient=[],
-            ImageOrientationPatient=[],
-            PixelType=PixelValueType.CT,
+        Slice(
+            pixel_data=array_slice1,
+            position=[],
         )
     )
 
     slices.append(
-        SlicesData(
-            PixelData=array_slice2,
-            PixelSpacing=[],
-            ImagePositionPatient=[],
-            ImageOrientationPatient=[],
-            PixelType=PixelValueType.CT,
+        Slice(
+            pixel_data=array_slice2,
+            position=[],
         )
     )
 
     slices.append(
-        SlicesData(
-            PixelData=array_slice3,
-            PixelSpacing=[],
-            ImagePositionPatient=[],
-            ImageOrientationPatient=[],
-            PixelType=PixelValueType.CT,
+        Slice(
+            pixel_data=array_slice3,
+            position=[],
         )
     )
 
@@ -241,5 +237,5 @@ def test_smoothing_rgb():
     smoothed_slices = converter.smooth_data(slices, 3)
 
     assert np.array_equal(
-        smoothed_slices[1].PixelData[1][1], np.array([3, 3, 2])
+        smoothed_slices[1].pixel_data[1][1], np.array([3, 3, 2])
     )

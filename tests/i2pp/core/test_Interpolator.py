@@ -1,17 +1,20 @@
 """Test Interpolator Routine."""
 
+from unittest.mock import patch
+
 import numpy as np
-from i2pp.core.image_data_converter import ProcessedImageData
-from i2pp.core.interpolator import InterpolatorClass
-from i2pp.core.model_reader_classes.model_reader import (
+from i2pp.core.discretization_reader_classes.discretization_reader import (
+    Discretization,
     Element,
-    ModelData,
     Nodes,
 )
+from i2pp.core.image_data_converter import ProcessedImageData
+from i2pp.core.interpolator import Interpolator
 
 
-def test_ImageValues_2_MeshCoords():
-    """Test ImageValues_2_MeshCoords if interpolation is done correctly."""
+def test_interpolate_imagevalues_to_points():
+    """Test interpolate_imagevalues_to_points if interpolation is done
+    correctly."""
 
     target_points = np.array([[0, 0], [1, 0], [1, 2]])
 
@@ -20,11 +23,9 @@ def test_ImageValues_2_MeshCoords():
 
     image_data = ProcessedImageData(points_image, values_image)
 
-    mesh_data = ModelData(nodes=[], elements=[], limits=[])
-
-    test_inperpolation = InterpolatorClass(image_data, mesh_data)
-    interpol_value = test_inperpolation.interpolate_imagevalues_to_points(
-        target_points
+    test_inperpolation = Interpolator()
+    interpol_value = test_inperpolation.interpolate_image_values_to_points(
+        target_points, image_data
     )
     expected_output = np.array([5, 2.5, 3])
     assert np.array_equal(interpol_value, expected_output)
@@ -40,7 +41,7 @@ def test_get_elementvalues_nodes():
     node_coords = np.array([[0, 0, 0], [1, 0, 10], [1, 0, 0], [1, 1, 10]])
     node_ids = np.array([0, 1, 2, 3])
     nodes = Nodes(node_coords, node_ids)
-    model_data = ModelData(nodes, [element1, element2], [])
+    dis = Discretization(nodes, [element1, element2])
 
     coords_image = np.array(
         [[0, 0, 0], [0.5, 0, 0], [1.5, 0, 0], [1, 0, 10], [1, 1, 10]]
@@ -49,11 +50,39 @@ def test_get_elementvalues_nodes():
     values_image = np.array([10, 10, 30, 50, 150])
     image_data = ProcessedImageData(coords_image, values_image)
 
-    interpolator = InterpolatorClass(image_data, model_data)
-    elements = interpolator.get_elementvalues_nodes()
+    interpolator = Interpolator()
+    elements = interpolator.get_elementvalues_nodes(dis, image_data)
 
     assert elements[0].value == 15
     assert elements[1].value == 100
+
+
+def test_get_center():
+    """Test get_center if center of elements are calculated correctly."""
+    ele1_ids = np.array([0, 2, 4], dtype=int)
+    ele2_ids = np.array([1, 3, 5], dtype=int)
+
+    elements = []
+    elements.append(Element(ele1_ids, 1, [], []))
+    elements.append(Element(ele2_ids, 2, [], []))
+    nodes_coords = np.array(
+        [[0, 0, 0], [1, 0, 0], [0, 1, 0], [2, 3, 6], [6, 2, 0], [9, 3, 6]]
+    )
+    node_ids = np.array([0, 1, 2, 3, 4, 5], dtype=int)
+
+    nodes = Nodes(nodes_coords, node_ids)
+
+    test_dis = Discretization(nodes=nodes, elements=elements)
+
+    interpol = Interpolator()
+
+    interpol = interpol.compute_element_centers(test_dis)
+
+    expected_output1 = np.array([2, 1, 0])
+    expected_output2 = np.array([4, 2, 4])
+
+    assert np.array_equal(test_dis.elements[0].center_coords, expected_output1)
+    assert np.array_equal(test_dis.elements[1].center_coords, expected_output2)
 
 
 def test_get_elementvalues_center():
@@ -64,7 +93,7 @@ def test_get_elementvalues_center():
     element3 = Element([], 2, [2, 0, 0], [])
     element4 = Element([], 3, [4, 3, 1], [])
 
-    mesh_data = ModelData([], [element1, element2, element3, element4], [])
+    dis = Discretization([], [element1, element2, element3, element4], [])
 
     coord1 = np.array([1, 1, 1])
     coord2 = np.array([2, 0, 0])
@@ -76,13 +105,16 @@ def test_get_elementvalues_center():
     coord_array = np.array([coord1, coord2, coord3, coord4])
     image_data = ProcessedImageData(coord_array, pxl_value)
 
-    interpolator = InterpolatorClass(image_data, mesh_data)
-    elements = interpolator.get_elementvalues_center()
+    interpolator = Interpolator()
+    with patch.object(
+        Interpolator, "compute_element_centers", return_value=dis
+    ):
+        elements = interpolator.get_elementvalues_center(dis, image_data)
 
-    assert elements[0].value, 4
-    assert elements[1].value, 1
-    assert elements[2].value, 2
-    assert elements[3].value, 3
+        assert elements[0].value, 4
+        assert elements[1].value, 1
+        assert elements[2].value, 2
+        assert elements[3].value, 3
 
 
 def test_get_elementvalues_all_voxels():
@@ -107,7 +139,7 @@ def test_get_elementvalues_all_voxels():
     element1 = Element(np.array([0, 1, 2, 3, 4, 6]), 0, [], [])
     element2 = Element(np.array([4, 5, 6, 7, 1, 3]), 1, [], [])
 
-    mesh_data = ModelData(nodes, [element1, element2], [])
+    dis = Discretization(nodes, [element1, element2], [])
 
     coord1 = np.array([-1, 2, 1])
     coord2 = np.array([0.5, 0.5, 0.5])
@@ -120,9 +152,9 @@ def test_get_elementvalues_all_voxels():
     coord_array = np.array([coord1, coord2, coord3, coord4, coord5])
     image_data = ProcessedImageData(coord_array, pxl_value)
 
-    interpolator = InterpolatorClass(image_data, mesh_data)
+    interpolator = Interpolator()
 
-    elements = interpolator.get_elementvalues_all_voxels()
+    elements = interpolator.get_elementvalues_all_voxels(dis, image_data)
 
     assert elements[0].value, 2.5
     assert elements[1].value, 3

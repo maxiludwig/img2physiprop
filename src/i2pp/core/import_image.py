@@ -5,14 +5,16 @@ from pathlib import Path
 from typing import Type, cast
 
 import numpy as np
+from i2pp.core.discretization_reader_classes.discretization_reader import (
+    Limits,
+)
 from i2pp.core.image_reader_classes.dicom_reader import DicomReader
 from i2pp.core.image_reader_classes.image_reader import (
     ImageReader,
     PixelValueType,
-    SlicesData,
+    SlicesAndMetadata,
 )
 from i2pp.core.image_reader_classes.png_reader import PngReader
-from i2pp.core.model_reader_classes.model_reader import Limits
 
 
 class ImageFormat(Enum):
@@ -29,10 +31,10 @@ class ImageFormat(Enum):
     (e.g., DICOM vs. PNG).
     """
 
-    Dicom = ".dcm"
+    DICOM = ".dcm"
     PNG = ".png"
 
-    def get_class(self) -> Type[ImageReader]:
+    def get_reader(self) -> Type[ImageReader]:
         """Returns the appropriate image reader class based on the image
         format.
 
@@ -41,12 +43,12 @@ class ImageFormat(Enum):
                 either `DicomReader` or `PngReader`.
         """
         return {
-            ImageFormat.Dicom: DicomReader,
+            ImageFormat.DICOM: DicomReader,
             ImageFormat.PNG: PngReader,
         }[self]
 
 
-def verify_input(directory: Path) -> ImageFormat:
+def determine_image_format(directory: Path) -> ImageFormat:
     """Verifies the existence and readability of image data and determines the
     format type.
 
@@ -62,44 +64,43 @@ def verify_input(directory: Path) -> ImageFormat:
         RuntimeError: If the specified path does not exist.
         RuntimeError: If the path has no readable data.
         RuntimeError: If the path contains more than one type of readable data
-            (both PNG and DICOM).
+            (e.g. PNG and DICOM).
 
     Returns:
-        ImageFormat: The format of the image data (either DICOM or PNG).
+        ImageFormat: The format of the image data.
     """
     if not Path(directory).is_dir():
         raise RuntimeError(
-            "Imagedata file not found! img2physiprop cannot be executed!"
+            f"Path {directory} to the image data cannot be found!"
         )
 
-    png_exist = any(directory.glob("*.png"))
-    dicom_exist = any(directory.glob("*.dcm"))
+    supported_formats = {
+        fmt: any(directory.glob(f"*{fmt.value}")) for fmt in ImageFormat
+    }
 
-    if not png_exist and dicom_exist:
-        format_input = ImageFormat.Dicom
+    detected_formats = {
+        fmt for fmt, exists in supported_formats.items() if exists
+    }
 
-    elif png_exist and not dicom_exist:
-        format_input = ImageFormat.PNG
+    if len(detected_formats) == 1:
+        return detected_formats.pop()
 
-    elif not png_exist and not dicom_exist:
+    if not detected_formats:
         raise RuntimeError(
-            "Input data file is empty or has no readable data! "
+            "Image data folder is empty or has no readable data! "
             "Please make sure the input file has the correct format "
-            "(dicom/png). Img2physiprop cannot be executed!"
+            f"({', '.join(fmt.value for fmt in ImageFormat)})."
         )
 
-    elif png_exist and dicom_exist:
-        raise RuntimeError(
-            "Input data file has two different format types! "
-            "Img2physiprop cannot be executed!"
-        )
-
-    return format_input
+    raise RuntimeError(
+        "Image data folder contains multiple format types! "
+        "Img2physiprop cannot be executed!"
+    )
 
 
 def verify_and_load_imagedata(
     config: dict, limits: Limits
-) -> tuple[list[SlicesData], np.ndarray]:
+) -> SlicesAndMetadata:
     """Verifies input data format and loads the image data.
 
     This function first checks the input directory for valid image data,
@@ -111,30 +112,38 @@ def verify_and_load_imagedata(
     Arguments:
         config (dict): User configuration containing the directory for input
             data and other settings.
-        limits (Limits): Model boundaries used for processing image data.
+        limits (Limits): Discretization boundaries used for processing image
+            data.
 
     Returns:
-        tuple (list[SlicesData], np.ndarray): A tuple containing a list of
-            SlicesData objects representing the image slices, and an ndarray
-            containing the pixel range.
+        SlicesAndMetadata: A list of `SlicesAndMetadata` objects containing
+            structured pixel data and metadata for each valid slice.
 
     Raises:
         RuntimeError: If the input data directory is invalid or contains
             unsupported data formats.
     """
-    directory = Path(config["Input Informations"]["image_folder_path"])
+    relative_path = Path(config["input informations"]["image_folder_path"])
 
-    image_format = verify_input(directory)
+    directory = directory = Path.cwd() / relative_path
 
-    image_reader = cast(ImageReader, image_format.get_class()(config, limits))
+    image_format = determine_image_format(directory)
+
+    image_reader = cast(ImageReader, image_format.get_reader()(config, limits))
 
     raw_image = image_reader.load_image(directory)
-    slices = image_reader.image_to_slices(raw_image)
+    slices_and_metadata = image_reader.image_to_slices(raw_image)
 
-    if slices[0].PixelType == PixelValueType.MRT:
-        all_pxls = np.concatenate([s.PixelData.flatten() for s in slices])
-        pxl_range = np.array([all_pxls.min(), all_pxls.max()])
+    if slices_and_metadata.metadata.pixel_type == PixelValueType.MRT:
+        all_pxls = np.concatenate(
+            [s.pixel_data.flatten() for s in slices_and_metadata.slices]
+        )
+        slices_and_metadata.metadata.pixel_range = np.array(
+            [all_pxls.min(), all_pxls.max()]
+        )
     else:
-        pxl_range = slices[0].PixelType.pxl_range
+        slices_and_metadata.metadata.pixel_range = (
+            slices_and_metadata.metadata.pixel_type.pxl_range
+        )
 
-    return slices, pxl_range
+    return slices_and_metadata

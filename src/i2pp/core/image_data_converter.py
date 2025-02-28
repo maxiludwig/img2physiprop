@@ -6,8 +6,14 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 import numpy as np
-from i2pp.core.image_reader_classes.image_reader import SlicesData
-from i2pp.core.model_reader_classes.model_reader import Limits
+from i2pp.core.discretization_reader_classes.discretization_reader import (
+    Limits,
+)
+from i2pp.core.image_reader_classes.image_reader import (
+    ImageMetaData,
+    Slice,
+    SlicesAndMetadata,
+)
 from i2pp.core.visualization import plot_slice
 from scipy.ndimage import uniform_filter
 from tqdm import tqdm
@@ -31,7 +37,7 @@ class ProcessedImageData:
     """
 
     coord_array: np.ndarray
-    pxl_value: np.ndarray
+    pixel_values: np.ndarray
 
 
 class ImageDataConverter:
@@ -51,9 +57,9 @@ class ImageDataConverter:
 
     def smooth_data(
         self,
-        slices: list[SlicesData],
+        slices: list[Slice],
         k: int,
-    ) -> list[SlicesData]:
+    ) -> list[Slice]:
         """Smooths the image data by averaging the pixel values in a k-point
         neighborhood around each point.
 
@@ -62,7 +68,7 @@ class ImageDataConverter:
         pixel value in a neighborhood defined by the parameter `k`.
 
         Arguments:
-            slices (list[SlicesData]): The collection of slice data containing
+            list[Slice]: The collection of slice data containing
                 the pixel information to be smoothed.
             k (int): The size of the neighborhood (in points) used to
                 calculate the average. Higher values result in smoother data
@@ -76,53 +82,49 @@ class ImageDataConverter:
 
         logging.info("Smooth data!")
         array_3d = np.stack(
-            [slice.PixelData for slice in slices], dtype=np.float32
+            [slice.pixel_data for slice in slices], dtype=np.float32
         )
         smoothed_array_3d = uniform_filter(
             array_3d, size=k, mode="nearest", axes=(0, 1, 2)
         )
 
         for i, _ in enumerate(slices):
-            slices[i].PixelData = smoothed_array_3d[i]
+            slices[i].pixel_data = smoothed_array_3d[i]
 
         return slices
 
     def _gridposition_to_voxelcoord(
-        self, slice: SlicesData, row: int, col: int
+        self, slice: Slice, metadata: ImageMetaData, row: int, col: int
     ) -> np.ndarray:
-        """Converts the grid position of a voxel in the slice to its
-        corresponding absolute x-y-z coordinate.
+        """Converts a voxel's 2D grid position within a slice to 3D
+        coordinates.
 
-        This method calculates the absolute 3D coordinates of a voxel based on
-        its position within the 2D grid (specified by row and column) in the
-        given slice, using the image's orientation and pixel spacing.
+        This method computes the absolute x-y-z coordinates of a voxel in 3D
+        space based on its row and column position within the 2D image grid.
+        The conversion considers the slice's spatial metadata, including
+        orientation and pixel spacing.
 
-        Arguments:
-            slice (SlicesData): The slice data containing information about
-                image orientation, position, and spacing.
-            row (int): The row index of the voxel within the 2D grid.
-            col (int): The column index of the voxel within the 2D grid.
+        Args:
+            slice (Slice): The image slice containing the voxel values and
+                position.
+            metadata (ImageMetaData): Metadata specifying the slice's
+                orientation and pixel spacing.
+            row (int): The row index of the voxel in the 2D grid.
+            col (int): The column index of the voxel in the 2D grid.
 
         Returns:
-            np.ndarray: The absolute x-y-z coordinates of the voxel in the
-            3D space.
+            np.ndarray: The voxel's absolute coordinates in 3D space (x, y, z).
         """
 
-        row_vector = np.array(
-            slice.ImageOrientationPatient[0:3], dtype=float
-        ).flatten()
-        col_vector = np.array(
-            slice.ImageOrientationPatient[3:6], dtype=float
-        ).flatten()
+        row_vector = np.array(metadata.orientation[0:3], dtype=float).flatten()
+        col_vector = np.array(metadata.orientation[3:6], dtype=float).flatten()
 
-        image_position = np.array(
-            slice.ImagePositionPatient, dtype=float
-        ).flatten()
+        image_position = np.array(slice.position, dtype=float).flatten()
 
         coords = (
             image_position
-            + row * slice.PixelSpacing[0] * row_vector
-            + col * slice.PixelSpacing[1] * col_vector
+            + row * metadata.pixel_spacing[0] * row_vector
+            + col * metadata.pixel_spacing[1] * col_vector
         )
 
         return np.array(coords)
@@ -136,9 +138,9 @@ class ImageDataConverter:
         rectangle. The ray is defined by its starting point and direction,
         and the rectangle is described by the minimal and maximal coordinates
         in the 2D plane (as provided in the `limits`). This function is used
-        to check if the voxels of a row lie within the model's boundaries. If
-        the voxels are outside the model's boundaries, the entire row can be
-        skipped.
+        to check if the voxels of a row lie within the Discretization's
+        boundaries. If the voxels are outside the Discretization's boundaries,
+        the entire row can be skipped.
 
         Arguments:
             ray_start (np.ndarray): The starting point of the ray, typically
@@ -177,56 +179,62 @@ class ImageDataConverter:
         return t_min <= t_max and t_max >= 0
 
     def slices_to_3D_data(
-        self, slices: list[SlicesData], limits: Limits
+        self, slices_and_metadata: SlicesAndMetadata, limits: Limits
     ) -> ProcessedImageData:
-        """Converts a list of 2D image slices into 3D data by extracting pixel
-        coordinates and values.
+        """Converts a series of 2D image slices into a structured 3D dataset.
 
-        This method processes the slices of image data, converting them into a
-        3D representation by creating an array of pixel coordinates and an
-        array of corresponding pixel values. For performance optimization, only
-        pixels that lie within the specified model limits are processed. If no
-        valid mesh coordinates are found within the image data, a runtime error
-        will be raised.
+        This method processes image slices by computing the 3D coordinates of
+        each pixel based on the slice's spatial metadata (position,
+        orientation, and pixel spacing). It filters out pixels that fall
+        outside the specified discretization limits, ensuring only relevant
+        data is included.
+
+        The function returns an array of voxel coordinates and their
+        corresponding pixel values. If no valid data points exist within the
+        defined limits, an error is raised.
 
         Arguments:
-            slices (list[SlicesData]): List of SliceData objects containing
-                pixel data and metadata.
-            limits (Limits): The model boundaries to filter out pixels that
-                lie outside these limits.
+            slices_and_metadata (SlicesAndMetadata): Contains a list of image
+                slices and associated metadata.
+            limits (Limits): The discretization boundaries used to filter out
+                pixels outside the valid region.
 
         Returns:
-            ProcessedImageData: A dataclass containing the 3D array of pixel
-                coordinates and corresponding pixel values from the processed
-                slices.
+            ProcessedImageData: A dataclass containing:
+                - A NumPy array of voxel coordinates (x, y, z).
+                - A NumPy array of pixel intensity values.
 
         Raises:
-            RuntimeError: If no mesh coordinates are found within the image
-                data or if the mesh is not contained in the image data.
+            RuntimeError: If no valid voxel coordinates exist within the image
+                data, preventing further processing.
         """
 
         coord_array = []
-        pxl_value = []
+        pixel_values = []
 
-        if not isinstance(slices, Iterable) or isinstance(
-            slices, (str, bytes)
+        metadata = slices_and_metadata.metadata
+
+        if not isinstance(slices_and_metadata.slices, Iterable) or isinstance(
+            slices_and_metadata.slices, (str, bytes)
         ):
-            slices = [slices]
+            slices_and_metadata.slices = [slices_and_metadata.slices]
 
-        for slice in tqdm(slices, desc="Process slices"):
+        for slice in tqdm(slices_and_metadata.slices, desc="Process slices"):
 
-            for j in range(0, slice.PixelData.shape[0]):
+            for j in range(0, slice.pixel_data.shape[0]):
 
-                coord = self._gridposition_to_voxelcoord(slice, j, 0)
+                coord = self._gridposition_to_voxelcoord(slice, metadata, j, 0)
 
                 if not self._ray_intersects_rectangle(
-                    coord, slice.ImageOrientationPatient[3:6], limits
+                    coord, metadata.orientation[3:6], limits
                 ):
                     continue
 
-                for m in range(0, slice.PixelData.shape[1]):
+                for m in range(0, slice.pixel_data.shape[1]):
 
-                    coord = self._gridposition_to_voxelcoord(slice, j, m)
+                    coord = self._gridposition_to_voxelcoord(
+                        slice, metadata, j, m
+                    )
 
                     if np.any(coord < limits.min) or np.any(
                         coord > limits.max
@@ -235,7 +243,7 @@ class ImageDataConverter:
 
                     coord_array.append(coord)
 
-                    pxl_value.append(slice.PixelData[j][m])
+                    pixel_values.append(slice.pixel_data[j][m])
 
         np_coord_array = np.array(coord_array)
 
@@ -246,17 +254,14 @@ class ImageDataConverter:
             )
 
         processed_data = ProcessedImageData(
-            np_coord_array, np.array(pxl_value)
+            np_coord_array, np.array(pixel_values)
         )
 
         return processed_data
 
 
 def convert_imagedata(
-    slices: list[SlicesData],
-    limits: Limits,
-    config_i2pp: dict,
-    pxl_range: np.ndarray,
+    slices_and_metadata: SlicesAndMetadata, limits: Limits, config_i2pp: dict
 ) -> ProcessedImageData:
     """Processes the image data by applying optional smoothing and converting
     it to 3D format.
@@ -264,19 +269,17 @@ def convert_imagedata(
     This function orchestrates the workflow for processing image slices by
     first applying optional smoothing to the slice data, if enabled in the
     configuration. After smoothing, the function converts the 2D slices into
-    3D image data, within the specified model limits. The processed data is
-    returned as a `ProcessedImageData` object containing both pixel
+    3D image data, within the specified Discretization limits. The processed
+    data is returned as a `ProcessedImageData` object containing both pixel
     coordinates and values.
 
     Arguments:
-        slices (list[SlicesData]): List of SliceData objects containing pixel
-            data and metadata.
-        limits (Limits): The model boundaries to filter out pixels that lie
-            outside these limits.
+        slices_and_metadata (SlicesAndMetadata): A container holding image
+            slices along with associated metadata.
+        limits (Limits): The Discretization boundaries to filter out pixels
+            that lie outside these limits.
         config_i2pp (dict): User configuration that includes custom settings,
             such as smoothing parameters.
-        pxl_range (np.ndarray): The pixel value range used for plotting and
-            processing.
 
     Returns:
         ProcessedImageData: A dataclass containing the 3D array of pixel
@@ -284,29 +287,29 @@ def convert_imagedata(
             smoothing and conversion.
     """
 
-    processing_options: dict = config_i2pp["Processing options"]
+    processing_options: dict = config_i2pp["processing options"]
 
-    smoothing_bool = bool(processing_options.get("Smoothing") or False)
-    smoothing_area = int(processing_options.get("Smoothing_area") or 3)
+    smoothing_bool = bool(processing_options.get("smoothing") or False)
+    smoothing_area = int(processing_options.get("smoothing_area") or 3)
 
     image_converter = ImageDataConverter()
 
     if smoothing_bool:
 
         plot_slice(
-            slices[0].PixelData,
-            slices[0].PixelType,
-            pxl_range,
+            slices_and_metadata.slices[0].pixel_data,
+            slices_and_metadata.metadata.pixel_type,
+            slices_and_metadata.metadata.pixel_range,
             "not_smoothed_slice",
         )
-        slices = image_converter.smooth_data(slices, smoothing_area)
+        slices_and_metadata.slices = image_converter.smooth_data(
+            slices_and_metadata.slices, smoothing_area
+        )
         plot_slice(
-            slices[0].PixelData,
-            slices[0].PixelType,
-            pxl_range,
+            slices_and_metadata.slices[0].pixel_data,
+            slices_and_metadata.metadata.pixel_type,
+            slices_and_metadata.metadata.pixel_range,
             "smoothed_slice",
         )
 
-    processed_data = image_converter.slices_to_3D_data(slices, limits)
-
-    return processed_data
+    return image_converter.slices_to_3D_data(slices_and_metadata, limits)

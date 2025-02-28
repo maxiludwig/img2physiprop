@@ -4,10 +4,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
-from i2pp.core.model_reader_classes.model_reader import Limits
+from i2pp.core.discretization_reader_classes.discretization_reader import (
+    Limits,
+)
 from pydicom.dataset import FileDataset
 
 
@@ -48,31 +50,60 @@ class PixelValueType(Enum):
 
 
 @dataclass
-class SlicesData:
-    """This dataclass holds the necessary information for a single slice in a
-    3D medical image.
+class ImageMetaData:
+    """Stores metadata related to a image slice.
+
+    This class contains essential metadata about a single image slice,
+    including pixel spacing, orientation, and pixel type.
 
     Attributes:
-        PixelData (np.ndarray): The pixel data of the slice as a 2D array.
-        PixelSpacing (np.ndarray): The spacing between pixels in millimeters,
-            typically in the x and y directions.
-        ImagePositionPatient (np.ndarray): The position of the slice in the
-            patient's coordinate system.
-        ImageOrientationPatient (np.ndarray): The orientation of the slice
-            relative to the patient's body. The first three values represent
-            the direction of the rows, while the next three values represent
-            the direction of the columns in the image.
-        PixelType (PixelValueType): The type of pixel values.
-            - CT: Computed tomography pixel values.
-            - RGB: Red, Green, Blue pixel values for color images.
-            - MRT: Magnetic resonance tomography pixel values.
+        pixel_spacing (np.ndarray): The spacing between pixels in millimeters.
+        orientation (np.ndarray): The orientation of the image slice in space,
+            defining how the image is aligned.
+        pixel_type (PixelValueType): The type of pixel values in the image
+            (e.g., CT, MRI, RGB).
     """
 
-    PixelData: np.ndarray
-    PixelSpacing: np.ndarray
-    ImagePositionPatient: np.ndarray
-    ImageOrientationPatient: np.ndarray
-    PixelType: PixelValueType
+    pixel_spacing: np.ndarray
+    orientation: np.ndarray
+    pixel_type: PixelValueType
+    pixel_range: Optional[np.ndarray] = None
+
+
+@dataclass
+class Slice:
+    """Represents an individual image slice with pixel data and position.
+
+    This class stores the actual pixel data of an image slice along with its
+    position in 3D space.
+
+    Attributes:
+        pixel_data (np.ndarray): The pixel data of the slice stored as a 2D
+            NumPy array.
+        position (np.ndarray): The spatial position of the slice, typically
+            representing the coordinates of the first pixel.
+    """
+
+    pixel_data: np.ndarray
+    position: np.ndarray
+
+
+@dataclass
+class SlicesAndMetadata:
+    """Holds a collection of slices and their associated metadata.
+
+    This dataclass organizes multiple slices of a 3D image along with
+    the necessary metadata required for processing.
+
+    Attributes:
+        slices (list[Slices]): A list of individual image slices that make up
+            the full dataset.
+        metadata (ImageMetaData): The metadata associated with the image,
+            including pixel spacing, orientation, and pixel type.
+    """
+
+    slices: list[Slice]
+    metadata: ImageMetaData
 
 
 class ImageReader(ABC):
@@ -114,12 +145,12 @@ class ImageReader(ABC):
     @abstractmethod
     def image_to_slices(
         self, raw_image: Union[FileDataset, np.ndarray]
-    ) -> list[SlicesData]:
+    ) -> SlicesAndMetadata:
         """Converts raw image data into a list of SlicesData.
 
         This method processes the raw image data (either from a DICOM
         FileDataset or a PNG NumPy array) and transforms it into a list of
-        SlicesData. Each `SlicesData` object represents a two-dimensional
+        SlicesAndMetadata. Each `SlicesAndMetadata` object represents a 2D
         slice of the 3D image, which is constructed from the input data.
         The conversion ensures that the subsequent calculations and operations
         are independent of the image format, making it compatible with both
@@ -130,7 +161,7 @@ class ImageReader(ABC):
                 from DICOM or PNG files to be converted into slices.
 
         Returns:
-            list[SlicesData]: A list of `SlicesData` objects, where each
+            SlicesAndMetadata: A SlicesAndMetadata object, where each
                 object represents a single slice from the raw image data. The
                 combined slices form the full 3D image.
         """

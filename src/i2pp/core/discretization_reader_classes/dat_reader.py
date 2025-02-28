@@ -1,33 +1,32 @@
-"""Import Mesh data."""
+"""Import Dat data."""
 
 import logging
 from pathlib import Path
 
 import lnmmeshio
 import numpy as np
-from i2pp.core.model_reader_classes.model_reader import (
+from i2pp.core.discretization_reader_classes.discretization_reader import (
+    Discretization,
+    DiscretizationReader,
     Element,
-    Limits,
-    ModelData,
-    ModelReader,
     Nodes,
 )
-from lnmmeshio import Discretization
+from lnmmeshio import Discretization as DiscretizationLNM
 from tqdm import tqdm
 
 
-class DatReader(ModelReader):
+class DatReader(DiscretizationReader):
     """Class for reading and processing finite element models from .dat files.
 
     This class extends `ModelReader` to handle `.dat` files, which store
     discretized finite element models. It provides functionality to import
-    the model, filter elements based on material IDs, and structure the data
-    into a `ModelData` object.
+    the Discretization, filter elements based on material IDs, and structure
+    the data into a `Discretization` object.
     """
 
-    def _filter_model(
-        self, dis: Discretization, mat_ids: np.ndarray
-    ) -> Discretization:
+    def _filter_discretization(
+        self, dis: DiscretizationLNM, mat_ids: np.ndarray
+    ) -> DiscretizationLNM:
         """Filters the finite element model to include only elements with
         specified material IDs.
 
@@ -37,12 +36,12 @@ class DatReader(ModelReader):
         retained.
 
         Arguments:
-            dis (Discretization): The discretized finite element model.
+            dis (DiscretizationLNM): The discretized finite element model.
             mat_ids (np.ndarray): Array of material IDs to filter.
 
         Returns:
-            Discretization: The filtered discretized model containing only the
-                selected elements and nodes.
+            DiscretizationLNM: The filtered discretized model containing only
+                the selected elements and nodes.
         """
 
         dis.compute_ids(zero_based=True)
@@ -67,62 +66,57 @@ class DatReader(ModelReader):
 
         return dis
 
-    def load_model(self, directory: Path, config: dict) -> ModelData:
+    def load_discretization(
+        self, directory: Path, config: dict
+    ) -> Discretization:
         """Loads and processes a finite element model from a .dat file.
 
         This function imports nodes and elements from a .dat file using
         `lnmmeshio`, applies optional material ID filtering, and organizes
-        the data into a `ModelData` object.
+        the data into a `Discretization` object.
 
         Arguments:
             directory (Path): Path to the .dat file.
-            config (dict): User configuration containing material ID filters
-                and other settings.
+            config (dict): User configuration containing material ID filters.
 
         Returns:
-            ModelData: A structured representation of the finite element
+            Discretization: A structured representation of the finite element
                 model, including nodes and elements.
         """
 
-        logging.info("Importing Model data")
+        logging.info("Importing Discretization data")
 
-        raw_model = lnmmeshio.read(str(directory))
+        raw_dis = lnmmeshio.read(str(directory))
 
-        raw_model.compute_ids(zero_based=True)
+        raw_dis.compute_ids(zero_based=True)
 
-        if config["Matarial_IDs"] is not None:
+        if config["material_ids"] is not None:
 
-            raw_model = self._filter_model(
-                raw_model, np.array(config["Matarial_IDs"])
+            raw_dis = self._filter_discretization(
+                raw_dis, np.array(config["material_ids"])
             )
 
         nodes_coords = []
         node_ids = []
 
-        for node in raw_model.nodes:
+        for node in raw_dis.nodes:
             nodes_coords.append(node.coords)
             node_ids.append(node.id)
 
         elements = []
 
-        for ele in raw_model.elements.structure:
+        for ele in raw_dis.elements.structure:
             ele_node_ids = []
             for node in ele.nodes:
                 ele_node_ids.append(node.id)
 
             elements.append(
-                Element(
-                    node_ids=np.array(ele_node_ids),
-                    id=ele.id,
-                    center_coord=np.array([]),
-                    value=np.array([]),
-                )
+                Element(node_ids=np.array(ele_node_ids), id=ele.id)
             )
 
-        model = ModelData(
+        dis = Discretization(
             nodes=Nodes(coords=np.array(nodes_coords), ids=np.array(node_ids)),
             elements=elements,
-            limits=Limits([], []),
         )
 
-        return model
+        return dis

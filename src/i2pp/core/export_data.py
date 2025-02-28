@@ -6,7 +6,9 @@ from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
-from i2pp.core.model_reader_classes.model_reader import Element
+from i2pp.core.discretization_reader_classes.discretization_reader import (
+    Element,
+)
 from i2pp.core.utilities import normalize_values
 
 
@@ -89,10 +91,10 @@ class Exporter:
         The function writes the content to a file with a `.pattern` extension.
         """
 
-        user_config: dict = config["Output options"]
+        user_config: dict = config["output options"]
 
-        directory = Path(user_config.get("Output_path") or Path.cwd())
-        output_name = str(user_config.get("Output_name") or "Output")
+        directory = Path(user_config.get("output_path") or Path.cwd())
+        output_name = str(user_config.get("output_name") or "output")
 
         path = directory / f"{output_name}.pattern"
 
@@ -135,7 +137,7 @@ def export_data(elements: list[Element], config: dict, pxl_range: np.ndarray):
     np.array(element_values)
     np.array(element_ids)
 
-    processing_options = config["Processing options"]
+    processing_options = config["processing options"]
 
     script_path = processing_options["user_script"]
     function_name = processing_options["user_function"]

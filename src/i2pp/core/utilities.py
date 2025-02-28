@@ -83,7 +83,7 @@ def get_node_position_of_element(
     Arguments:
         element_node_ids (np.ndarray): An array of node IDs belonging to a
             specific element.
-        node_ids (np.ndarray): An array of all node IDs in the model.
+        node_ids (np.ndarray): An array of all node IDs in the Discretization.
 
     Returns:
         np.ndarray: An array of indices representing the positions of element

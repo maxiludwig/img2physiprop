@@ -5,30 +5,67 @@ from enum import Enum
 from typing import Callable
 
 import numpy as np
+from i2pp.core.discretization_reader_classes.discretization_reader import (
+    Discretization,
+    Element,
+)
 from i2pp.core.image_data_converter import ProcessedImageData
-from i2pp.core.model_reader_classes.model_reader import Element, ModelData
 from i2pp.core.utilities import get_node_position_of_element
 from scipy.interpolate import griddata
 from scipy.spatial import ConvexHull, Delaunay, KDTree
 from tqdm import tqdm
 
 
-class InterpolatorClass:
-    """Class to interpolate pixel values from 3D image data to FEM model
-    elements.
+class Interpolator:
+    """Class to interpolate pixel values from 3D image data to FEM
+    Discretization elements.
 
     This class provides methods to interpolate pixel values from
-    processed 3D image data onto the finite element model (FEM) by
-    associating the image data with model elements. Interpolation is
-    performed at various locations such as the nodes, element centers,
-    or based on all voxels inside the element. The class supports
-    multiple interpolation strategies based on user configuration.
+    processed 3D image data onto the finite element Discretization (FEM)
+    by associating the image data with Discretization elements.
+    Interpolation is performed at various locations such as the nodes,
+    element centers, or based on all voxels inside the element. The
+    class supports multiple interpolation strategies based on user
+    configuration.
     """
 
-    def __init__(self, image_data: ProcessedImageData, model_data: ModelData):
+    def __init__(self):
         """Initialize the InterpolatorClass."""
-        self.image_data = image_data
-        self.model_data = model_data
+
+    def compute_element_centers(self, dis: Discretization) -> Discretization:
+        """Calculates the center (centroid) of each element in the
+        Discretization.
+
+        This function iterates through all elements in the given Discretization
+        object, calculates the centroid of each element by averaging the
+        coordinates of its associated nodes, and then adds the calculated
+        center as a new attribute ('center_coord') for each element.
+
+        Arguments:
+            dis (Discretization): The Discretization object containing elements
+                and nodes.
+
+        Returns:
+            Discretization: The updated Discretization object with a new
+                'center_coords' attribute for each element, representing the
+                calculated centroid.
+        """
+
+        for i, ele in tqdm(
+            enumerate(dis.elements),
+            total=len(dis.elements),
+            desc="Calculate element center",
+        ):
+
+            node_position = get_node_position_of_element(
+                ele.node_ids, dis.nodes.ids
+            )
+            element_coords = dis.nodes.coords[node_position]
+            centroid = np.mean(element_coords, axis=0)
+
+            dis.elements[i].center_coords = np.array(centroid)
+
+        return dis
 
     def _point_in_hull(self, point: np.ndarray, hull: ConvexHull) -> bool:
         """Determines whether a given point is inside a convex hull.
@@ -49,7 +86,9 @@ class InterpolatorClass:
         deln = Delaunay(hull.points[hull.vertices])
         return deln.find_simplex(point) >= 0
 
-    def _get_voxels_in_element(self, element_points: np.ndarray) -> np.ndarray:
+    def _get_voxels_in_element(
+        self, element_points: np.ndarray, image_data: ProcessedImageData
+    ) -> np.ndarray:
         """Identifies and returns the pixel values of all voxels inside a give
         mesh element.
 
@@ -59,7 +98,9 @@ class InterpolatorClass:
         if the point is inside the convex hull.
 
         Arguments:
-            element_points (np.ndarray): Coordinates of the element's vertices.
+            element_points (np.ndarray): Coordinates of the element nodes.
+            image_data (ProcessedImageData): 3D image data containing voxel
+                coordinates and values
 
         Returns:
             np.ndarray: An array containing pixel values of the voxels inside
@@ -71,24 +112,24 @@ class InterpolatorClass:
             axis=0
         )
 
-        tree = KDTree(self.image_data.coord_array)
+        tree = KDTree(image_data.coord_array)
         candidates = tree.query_ball_point(
             hull.points[hull.vertices].mean(axis=0),
             r=np.linalg.norm(bbox_max - bbox_min),
         )
 
         values_in_mesh = [
-            self.image_data.pxl_value[i]
+            image_data.pixel_values[i]
             for i in candidates
-            if np.all(self.image_data.coord_array[i] >= bbox_min)
-            and np.all(self.image_data.coord_array[i] <= bbox_max)
-            and self._point_in_hull(self.image_data.coord_array[i], hull)
+            if np.all(image_data.coord_array[i] >= bbox_min)
+            and np.all(image_data.coord_array[i] <= bbox_max)
+            and self._point_in_hull(image_data.coord_array[i], hull)
         ]
 
         return np.array(values_in_mesh)
 
-    def interpolate_imagevalues_to_points(
-        self, target_points: np.ndarray
+    def interpolate_image_values_to_points(
+        self, target_points: np.ndarray, image_data: ProcessedImageData
     ) -> np.ndarray:
         """Interpolates pixel values from the image data onto specified target
         points.
@@ -101,14 +142,16 @@ class InterpolatorClass:
         Arguments:
             target_points (np.ndarray): An array of coordinates where pixel
                 values should be interpolated.
+            image_data (ProcessedImageData): 3D image data containing voxel
+                coordinates and values
 
         Returns:
             np.ndarray: An array of interpolated pixel values at the target
                 points.
         """
 
-        points_image = self.image_data.coord_array
-        values_image = self.image_data.pxl_value
+        points_image = image_data.coord_array
+        values_image = image_data.pixel_values
 
         logging.info("Start Interpolation!")
         target_points_values = griddata(
@@ -118,73 +161,91 @@ class InterpolatorClass:
 
         return np.array(target_points_values)
 
-    def get_elementvalues_nodes(self) -> list[Element]:
-        """Computes the mean pixel value for each FEM element in the model
-        based on its node values.
+    def get_elementvalues_nodes(
+        self, dis: Discretization, image_data: ProcessedImageData
+    ) -> list[Element]:
+        """Computes the mean pixel value for each FEM element in the
+        Discretization based on its node values.
 
         This function interpolates pixel values at the coordinates of each
         element's nodes and calculates the mean value for the element. It
         applies when the `calculation_type` is set to "nodes".
+
+        Arguments:
+            dis (Discretization): The Discretization object containing FEM
+                elements and node coordinates.
+            image_data (ProcessedImageData):  3D image data containing voxel
+                coordinates and values
 
         Returns:
             list[Element]: A list of FEM elements with their mean pixel values
                 assigned.
         """
 
-        node_values = self.interpolate_imagevalues_to_points(
-            self.model_data.nodes.coords
+        node_values = self.interpolate_image_values_to_points(
+            dis.nodes.coords, image_data
         )
 
         node_positions = np.array(
             [
-                get_node_position_of_element(
-                    ele.node_ids, self.model_data.nodes.ids
-                )
-                for ele in self.model_data.elements
+                get_node_position_of_element(ele.node_ids, dis.nodes.ids)
+                for ele in dis.elements
             ]
         )
 
         for i, ele in tqdm(
-            enumerate(self.model_data.elements),
-            total=len(self.model_data.elements),
+            enumerate(dis.elements),
+            total=len(dis.elements),
             desc="Processing Elements",
         ):
 
             ele.value = np.mean(node_values[node_positions[i]], axis=0)
 
-        return self.model_data.elements
+        return dis.elements
 
-    def get_elementvalues_center(self) -> list[Element]:
-        """Computes the pixel value for each FEM element in the model based on
-        its center coordinate.
+    def get_elementvalues_center(
+        self, dis: Discretization, image_data: ProcessedImageData
+    ) -> list[Element]:
+        """Computes the pixel value for each FEM element in the Discretization
+        based on its center coordinate.
 
         This function interpolates pixel values at the center coordinates of
         each element and assigns the interpolated value to the element. It
         applies when the `calculation_type` is set to "elementcenter".
+
+        Arguments:
+            dis (Discretization): The Discretization object containing FEM
+                elements and node coordinates.
+            image_data (ProcessedImageData):  3D image data containing voxel
+                coordinates and values
 
         Returns:
             list[Element]: A list of FEM elements with their pixel values
                 assigned.
         """
 
+        dis = self.compute_element_centers(dis)
+
         center_coords_array = np.array(
-            [ele.center_coord for ele in self.model_data.elements]
+            [ele.center_coords for ele in dis.elements]
         )
 
-        ele_center_values = self.interpolate_imagevalues_to_points(
-            center_coords_array
+        ele_center_values = self.interpolate_image_values_to_points(
+            center_coords_array, image_data
         )
 
         for i, ele in tqdm(
-            enumerate(self.model_data.elements),
-            total=len(self.model_data.elements),
+            enumerate(dis.elements),
+            total=len(dis.elements),
             desc="Processing Elements",
         ):
             ele.value = ele_center_values[i]
 
-        return self.model_data.elements
+        return dis.elements
 
-    def get_elementvalues_all_voxels(self) -> list[Element]:
+    def get_elementvalues_all_voxels(
+        self, dis: Discretization, image_data: ProcessedImageData
+    ) -> list[Element]:
         """Computes the mean pixel value for each FEM element based on all
         voxels inside the element.
 
@@ -192,6 +253,12 @@ class InterpolatorClass:
         element and calculates their mean. It applies when the
         `calculation_type` is set to "allVoxel".
 
+        Arguments:
+            dis (Discretization): The Discretization object containing FEM
+                elements and node coordinates.
+            image_data (ProcessedImageData):  3D image data containing voxel
+                coordinates and values
+
         Returns:
             list[Element]: A list of FEM elements with their pixel values
                 assigned.
@@ -199,25 +266,25 @@ class InterpolatorClass:
 
         node_positions = np.array(
             [
-                get_node_position_of_element(
-                    ele.node_ids, self.model_data.nodes.ids
-                )
-                for ele in self.model_data.elements
+                get_node_position_of_element(ele.node_ids, dis.nodes.ids)
+                for ele in dis.elements
             ]
         )
 
         for i, ele in tqdm(
-            enumerate(self.model_data.elements),
-            total=len(self.model_data.elements),
+            enumerate(dis.elements),
+            total=len(dis.elements),
             desc="Element values",
         ):
 
-            element_coords = self.model_data.nodes.coords[node_positions[i]]
+            element_coords = dis.nodes.coords[node_positions[i]]
 
-            voxels_in_mesh = self._get_voxels_in_element(element_coords)
+            voxels_in_mesh = self._get_voxels_in_element(
+                element_coords, image_data
+            )
             ele.value = np.mean(voxels_in_mesh, axis=0)
 
-        return self.model_data.elements
+        return dis.elements
 
 
 class CalculationType(Enum):
@@ -225,8 +292,9 @@ class CalculationType(Enum):
     determination.
 
     This enum defines the available calculation types for mapping image data
-    to finite element model elements. The calculation type determines how the
-    image pixel values are assigned to the elements in the model.
+    to finite element Discretization elements. The calculation type determines
+    how the image pixel values are assigned to the elements in the
+    Discretization.
 
     Attributes:
         NODES (str): Represents the calculation method where the pixel value
@@ -242,8 +310,8 @@ class CalculationType(Enum):
     ALLVOXELS = "allvoxels"
 
     def get_method(
-        self, interpol: InterpolatorClass
-    ) -> Callable[[], list[Element]]:
+        self, interpol: Interpolator
+    ) -> Callable[[Discretization, ProcessedImageData], list[Element]]:
         """Returns the interpolation method corresponding to the current
         calculation type.
 
@@ -252,14 +320,14 @@ class CalculationType(Enum):
         performs pixel value assignment for FEM elements.
 
         Arguments:
-            interpolator (InterpolatorClass): An instance of the interpolator
+            interpol (InterpolatorClass): An instance of the interpolator
                 class that contains the interpolation methods for elements
                 (e.g., for nodes, center, or all voxels).
 
         Returns:
-            Callable[[], list[Element]]: A function corresponding to the
-                selected calculation method (nodes, element center, or all
-                voxels).
+            Callable[[Discretization,ProcessedImageData], list[Element]]:
+                A function corresponding to the selected calculation method
+                (nodes, element center, or all voxels).
         """
         return {
             CalculationType.NODES: interpol.get_elementvalues_nodes,
@@ -268,11 +336,11 @@ class CalculationType(Enum):
         }[self]
 
 
-def interpolate_image_to_mesh(
-    image_data: ProcessedImageData, model_data: ModelData, config: dict
+def interpolate_image_to_discretization(
+    dis: Discretization, image_data: ProcessedImageData, config: dict
 ) -> list[Element]:
-    """Performs interpolation of image data onto the FEM model based on the
-    specified calculation type.
+    """Performs interpolation of image data onto the FEM Discretization based
+    on the specified calculation type.
 
     This function applies different interpolation methods depending on the
     user configuration. The pixel values are assigned to the FEM elements
@@ -286,8 +354,10 @@ def interpolate_image_to_mesh(
         element.
 
     Arguments:
-        image_data (ProcessedImageData): The processed 3D image data.
-        model_data (ModelData): The finite element model data.
+        dis (Discretization): The Discretization object containing FEM
+            elements and node coordinates.
+        image_data (ProcessedImageData):  3D image data containing voxel
+            coordinates and values
         config (dict): User-defined configuration settings.
 
     Returns:
@@ -295,9 +365,9 @@ def interpolate_image_to_mesh(
     """
 
     calculation_type = CalculationType(
-        config["Processing options"]["calculation_type"]
+        config["processing options"]["calculation_type"]
     )
 
-    interpolator = InterpolatorClass(image_data, model_data)
+    interpolator = Interpolator()
 
-    return calculation_type.get_method(interpolator)()
+    return calculation_type.get_method(interpolator)(dis, image_data)
