@@ -1,4 +1,4 @@
-"""Import image data and convert it into slices."""
+"""Import image data and convert it into 3D data."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from typing import Optional, Union
 
 import numpy as np
 from i2pp.core.discretization_reader_classes.discretization_reader import (
-    Limits,
+    BoundingBox,
 )
 from pydicom.dataset import FileDataset
 
@@ -49,61 +49,99 @@ class PixelValueType(Enum):
             raise ValueError(f"Unsupported PixelValueType: {self}")
 
 
-@dataclass
-class ImageMetaData:
-    """Stores metadata related to a image slice.
+class SliceOrientation(Enum):
+    """Enum representing different slice orientations in a 3D volume."""
 
-    This class contains essential metadata about a single image slice,
-    including pixel spacing, orientation, and pixel type.
+    XY = "XY"
+    YZ = "YZ"
+    XZ = "XZ"
+    UNKNOWN = "Unkown"
+
+    def get_axis_index(self) -> int | None:
+        """Returns the corresponding axis index for the slice orientation.
+
+        Returns:
+            (int | None): The index of the axis perpendicular to the slice
+                plane (0 for YZ, 1 for XZ, 2 for XY), or None if unknown.
+        """
+
+        return {
+            SliceOrientation.XY: 2,
+            SliceOrientation.YZ: 0,
+            SliceOrientation.XZ: 1,
+        }.get(self, None)
+
+    def is_within_crop(
+        self, position: np.ndarray, bounding_box: BoundingBox
+    ) -> bool:
+        """Checks if a slice with a given position is within the bounding box.
+
+        Args:
+            position (np.ndarray): The spatial position of the slice.
+            bounding_box (BoundingBox): The bounding box defining the cropping
+                region.
+
+        Returns:
+            bool: True if the position is within the bounding box limits;
+                otherwise, False.
+        """
+
+        axis_index = self.get_axis_index()
+        if axis_index is None:
+            return True
+        return (
+            bounding_box.min[axis_index]
+            <= position[axis_index]
+            <= bounding_box.max[axis_index]
+        )
+
+
+@dataclass
+class GridCoords:
+    """Represents the spatial coordinates of a 3D grid in grid space.
 
     Attributes:
-        pixel_spacing (np.ndarray): The spacing between pixels in millimeters.
-        orientation (np.ndarray): The orientation of the image slice in space,
-            defining how the image is aligned.
-        pixel_type (PixelValueType): The type of pixel values in the image
-            (e.g., CT, MRI, RGB).
+        slice (np.ndarray): Coordinates along the slice (depth) dimension.
+        row (np.ndarray): Coordinates along the row (height) dimension.
+        col (np.ndarray): Coordinates along the column (width) dimension.
     """
 
-    pixel_spacing: np.ndarray
-    orientation: np.ndarray
-    pixel_type: PixelValueType
-    pixel_range: Optional[np.ndarray] = None
+    slice: np.ndarray
+    row: np.ndarray
+    col: np.ndarray
 
 
 @dataclass
-class Slice:
-    """Represents an individual image slice with pixel data and position.
-
-    This class stores the actual pixel data of an image slice along with its
-    position in 3D space.
+class ImageData:
+    """Represents a 3D medical or scientific image with spatial and intensity
+    metadata.
 
     Attributes:
-        pixel_data (np.ndarray): The pixel data of the slice stored as a 2D
-            NumPy array.
-        position (np.ndarray): The spatial position of the slice, typically
-            representing the coordinates of the first pixel.
+        pixel_data (np.ndarray): A 3D NumPy array representing pixel
+            intensity values.
+        grid_coords (GridCoords): Spatial coordinates along the slice,
+            row, and column dimensions in grid space.
+        orientation (np.ndarray):
+            A (3,3)-shaped NumPy array defining the image orientation in world
+                coordinates:
+            - The first column represents the slice (depth) direction.
+            - The second column represents the row (height) direction.
+            - The third column represents the column (width) direction.
+        position (np.ndarray): The world coordinate position of the first
+            pixel.
+        pixel_type (PixelValueType): The type of pixel data (e.g., CT, MRI,
+            RGB).
+        pixel_range (Optional[np.ndarray]):
+            A 2-element array specifying the valid pixel value range
+                [min, max] (optional).
     """
 
     pixel_data: np.ndarray
+    grid_coords: GridCoords
+    orientation: np.ndarray
     position: np.ndarray
-
-
-@dataclass
-class SlicesAndMetadata:
-    """Holds a collection of slices and their associated metadata.
-
-    This dataclass organizes multiple slices of a 3D image along with
-    the necessary metadata required for processing.
-
-    Attributes:
-        slices (list[Slices]): A list of individual image slices that make up
-            the full dataset.
-        metadata (ImageMetaData): The metadata associated with the image,
-            including pixel spacing, orientation, and pixel type.
-    """
-
-    slices: list[Slice]
-    metadata: ImageMetaData
+    pixel_type: PixelValueType
+    pixel_range: Optional[np.ndarray] = None
 
 
 class ImageReader(ABC):
@@ -111,27 +149,69 @@ class ImageReader(ABC):
 
     This class defines a common interface for loading image data from
     different file formats (e.g., PNG and DICOM) and converting it into
-    structured slice representations. It ensures a consistent workflow
-    for handling both medical imaging (DICOM) and standard 2D images
-    (PNG).
+    structured ImageData representations. It ensures a consistent
+    workflow for handling both medical imaging (DICOM) and standard 2D
+    images (PNG).
     """
 
-    def __init__(self, config: dict, limits: Limits):
+    def __init__(self, config: dict, bounding_box: BoundingBox):
         """Init ImageReader."""
         self.config = config
-        self.limits = limits
+        self.bounding_box = bounding_box
+
+    def get_slice_orientation(
+        self, row_direction: np.ndarray, col_direction: np.ndarray
+    ) -> SliceOrientation:
+        """Determines the slice orientation based on the row and column
+        direction vectors.
+
+        Args:
+            row_direction (np.ndarray): A 3-element array representing the row
+                direction in 3D space.
+            col_direction (np.ndarray): A 3-element array representing the
+                column direction in 3D space.
+
+        Returns:
+            SliceOrientation: The identified slice orientation (XY, YZ, XZ, or
+                UNKNOWN).
+
+        Notes:
+            - XY: If both row and column directions are perpendicular to the
+                Z-axis.
+            - YZ: If both row and column directions are perpendicular to the
+                X-axis.
+            - XZ: If both row and column directions are perpendicular to the
+                Y-axis.
+            - UNKNOWN: If the orientation does not match any of the predefined
+                categories.
+        """
+        TOLERANCE = 1e-6
+        if np.isclose(
+            np.dot(row_direction, [0, 0, 1]), 0, atol=TOLERANCE
+        ) and np.isclose(np.dot(col_direction, [0, 0, 1]), 0, atol=TOLERANCE):
+            return SliceOrientation.XY
+        elif np.isclose(
+            np.dot(row_direction, [1, 0, 0]), 0, atol=TOLERANCE
+        ) and np.isclose(np.dot(col_direction, [1, 0, 0]), 0, atol=TOLERANCE):
+            return SliceOrientation.YZ
+        elif np.isclose(
+            np.dot(row_direction, [0, 1, 0]), 0, atol=TOLERANCE
+        ) and np.isclose(np.dot(col_direction, [0, 1, 0]), 0, atol=TOLERANCE):
+            return SliceOrientation.XZ
+
+        return SliceOrientation.UNKNOWN
 
     @abstractmethod
-    def load_image(self, directory: Path) -> Union[FileDataset, np.ndarray]:
-        """Loads raw image data from a specified directory containing either
-        PNG or DICOM files.
+    def load_image(self, folder_path: Path) -> Union[FileDataset, np.ndarray]:
+        """Loads raw image data from a specified folder containing either PNG
+        or DICOM files.
 
         This method reads 2D image files (either in PNG or DICOM format) from
-        the provided directory, processes them as needed, and returns a list
+        the provided folder, processes them as needed, and returns a list
         of the raw data as a 3D image representation.
 
         Arguments:
-            directory (Path): The path to the directory containing the image
+            folder_path (Path): The path to the folder containing the image
                 files.
 
         Returns:
@@ -143,27 +223,25 @@ class ImageReader(ABC):
         pass
 
     @abstractmethod
-    def image_to_slices(
+    def convert_to_image_data(
         self, raw_image: Union[FileDataset, np.ndarray]
-    ) -> SlicesAndMetadata:
-        """Converts raw image data into a list of SlicesData.
+    ) -> ImageData:
+        """Converts raw image data into an ImageData object.
 
-        This method processes the raw image data (either from a DICOM
-        FileDataset or a PNG NumPy array) and transforms it into a list of
-        SlicesAndMetadata. Each `SlicesAndMetadata` object represents a 2D
-        slice of the 3D image, which is constructed from the input data.
-        The conversion ensures that the subsequent calculations and operations
-        are independent of the image format, making it compatible with both
-        DICOM and PNG imports.
+        This method processes the raw input data, which can be either a
+        DICOM FileDataset or a PNG NumPy array, and transforms it into a
+        structured `ImageData` object. The conversion extracts pixel values,
+        grid coordinates, and orientation information to ensure consistency in
+        downstream processing, regardless of the input format.
 
         Arguments:
-            raw_image (Union(FileDataset, np.ndarray)): The raw image data
-                from DICOM or PNG files to be converted into slices.
+            raw_image (Union[FileDataset, np.ndarray]):
+                The raw image data from DICOM or PNG to be converted.
 
         Returns:
-            SlicesAndMetadata: A SlicesAndMetadata object, where each
-                object represents a single slice from the raw image data. The
-                combined slices form the full 3D image.
+            ImageData:
+                A structured representation of the 3D image, including pixel
+                data, grid coordinates, orientation, and metadata.
         """
 
         pass

@@ -22,7 +22,7 @@ class MeshReader(DiscretizationReader):
     """
 
     def load_discretization(
-        self, directory: Path, config: dict
+        self, file_path: Path, config: dict
     ) -> Discretization:
         """Loads and processes a finite element model from a .mesh file.
 
@@ -31,7 +31,7 @@ class MeshReader(DiscretizationReader):
         initializes necessary attributes.
 
         Arguments:
-            directory (Path): Path to the .mesh file.
+            file_path (Path): Path to the .mesh file.
 
         Returns:
             Discretization: A structured representation of the finite element
@@ -40,13 +40,15 @@ class MeshReader(DiscretizationReader):
 
         logging.info("Importing Model data")
 
-        raw_dis = trimesh.load(directory)
+        raw_dis = trimesh.load(file_path)
 
-        nodes = Nodes(raw_dis.vertices, list(range(len(raw_dis.faces))))
+        nodes = Nodes(
+            coords=raw_dis.vertices, ids=list(range(len(raw_dis.faces)))
+        )
 
         elements = []
         for i, face in enumerate(raw_dis.faces):
-            elements.append(Element(face, i))
+            elements.append(Element(node_ids=face, id=i))
 
         dis = Discretization(nodes=nodes, elements=elements)
 

@@ -118,7 +118,7 @@ def export_data(elements: list[Element], config: dict, pxl_range: np.ndarray):
         - Writes the export string to a file using `Exporter.write_data()`.
 
     Arguments:
-        elements (List[Element]): List of elements with IDs and values.
+        elements (List[Element]): List of elements with IDs and data.
         config (dict): User configuration containing export settings.
         pxl_range (np.ndarray): Pixel range for normalization if enabled.
 
@@ -128,13 +128,10 @@ def export_data(elements: list[Element], config: dict, pxl_range: np.ndarray):
 
     logging.info("Export File!")
 
-    element_values = []
-    element_ids = []
-    for ele in elements:
-        element_values.append(ele.value)
-        element_ids.append(ele.id + 1)
+    element_ids = [ele.id + 1 for ele in elements]
+    element_data = [ele.data for ele in elements]
 
-    np.array(element_values)
+    np.array(element_data)
     np.array(element_ids)
 
     processing_options = config["processing options"]
@@ -145,10 +142,10 @@ def export_data(elements: list[Element], config: dict, pxl_range: np.ndarray):
     exporter = Exporter()
 
     if processing_options["normalize_values"]:
-        element_values = normalize_values(elements, pxl_range)
+        element_data = normalize_values(element_data, pxl_range)
 
     user_function = exporter.load_user_function(script_path, function_name)
 
-    export_string = user_function(element_ids, element_values)
+    export_string = user_function(element_ids, element_data)
 
     exporter.write_data(export_string, config)

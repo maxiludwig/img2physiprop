@@ -9,8 +9,8 @@ import numpy as np
 
 
 @dataclass
-class Limits:
-    """Dataclass for storing the boundaries (limits) of a set of points.
+class BoundingBox:
+    """Dataclass for storing the boundaries (BoundingBox) of a set of points.
 
     Attributes:
         min (np.ndarray): An array representing the minimum values along
@@ -28,8 +28,8 @@ class Nodes:
     """Class for storing information about nodes in a Discretization.
 
     Attributes:
-        coords (np.ndarray): An array of coordinates for each node, where
-            each entry represents the (x, y, z) position of a node.
+        coords (np.ndarray): An (N, 3) array containing the (x, y, z)
+            world coordinates of each node.
         ids (np.ndarray): An array of IDs for each node.
     """
 
@@ -44,21 +44,22 @@ class Element:
 
     This class represents a single element in the mesh Discretization, defined
     by its node IDs, an element ID, the coordinates of its center, and
-    associated values.
+    associated data.
 
     Attributes:
         node_ids (np.ndarray): An array of node IDs that define the nodes of
             the element.
         id (int): A unique identifier for the element.
-        center_coords (np.ndarray): The coordinates of the center of the
-            element.
-        value (np.ndarray): An array of values associated with the element.
+        world_coords (np.ndarray): An (N, 3) array containing the (x, y, z)
+            world coordinates of the center of the element.
+        data (np.ndarray): An array representing the data associated with
+            the element, such as RGB colors or grayscale intensities
     """
 
     node_ids: np.ndarray
     id: int
     center_coords: Optional[np.ndarray] = None
-    value: Optional[np.ndarray] = None
+    data: Optional[np.ndarray] = None
 
 
 @dataclass
@@ -67,7 +68,7 @@ class Discretization:
 
     This class is used to represent the Discretization of a mesh,
     including information about the nodes' coordinates, the elements that
-    form the mesh, and the limits that define the boundaries of the
+    form the mesh, and the bounding box that define the boundaries of the
     Discretization.
 
     Attributes:
@@ -75,13 +76,13 @@ class Discretization:
             coordinates and IDs of each node.
         elements (list[Element]): A list of elements, each representing a part
             of the Discretization, containing information such as node IDs,
-            element ID, center coordinates, and element value.
-        limits (Limits): Boundary limits of the Discretization.
+            element ID, center coordinates, and element data.
+        bounding_box (BoundingBox): Boundary limits of the Discretization.
     """
 
     nodes: Nodes
     elements: list[Element]
-    limits: Optional[Limits] = None
+    bounding_box: Optional[BoundingBox] = None
 
 
 class DiscretizationReader(ABC):
@@ -100,7 +101,7 @@ class DiscretizationReader(ABC):
 
     @abstractmethod
     def load_discretization(
-        self, directory: Path, config: dict
+        self, file_path: Path, config: dict
     ) -> Discretization:
         """Abstract method to load Discretization data from a file.
 
@@ -111,7 +112,7 @@ class DiscretizationReader(ABC):
         which the Discretization nodes are located.
 
         Arguments:
-            directory (Path): Path to the Discretization file (e.g., .dat or
+            file_path (Path): Path to the Discretization file (e.g., .dat or
                 .mesh file).
             config (dict): A dictionary containing configuration options for
                 loading the Discretization.

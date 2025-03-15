@@ -1,21 +1,27 @@
 """Useful functions that are used in other modules."""
 
-from typing import Tuple
+import logging
+from typing import Optional, Tuple
 
 import numpy as np
+from scipy.ndimage import uniform_filter
 
 
-def find_mins_maxs(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """Calculates the minimum and maximum coordinate values of a given set of
-    3D points.
+def find_mins_maxs(
+    points: np.ndarray, enlargement: Optional[float] = 0
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Computes the axis-aligned bounding box for a set of 3D points.
 
-    This function determines the bounding box for a set of points by finding
-    the minimum and maximum values along each axis (X, Y, Z). A constant
-    enlargement factor is applied to extend the bounding box slightly.
+    This function calculates the minimum and maximum coordinate values along
+    each axis (X, Y, Z) to determine the bounding box of the input points.
+    An optional enlargement factor can be applied to expand the bounding box
+    in all directions.
 
-    Arguments:
+    Args:
         points (np.ndarray): A NumPy array of shape (N, 3) representing N
             points in 3D space.
+        enlargement (Optional[float]): An optional value to expand the bounding
+            box equally along all axes. Defaults to 0.
 
     Returns:
         Tuple[np.ndarray, np.ndarray]: Two NumPy arrays representing the
@@ -24,24 +30,22 @@ def find_mins_maxs(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
             second array contains the maximum values [max_x, max_y, max_z].
     """
 
-    CONST_ENLARGE = 2
-
     x = points[:, 0]
     y = points[:, 1]
     z = points[:, 2]
 
     min_coords = np.array(
         [
-            np.min(x) - CONST_ENLARGE,
-            np.min(y) - CONST_ENLARGE,
-            np.min(z) - CONST_ENLARGE,
+            np.min(x) - enlargement,
+            np.min(y) - enlargement,
+            np.min(z) - enlargement,
         ]
     )
     max_coords = np.array(
         [
-            np.max(x) + CONST_ENLARGE,
-            np.max(y) + CONST_ENLARGE,
-            np.max(z) + CONST_ENLARGE,
+            np.max(x) + enlargement,
+            np.max(y) + enlargement,
+            np.max(z) + enlargement,
         ]
     )
 
@@ -49,8 +53,8 @@ def find_mins_maxs(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
 
 def normalize_values(data: np.ndarray, pxl_range: np.ndarray) -> np.ndarray:
-    """Normalizes the input data to a range between 0 and 1 based on the
-    provided pixel range.
+    """Normalizes  data to a range between 0 and 1 based on the provided pixel
+    range.
 
     This function shifts the data by subtracting the minimum pixel value and
     then scales it by dividing it by the total range (max - min). The
@@ -90,6 +94,37 @@ def get_node_position_of_element(
             nodes in `node_ids`.
     """
 
-    id_to_index = {node_id: idx for idx, node_id in enumerate(node_ids)}
+    # id_to_index = {node_id: idx for idx, node_id in enumerate(node_ids)}
 
-    return np.array([id_to_index[nid] for nid in element_node_ids])
+    # return np.array([id_to_index[nid] for nid in element_node_ids])
+    return np.searchsorted(node_ids, element_node_ids)
+
+
+def smooth_data(
+    data: np.ndarray,
+    smoothing_window: int,
+) -> np.ndarray:
+    """Applies a smoothing filter to 3D image data by averaging pixel values.
+
+    This function reduces noise or measurement errors in the image data by
+    applying a smoothing filter. The filter calculates the average pixel value
+    within a neighborhood defined by the `smoothing_window` parameter, which
+    helps to smooth out irregularities in the data.
+
+    Args:
+        data (np.ndarray): A 3D array containing the pixel data to be smoothed.
+        smoothing_window (int): The size of the neighborhood (in points) used
+            to compute the average. Larger values result in smoother data,
+            but may reduce fine details.
+
+    Returns:
+        np.ndarray: The smoothed image data as a 3D array, where each pixel's
+        value has been replaced by the average of its neighbors within the
+        defined smoothing window.
+    """
+
+    logging.info("Smooth data!")
+
+    return uniform_filter(
+        data, size=smoothing_window, mode="nearest", axes=(0, 1, 2)
+    )

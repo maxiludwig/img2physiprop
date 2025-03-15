@@ -18,10 +18,10 @@ from tqdm import tqdm
 class DatReader(DiscretizationReader):
     """Class for reading and processing finite element models from .dat files.
 
-    This class extends `ModelReader` to handle `.dat` files, which store
-    discretized finite element models. It provides functionality to import
-    the Discretization, filter elements based on material IDs, and structure
-    the data into a `Discretization` object.
+    This class extends `DiscretizationReader` to handle `.dat` files, which
+    store discretized finite element models. It provides functionality to
+    import the Discretization, filter elements based on material IDs, and
+    structure the data into a `Discretization` object.
     """
 
     def _filter_discretization(
@@ -33,7 +33,7 @@ class DatReader(DiscretizationReader):
         This function iterates through the elements in the discretized model
         and selects only those whose material ID matches one of the specified
         `mat_ids`. The corresponding nodes of these elements are also
-        retained.
+        retained. After filtering, the nodes are sorted based on their IDs.
 
         Arguments:
             dis (DiscretizationLNM): The discretized finite element model.
@@ -61,13 +61,15 @@ class DatReader(DiscretizationReader):
                 else:
                     continue
 
+        sorted_nodes = sorted(filtered_nodes, key=lambda x: x.id)
+
         dis.elements.structure = list(filtered_elements)
-        dis.nodes = list(filtered_nodes)
+        dis.nodes = list(sorted_nodes)
 
         return dis
 
     def load_discretization(
-        self, directory: Path, config: dict
+        self, file_path: Path, config: dict
     ) -> Discretization:
         """Loads and processes a finite element model from a .dat file.
 
@@ -76,7 +78,7 @@ class DatReader(DiscretizationReader):
         the data into a `Discretization` object.
 
         Arguments:
-            directory (Path): Path to the .dat file.
+            file_path (Path): Path to the .dat file.
             config (dict): User configuration containing material ID filters.
 
         Returns:
@@ -86,7 +88,7 @@ class DatReader(DiscretizationReader):
 
         logging.info("Importing Discretization data")
 
-        raw_dis = lnmmeshio.read(str(directory))
+        raw_dis = lnmmeshio.read(str(file_path))
 
         raw_dis.compute_ids(zero_based=True)
 

@@ -4,9 +4,14 @@ import os
 import tempfile
 from pathlib import Path
 from unittest import mock
+from unittest.mock import patch
 
+import numpy as np
 import pytest
-from i2pp.core.export_data import Exporter
+from i2pp.core.discretization_reader_classes.discretization_reader import (
+    Element,
+)
+from i2pp.core.export_data import Exporter, export_data
 
 
 def test_load_user_function_not_exist():
@@ -75,3 +80,53 @@ def test_write_data_creates_file():
         mocked_file.assert_called_once_with(file_path, "w", encoding="utf-8")
 
         mocked_file().write.assert_called_once_with(export_string)
+
+
+def test_export_data():
+    """Test export_data."""
+
+    test_config = {
+        "processing options": {
+            "user_script": "mock_script.py",
+            "user_function": "mock_function",
+            "normalize_values": True,
+        }
+    }
+
+    pixel_range = np.array([0, 20])
+    element1 = Element([0, 1], 0, data=10)
+    element2 = Element([0, 1], 1, data=20)
+    elements = [element1, element2]
+
+    expected_data = {1: 1, 2: 2}
+    expected_string = "\n".join(
+        f"{key}:{value}" for key, value in expected_data.items()
+    )
+
+    def mock_user_function(element_ids, element_data):
+        """Mock-User-Funktion, die Element-IDs und Daten als formatierte
+        Strings zurückgibt."""
+        return "\n".join(
+            f"{eid}:{edata}" for eid, edata in zip(element_ids, element_data)
+        )
+
+    with patch(
+        "i2pp.core.export_data.normalize_values", return_value=np.array([1, 2])
+    ) as mock_normalize_values:
+        with patch.object(
+            Exporter, "load_user_function", return_value=mock_user_function
+        ) as mock_load_user_function:
+            with patch.object(
+                Exporter, "write_data", return_value=None
+            ) as mock_write_data:
+                export_data(elements, test_config, pixel_range)
+
+                mock_normalize_values.assert_called_once_with(
+                    [ele.data for ele in elements], pixel_range
+                )
+                mock_load_user_function.assert_called_once_with(
+                    "mock_script.py", "mock_function"
+                )
+                mock_write_data.assert_called_once_with(
+                    expected_string, test_config
+                )

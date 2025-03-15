@@ -4,15 +4,16 @@ input informations:
   image_folder_path: Dicom_inputs/Human/
 #Necessary information for the PNG import
 image_metadata:
-  pixel_spacing: [1, 1]
-  slice_thickness: 1
+  pixel_spacing: [1, 1, 1]
   image_position: [0, 0, 0]
-  image_orientation: [0, 1, 0, 1, 0, 0] #default: [0, -1, 0, 1, 0, 0]
+  row_direction: [0, -1, 0] #default: [0, -1, 0]
+  column_direction: [1, 0, 0] #default: [1, 0, 0]
+  slice_direction: [0, 0, 1] #default: [0, 0, 1]
 processing options:
   material_ids:
-  smoothing: False
+  smoothing: True
   smoothing_area: 5
-  calculation_type: allvoxels
+  calculation_type: nodes
   normalize_values: False
   user_script: user_functions/user_function.py
   user_function: user_function

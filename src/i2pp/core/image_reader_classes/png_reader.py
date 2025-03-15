@@ -1,15 +1,14 @@
-"""Import image data and convert it into slices."""
+"""Import PNG data and convert it into 3D data."""
 
 import logging
 from pathlib import Path
 
 import numpy as np
 from i2pp.core.image_reader_classes.image_reader import (
-    ImageMetaData,
+    GridCoords,
+    ImageData,
     ImageReader,
     PixelValueType,
-    Slice,
-    SlicesAndMetadata,
 )
 from PIL import Image
 
@@ -19,7 +18,7 @@ class PngReader(ImageReader):
 
     This class extends `ImageReader` to process 2D PNG images and convert them
     into structured slices. It validates image metadata, loads PNG files
-    from a directory, and processes them into `SlicesAndMetadata` objects.
+    from a folder, and processes them into `ImageData` objects.
     """
 
     def _verify_image_metadata(self, image_metadata: dict) -> None:
@@ -28,15 +27,16 @@ class PngReader(ImageReader):
         This method checks that each required parameter in the dictionary
         config["image_metadata"] is present and has the correct shape or data
         type. It performs validation for:
-        - pixel_spacing: Must be a 2x1 array.
-        - slice_thickness: Must be an integer or float.
+        - pixel_spacing: Must be a 3x1 array.
         - image_position: Must be a 3x1 array.
-        - image_orientation: Must be a 6x1 array or None.
+        - row_orientation: Must be a 3x1 array or None.
+        - column_orientation: Must be a 3x1 array or None.
+        - slice_orientation: Must be a 3x1 array or None.
 
         Arguments:
             image_metadata (dict): Dictionary containing image_metadata
-                with keys: 'pixel_spacing', 'slice_thickness',
-                'image_position' and 'image_orientation'.
+                with keys: 'pixel_spacing', 'image_position',
+                'row_orientation' and 'column_orientation','slice_orientation'.
 
         Raises:
             RuntimeError: If any of the parameters are missing, of incorrect
@@ -44,15 +44,21 @@ class PngReader(ImageReader):
         """
 
         expected_shapes = {
-            "pixel_spacing": (2,),
+            "pixel_spacing": (3,),
             "image_position": (3,),
-            "image_orientation": (6,),
+            "row_orientation": (3,),
+            "column_orientation": (3,),
+            "slice_orientation": (3,),
         }
 
         for key, shape in expected_shapes.items():
             value = image_metadata.get(key)
 
-            if key == "image_orientation" and value is None:
+            if (
+                key == "row_orientation"
+                or key == "column_orientation"
+                or key == "slice_orientation"
+            ) and value is None:
                 continue
 
             if value is None:
@@ -73,22 +79,17 @@ class PngReader(ImageReader):
                     "{shape}, but got: {array_value.shape}."
                 )
 
-        thickness = image_metadata.get("slice_thickness")
-        if not isinstance(thickness, (int, float)):
-            raise RuntimeError(
-                "Parameter 'slice_thickness' must be a number (int or float)."
-            )
-
-    def load_image(self, directory: Path) -> list[np.ndarray]:
+    def load_image(self, folder_path: Path) -> list[np.ndarray]:
         """Loads and processes PNG image data from a specified directory.
 
-        This function reads all PNG files in the given directory, verifies
+        This function reads all PNG files in the given folder, verifies
         the format of the image_metadata in the configuration, and
         converts the images to RGB format. The 2-dimensional PNG images
         together represent a 3D image.
 
         Arguments:
-            directory (Path): The directory containing the PNG image files.
+            folder_path (Path): The path to the folder containing the PNG
+                image files.
 
         Returns:
             list[np.ndarray]: A list of RGB images as NumPy arrays, each
@@ -105,61 +106,78 @@ class PngReader(ImageReader):
 
         raw_png = []
 
-        for fname in directory.glob("*.png"):
+        for fname in folder_path.glob("*.png"):
             image_png = Image.open(fname)
             rgb_image = image_png.convert("RGB")
-            raw_png.append(rgb_image)
+            raw_png.append(np.array(rgb_image))
 
         return raw_png
 
-    def image_to_slices(self, raw_pngs: list[np.ndarray]) -> SlicesAndMetadata:
-        """Converts 2D PNG images into structured slice data.
+    def convert_to_image_data(self, raw_pngs: list[np.ndarray]) -> ImageData:
+        """Converts a list of 2D PNG images into a structured 3D volume.
 
-        Processes the provided PNG images and extracts relevant metadata,
-        including pixel spacing, image position, and orientation. The images
-        are then filtered based on the defined Z-axis limits to ensure valid
+        This method processes PNG images as individual slices, importing
+        metadata such as pixel spacing, position, and orientation. It filters
+        slices based on a specified bounding box, ensuring only relevant
         slices are included.
 
-        Arguments:
-            raw_png (list[np.ndarray]): A list of 2D PNG images, each
+        Args:
+            raw_pngs (list[np.ndarray]): A list of 2D NumPy arrays, each
                 representing a slice in a 3D volume.
 
         Returns:
-            SlicesAndMetadata: A structured representation of slices with
-                metadata.
+            ImageData: A structured representation containing 3D pixel data,
+                grid coordinates, orientation, and metadata.
         """
 
-        image_metadata: dict = self.config["image_metadata"]
+        image_metadata = self.config["image_metadata"]
+
+        row_direction = np.array(
+            image_metadata.get("row_direction") or [0, -1, 0]
+        )
+
+        column_direction = np.array(
+            image_metadata.get("column_direction") or [1, 0, 0]
+        )
+
+        slice_direction = np.array(
+            image_metadata.get("slice_direction") or [0, 0, 1]
+        )
+
+        slice_orientation = self.get_slice_orientation(
+            row_direction, column_direction
+        )
 
         spacing = np.array(image_metadata["pixel_spacing"])
-        orientation = np.array(
-            image_metadata.get("image_orientation") or [0, -1, 0, 1, 0, 0]
-        )
+        start_coords = np.array(image_metadata["image_position"])
 
-        metadata = ImageMetaData(
-            pixel_spacing=spacing,
-            orientation=orientation,
-            pixel_type=PixelValueType.RGB,
-        )
-
-        slice_thickness = float(image_metadata["slice_thickness"])
-        start_pos = np.array(image_metadata["image_position"])
-
-        slices = []
+        pixel_data_list = []
+        coords_in_crop = []
 
         for i, png in enumerate(raw_pngs):
 
-            pxl_data = np.array(png)
+            coords_slice = start_coords + i * slice_direction * spacing[0]
 
-            pos = start_pos + np.array([0, 0, i * slice_thickness])
+            if slice_orientation.is_within_crop(
+                coords_slice, self.bounding_box
+            ):
 
-            if self.limits.min[2] <= pos[2] <= self.limits.max[2]:
+                pixel_data_list.append(png)
+                coords_in_crop.append(np.array(coords_slice))
 
-                slices.append(
-                    Slice(
-                        pixel_data=pxl_data,
-                        position=pos,
-                    )
-                )
+        pixel_data = np.array(pixel_data_list)
+        N_slice, N_row, N_col = pixel_data.shape
 
-        return SlicesAndMetadata(slices, metadata)
+        slice_coords = np.arange(N_slice) * spacing[0]
+        row_coords = np.arange(N_row) * spacing[1]
+        col_coords = np.arange(N_col) * spacing[2]
+
+        return ImageData(
+            pixel_data=np.array(pixel_data),
+            grid_coords=GridCoords(slice_coords, row_coords, col_coords),
+            orientation=np.column_stack(
+                (slice_direction, row_direction, column_direction)
+            ),
+            position=coords_in_crop[0],
+            pixel_type=PixelValueType.RGB,
+        )

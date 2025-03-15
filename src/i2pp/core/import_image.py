@@ -1,4 +1,4 @@
-"""Import image data and convert it into slices."""
+"""Import image data and convert it into 3D data."""
 
 from enum import Enum
 from pathlib import Path
@@ -6,13 +6,13 @@ from typing import Type, cast
 
 import numpy as np
 from i2pp.core.discretization_reader_classes.discretization_reader import (
-    Limits,
+    BoundingBox,
 )
 from i2pp.core.image_reader_classes.dicom_reader import DicomReader
 from i2pp.core.image_reader_classes.image_reader import (
+    ImageData,
     ImageReader,
     PixelValueType,
-    SlicesAndMetadata,
 )
 from i2pp.core.image_reader_classes.png_reader import PngReader
 
@@ -26,7 +26,7 @@ class ImageFormat(Enum):
         PNG: Represents the PNG (Portable Network Graphics) image format,
             typically used for color images.
 
-    This enum is used to define the input format of raw image data and helps
+    This enum is used to define the format of th input data and helps
     in determining how the image data should be processed based on its format
     (e.g., DICOM vs. PNG).
     """
@@ -48,17 +48,17 @@ class ImageFormat(Enum):
         }[self]
 
 
-def determine_image_format(directory: Path) -> ImageFormat:
+def determine_image_format(folder_path: Path) -> ImageFormat:
     """Verifies the existence and readability of image data and determines the
     format type.
 
-    This function checks whether the provided directory exists, contains
+    This function checks whether the provided folder exists, contains
     readable image data, and determines the format of the image data (either
     DICOM or PNG). If the directory is empty, contains both DICOM and PNG
     files, or is otherwise invalid, an appropriate error is raised.
 
     Arguments:
-        directory (Path): Path to the image-data folder.
+        folder_path (Path): Path to the image-data folder.
 
     Raises:
         RuntimeError: If the specified path does not exist.
@@ -69,13 +69,13 @@ def determine_image_format(directory: Path) -> ImageFormat:
     Returns:
         ImageFormat: The format of the image data.
     """
-    if not Path(directory).is_dir():
+    if not Path(folder_path).is_dir():
         raise RuntimeError(
-            f"Path {directory} to the image data cannot be found!"
+            f"Path {folder_path} to the image data cannot be found!"
         )
 
     supported_formats = {
-        fmt: any(directory.glob(f"*{fmt.value}")) for fmt in ImageFormat
+        fmt: any(folder_path.glob(f"*{fmt.value}")) for fmt in ImageFormat
     }
 
     detected_formats = {
@@ -99,51 +99,50 @@ def determine_image_format(directory: Path) -> ImageFormat:
 
 
 def verify_and_load_imagedata(
-    config: dict, limits: Limits
-) -> SlicesAndMetadata:
-    """Verifies input data format and loads the image data.
+    config: dict, bounding_box: BoundingBox
+) -> ImageData:
+    """Validates input data format and loads 3D image data.
 
-    This function first checks the input directory for valid image data,
-    verifies the format (either DICOM or PNG), and then uses the corresponding
-    image reader to load the image data. The data is then converted into a
-    list of slices, and the pixel range is determined based on the pixel type
-    (MRT or other).
+    This function checks the specified input folder for valid image files,
+    determines the format (DICOM or PNG), and loads the data using the
+    appropriate image reader. The image is then converted into a structured
+    format containing pixel data and metadata. Additionally, the function sets
+    the pixel intensity range based on the pixel type.
 
     Arguments:
         config (dict): User configuration containing the directory for input
             data and other settings.
-        limits (Limits): Discretization boundaries used for processing image
-            data.
+        bounding_box (BoundingBox): The spatial region defining the area of
+            interest for image processing.
 
     Returns:
-        SlicesAndMetadata: A list of `SlicesAndMetadata` objects containing
-            structured pixel data and metadata for each valid slice.
+        ImageData: An object containing structured pixel data, metadata, and
+            spatial information.
 
     Raises:
-        RuntimeError: If the input data directory is invalid or contains
+        RuntimeError: If the input data folder is invalid or contains
             unsupported data formats.
     """
     relative_path = Path(config["input informations"]["image_folder_path"])
 
-    directory = directory = Path.cwd() / relative_path
+    folder_path = Path.cwd() / relative_path
 
-    image_format = determine_image_format(directory)
+    image_format = determine_image_format(folder_path)
 
-    image_reader = cast(ImageReader, image_format.get_reader()(config, limits))
+    image_reader = cast(
+        ImageReader, image_format.get_reader()(config, bounding_box)
+    )
 
-    raw_image = image_reader.load_image(directory)
-    slices_and_metadata = image_reader.image_to_slices(raw_image)
+    raw_image = image_reader.load_image(folder_path)
 
-    if slices_and_metadata.metadata.pixel_type == PixelValueType.MRT:
-        all_pxls = np.concatenate(
-            [s.pixel_data.flatten() for s in slices_and_metadata.slices]
-        )
-        slices_and_metadata.metadata.pixel_range = np.array(
-            [all_pxls.min(), all_pxls.max()]
+    image_data = image_reader.convert_to_image_data(raw_image)
+
+    if image_data.pixel_type == PixelValueType.MRT:
+
+        image_data.pixel_range = np.array(
+            [image_data.pixel_data.min(), image_data.pixel_data.max()]
         )
     else:
-        slices_and_metadata.metadata.pixel_range = (
-            slices_and_metadata.metadata.pixel_type.pxl_range
-        )
+        image_data.pixel_range = image_data.pixel_type.pxl_range
 
-    return slices_and_metadata
+    return image_data
