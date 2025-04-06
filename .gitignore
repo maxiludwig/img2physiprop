@@ -23,6 +23,9 @@ docs/
 ### STL ###
 *.stl
 
+### yaml ###
+*.yaml
+
 ### Dicom ###
 *.dcm
 

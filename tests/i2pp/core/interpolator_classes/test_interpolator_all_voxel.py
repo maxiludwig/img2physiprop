@@ -1,7 +1,11 @@
 """Test Interpolator Routine."""
 
 import numpy as np
-from i2pp.core.image_reader_classes.image_reader import GridCoords
+from i2pp.core.image_reader_classes.image_reader import (
+    GridCoords,
+    ImageData,
+    PixelValueType,
+)
 from i2pp.core.interpolator_classes.interpolator_all_voxel import (
     InterpolatorAllVoxel,
 )
@@ -52,6 +56,28 @@ def test__search_bounding_box_element_outside():
     assert [min(i_slice), max(i_slice)] == [0, 7]
     assert [min(i_row), max(i_row)] == [0, 8]
     assert [min(i_col), max(i_col)] == [0, 9]
+
+
+def test__search_bounding_box_element_not_in_gird():
+    """Test _search_bounding_box if element is not in grid."""
+    slice_coords = np.arange(10) * 1
+    row_coords = np.arange(10) * 1
+    col_coords = np.arange(10) * 1
+
+    grid_coords = GridCoords(slice_coords, row_coords, col_coords)
+
+    ele_grid_coords = np.array(
+        [[-1, -1, -1], [-2, -4, -7], [-10, -5, -16], [-7, -8, -7]]
+    )
+
+    interpolator = InterpolatorAllVoxel()
+    i_slice, i_row, i_col = interpolator._search_bounding_box(
+        grid_coords, ele_grid_coords
+    )
+
+    assert len(i_slice) == 0
+    assert len(i_row) == 0
+    assert len(i_col) == 0
 
 
 def test__is_inside_element_in_element():
@@ -120,13 +146,14 @@ def test_get_data_of_element_element_in_grid_scalar():
     col_coords = np.arange(5)
 
     grid_coords = GridCoords(slice_coords, row_coords, col_coords)
+    image_data = ImageData(pixel_data, grid_coords, [], [], PixelValueType.CT)
 
     interpolator = InterpolatorAllVoxel()
 
     data_inside = [11, 12, 16, 17, 36, 37, 41, 42]
-    assert interpolator._get_data_of_element(
-        element, pixel_data, grid_coords
-    ) == np.mean(data_inside)
+    assert interpolator._get_data_of_element(element, image_data) == np.mean(
+        data_inside
+    )
 
 
 def test_get_data_of_element_element_in_grid_RGB():
@@ -153,9 +180,10 @@ def test_get_data_of_element_element_in_grid_RGB():
     )
 
     interpolator = InterpolatorAllVoxel()
+    image_data = ImageData(pixel_data, grid_coords, [], [], PixelValueType.RGB)
 
     data = interpolator._get_data_of_element(
-        element_node_grid_coords, pixel_data, grid_coords
+        element_node_grid_coords, image_data
     )
 
     assert data is not None
@@ -191,10 +219,50 @@ def test_get_data_of_element_element_not_in_grid():
     col_coords = np.arange(5)
 
     grid_coords = GridCoords(slice_coords, row_coords, col_coords)
+    image_data = ImageData(pixel_data, grid_coords, [], [], PixelValueType.CT)
 
     interpolator = InterpolatorAllVoxel()
 
-    assert (
-        interpolator._get_data_of_element(element, pixel_data, grid_coords)
-        is None
+    assert np.isnan(interpolator._get_data_of_element(element, image_data))
+
+
+def test_get_data_of_element_element_low_resolution_image():
+    """get_data_of_element if the element is in grid, but no points are inside
+    the element."""
+
+    element = np.array(
+        [
+            [1, 1, 1],
+            [2, 1, 1],
+            [1, 2, 1],
+            [2, 2, 1],
+            [1, 1, 2],
+            [2, 1, 2],
+            [1, 2, 2],
+            [2, 2, 2],
+        ]
+    )
+
+    N_slice, N_row, N_col = 5, 5, 5
+    pixel_data = (
+        np.arange(N_slice * N_row * N_col)
+        .reshape((N_slice, N_row, N_col))
+        .astype(np.uint16)
+    )
+
+    slice_coords = np.arange(5) * 3
+
+    row_coords = np.arange(5) * 3
+    col_coords = np.arange(5) * 3
+
+    grid_coords = GridCoords(slice_coords, row_coords, col_coords)
+    image_data = ImageData(pixel_data, grid_coords, [], [], PixelValueType.CT)
+
+    interpolator = InterpolatorAllVoxel()
+
+    interpol_point = np.array([0, 1, 5, 6, 25, 26, 30, 31])
+
+    assert np.equal(
+        interpolator._get_data_of_element(element, image_data),
+        np.mean(interpol_point),
     )

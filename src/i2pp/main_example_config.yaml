@@ -1,25 +1,27 @@
 input informations:
-  discretization_file_path: Test_dat/inputfile_tutorial.dat
-  #discretization_file_path: /scratch/bayer/Dat_inputs/Wuerfel.dat
-  image_folder_path: Dicom_inputs/Human/
+  discretization_file_path: lung_example/discretization.4C.yaml #lung_example/discretization.yml #Test_dat/10x10x10.dat
+  image_folder_path: lung_example/dicom/A10_CT #Test_png/100x50x12 #lung_example/dicom/A10_CT #Test_png/50x50x12_black_to_white #Test_png/1001x1001x21_bubbles_png #Test_png/50x50x12_black_to_white #Test_png/5x5x5_low_res
 #Necessary information for the PNG import
 image_metadata:
-  pixel_spacing: [1, 1, 1]
-  image_position: [0, 0, 0]
-  row_direction: [0, -1, 0] #default: [0, -1, 0]
+  pixel_spacing: [0.1, 0.02, 0.02] #[0.05, 0.001, 0.001] #[0.1,0.02,0.02] #low_res[0.25,0.25,0.25]#[slice_thickness, spacing_rows, spacing_cols]
+  image_position: [-0.5, -0.5, -0.5] #[position of first voxel in first slice]
+  row_direction: [0, 1, 0] #default: [0, -1, 0]
   column_direction: [1, 0, 0] #default: [1, 0, 0]
   slice_direction: [0, 0, 1] #default: [0, 0, 1]
 processing options:
   material_ids:
-  smoothing: True
-  smoothing_area: 5
-  calculation_type: nodes
+  smoothing: False
+  smoothing_area: 3
+  calculation_type: nodes #calculation_type: (nodes,elementcenter,allvoxels)
   normalize_values: False
   user_script: user_functions/user_function.py
   user_function: user_function
 output options:
   output_path: #/scratch/bayer/Git_respository/img2physiprop/  #default: current folder
   output_name: #pattern_test  #default: 'Output'
+visualization_options:
+  plot_smoothing: False #default: False
+  plot_results: False #default: False
 
 #calculation_type:
 # nodes: mean of element-nodes

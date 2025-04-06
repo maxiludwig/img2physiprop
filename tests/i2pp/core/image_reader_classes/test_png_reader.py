@@ -131,9 +131,10 @@ def test_convert_to_image_data_PNG():
             "slice_direction": [0, 0, 1],
         }
     }
+
     png = []
-    png.append([[1, 1], [2, 2]])
-    png.append([[3, 3], [4, 4]])
+    for _ in range(2):
+        png.append(np.random.rand(3, 3, 3))
 
     test_input = PngReader(
         test_config, BoundingBox(max=[0, 0, 1000], min=[1, 1, -1000])
@@ -161,18 +162,17 @@ def test_convert_to_image_data_png_dafault_orientation():
         }
     }
     png = []
-    png.append(np.array([[1, 1], [2, 2]]))
-    png.append(np.array([[1, 1], [2, 2]]))
-    png.append(np.array([[1, 1], [2, 2]]))
+    for _ in range(3):
+        png.append(np.random.rand(3, 3, 3))
 
     test_input = PngReader(
         test_config, BoundingBox(max=[1, 1, 2], min=[0, 0, 0.5])
     )
     image_data = test_input.convert_to_image_data(png)
 
-    print(image_data.grid_coords.slice)
     assert np.array_equal(image_data.grid_coords.slice, np.array([0, 0.5]))
     assert np.array_equal(image_data.position, np.array([0, 0, 0.5]))
+    assert image_data.pixel_data.shape == (2, 3, 3, 3)
 
     expected_orientation = np.array([[0, 0, 1], [0, -1, 0], [1, 0, 0]])
 

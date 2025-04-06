@@ -94,9 +94,6 @@ def get_node_position_of_element(
             nodes in `node_ids`.
     """
 
-    # id_to_index = {node_id: idx for idx, node_id in enumerate(node_ids)}
-
-    # return np.array([id_to_index[nid] for nid in element_node_ids])
     return np.searchsorted(node_ids, element_node_ids)
 
 

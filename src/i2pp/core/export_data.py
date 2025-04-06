@@ -131,9 +131,6 @@ def export_data(elements: list[Element], config: dict, pxl_range: np.ndarray):
     element_ids = [ele.id + 1 for ele in elements]
     element_data = [ele.data for ele in elements]
 
-    np.array(element_data)
-    np.array(element_ids)
-
     processing_options = config["processing options"]
 
     script_path = processing_options["user_script"]
