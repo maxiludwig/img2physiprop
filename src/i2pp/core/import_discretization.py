@@ -31,6 +31,7 @@ class DiscretizationFormat(Enum):
 
     MESH = ".mesh"
     DAT = ".dat"
+    YAML = ".yaml"
 
     def get_reader(self) -> Type[DiscretizationReader]:
         """Returns the appropriate Discretization reader class based on the
@@ -43,6 +44,7 @@ class DiscretizationFormat(Enum):
         return {
             DiscretizationFormat.MESH: MeshReader,
             DiscretizationFormat.DAT: DatReader,
+            DiscretizationFormat.YAML: DatReader,
         }[self]
 
 

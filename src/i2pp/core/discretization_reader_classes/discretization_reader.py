@@ -50,10 +50,10 @@ class Element:
         node_ids (np.ndarray): An array of node IDs that define the nodes of
             the element.
         id (int): A unique identifier for the element.
-        world_coords (np.ndarray): An (N, 3) array containing the (x, y, z)
-            world coordinates of the center of the element.
-        data (np.ndarray): An array representing the data associated with
-            the element, such as RGB colors or grayscale intensities
+        world_coords (Optional[np.ndarray]): An (N, 3) array containing the
+            (x, y, z) world coordinates of the center of the element.
+        data (Optional[np.ndarray]): An array representing the data associated
+            with the element, such as RGB colors or grayscale intensities
     """
 
     node_ids: np.ndarray
@@ -77,7 +77,8 @@ class Discretization:
         elements (list[Element]): A list of elements, each representing a part
             of the Discretization, containing information such as node IDs,
             element ID, center coordinates, and element data.
-        bounding_box (BoundingBox): Boundary limits of the Discretization.
+        bounding_box (Optional[np.ndarray]): Boundary limits of the
+            Discretization.
     """
 
     nodes: Nodes

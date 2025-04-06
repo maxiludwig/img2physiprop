@@ -131,33 +131,47 @@ class DicomReader(ImageReader):
 
         sorted_dicoms = self._sort_dicoms(raw_dicoms, slice_direction)
 
-        pixel_data_list = []
+        raw_pixel_data = []
         coords_in_crop = []
 
         for dicom in tqdm(sorted_dicoms, desc="Processing Elements"):
+
             if slice_orientation.is_within_crop(
                 dicom.ImagePositionPatient, self.bounding_box
             ):
 
-                pixel_data_list.append(dicom.pixel_array)
+                raw_pixel_data.append(dicom.pixel_array)
                 coords_in_crop.append(dicom.ImagePositionPatient)
+
             else:
                 continue
 
-        pixel_data = np.array(pixel_data_list)
+        slope = float(getattr(sorted_dicoms[0], "RescaleSlope", 1.0))
+        intercept = float(getattr(sorted_dicoms[0], "RescaleIntercept", 0.0))
+        pixel_data = np.array(raw_pixel_data) * slope + intercept
 
-        N_slice, N_row, N_col = pixel_data.shape
+        orientation = np.column_stack(
+            (np.array([0, 0, 1]), np.array([0, 1, 0]), np.array([1, 0, 0]))
+        )
 
-        slice_coords = np.arange(N_slice) * sorted_dicoms[0].SliceThickness
+        slice_spacing = float(
+            getattr(
+                sorted_dicoms[0],
+                "SpacingBetweenSlices",
+                sorted_dicoms[0].SliceThickness,
+            )
+        )
+
+        N_slice, N_col, N_row = pixel_data.shape
+
+        slice_coords = np.arange(N_slice) * slice_spacing
         row_coords = np.arange(N_row) * sorted_dicoms[0].PixelSpacing[0]
         col_coords = np.arange(N_col) * sorted_dicoms[0].PixelSpacing[1]
 
         return ImageData(
             pixel_data=np.array(pixel_data),
             grid_coords=GridCoords(slice_coords, row_coords, col_coords),
-            orientation=np.column_stack(
-                (slice_direction, row_direction, column_direction)
-            ),
+            orientation=orientation,
             position=coords_in_crop[0],
             pixel_type=pixel_type,
         )

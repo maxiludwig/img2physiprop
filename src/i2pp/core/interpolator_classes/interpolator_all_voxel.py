@@ -46,7 +46,7 @@ class InterpolatorAllVoxel(Interpolator):
                 in the grid, used to compute the bounding box.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]:
+            (Tuple[np.ndarray, np.ndarray]):
                 - slice_indices: An array of indices for slices within the
                     bounding box.
                 - row_indices: An array of indices for rows within the
@@ -99,60 +99,65 @@ class InterpolatorAllVoxel(Interpolator):
         return np.all(A @ point + b <= 0)
 
     def _get_data_of_element(
-        self,
-        element_node_grid_coords: np.ndarray,
-        pixel_data: np.ndarray,
-        grid_coords: GridCoords,
-    ) -> np.ndarray | None:
-        """Retrieves the pixel data for a specific element based on its node
-        grid coordinates.
+        self, element_node_grid_coords: np.ndarray, image_data: ImageData
+    ) -> np.ndarray:
+        """Computes the representative pixel value for a given element based on
+        its nodes in grid coordinates.
 
-        This function identifies which grid points (voxels) are inside the
-        element by checking if the grid coordinates of the voxels lie within
-        the convex hull defined by the element's node coordinates. It then
-        extracts the pixel values corresponding to the voxels inside the
-        element. Finally, it computes and returns the mean value of the
-        extracted pixel values. If no voxels are inside the element, it
-        returns `None`.
+        This function identifies voxels within the element by checking whether
+        their grid coordinates fall inside the convex hull formed by the
+        element's node coordinates. It then extracts the corresponding pixel
+        values and returns their mean.
+
+        If no voxels are found, it estimates the pixel value via interpolation
+        at the element's center. If the center of the element is outside the
+        grid, it returns `np.nan`.
 
         Arguments:
-            element_node_grid_coords (np.ndarray): The grid coordinates of the
-                nodes that define the element.
-            pixel_data (np.ndarray): The 3D array of pixel values, where each
-                entry corresponds to a voxel in the grid.
-            grid_coords (GridCoords): The grid coordinates defining the full
-                grid structure (slices, rows, columns).
+            element_node_grid_coords (np.ndarray): The grid coordinates of
+                the element's nodes.
+            image_data (ImageData): Image data containing voxel coordinates
+                and pixel values.
 
         Returns:
-            (np.ndarray or None): The mean pixel value of all voxels inside
-                the element, or `None` if no voxels are inside.
+            np.ndarray: The mean pixel value of all voxels inside the element.
+                If no voxels are found but at least one node is inside the
+                grid, an interpolated value is returned.
+                If all nodes are outside the grid, returns `np.nan`.
         """
 
         data = []
 
         slice_indices, row_indices, col_indices = self._search_bounding_box(
-            grid_coords, element_node_grid_coords
+            image_data.grid_coords, element_node_grid_coords
         )
+
+        hull = ConvexHull(element_node_grid_coords)
 
         for i in slice_indices:
             for j in row_indices:
                 for k in col_indices:
                     grid_coord = np.array(
                         [
-                            grid_coords.slice[i],
-                            grid_coords.row[j],
-                            grid_coords.col[k],
+                            image_data.grid_coords.slice[i],
+                            image_data.grid_coords.row[j],
+                            image_data.grid_coords.col[k],
                         ]
                     )
 
-                    hull = ConvexHull(element_node_grid_coords)
                     if self._is_inside_element(grid_coord, hull):
-                        data.append(pixel_data[i, j, k])
+                        data.append(image_data.pixel_data[i, j, k])
 
         if data:
             return np.mean(data, axis=0)
         else:
-            return None
+            self.backup_interpolation += 1
+
+            element_center = np.mean(element_node_grid_coords, axis=0)
+
+            return self.interpolate_image_values_to_points(
+                element_center, image_data
+            )[0]
 
     def compute_element_data(
         self, dis: Discretization, image_data: ImageData
@@ -197,9 +202,9 @@ class InterpolatorAllVoxel(Interpolator):
             element_node_grid_coords = node_grid_coords[node_positions[i]]
 
             ele.data = self._get_data_of_element(
-                element_node_grid_coords,
-                image_data.pixel_data,
-                image_data.grid_coords,
+                element_node_grid_coords, image_data
             )
+
+        self.log_interpolation_warnings()
 
         return dis.elements

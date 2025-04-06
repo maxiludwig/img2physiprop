@@ -1,6 +1,7 @@
 """Import PNG data and convert it into 3D data."""
 
 import logging
+import re
 from pathlib import Path
 
 import numpy as np
@@ -79,6 +80,20 @@ class PngReader(ImageReader):
                     "{shape}, but got: {array_value.shape}."
                 )
 
+    def _extract_number(self, path: Path):
+        """Extracts the first number found in the filename (without extension).
+
+        Arguments:
+            path (Path): The file path to PNG-folder.
+
+        Returns:
+            int: The first number found in the filename. If no number is
+                found, returns float('inf') to ensure non-numeric filenames
+                are sorted last.
+        """
+        match = re.search(r"\d+", path.stem)
+        return int(match.group()) if match else float("inf")
+
     def load_image(self, folder_path: Path) -> list[np.ndarray]:
         """Loads and processes PNG image data from a specified directory.
 
@@ -106,7 +121,9 @@ class PngReader(ImageReader):
 
         raw_png = []
 
-        for fname in folder_path.glob("*.png"):
+        for fname in sorted(
+            folder_path.glob("*.png"), key=self._extract_number
+        ):
             image_png = Image.open(fname)
             rgb_image = image_png.convert("RGB")
             raw_png.append(np.array(rgb_image))
@@ -166,14 +183,15 @@ class PngReader(ImageReader):
                 coords_in_crop.append(np.array(coords_slice))
 
         pixel_data = np.array(pixel_data_list)
-        N_slice, N_row, N_col = pixel_data.shape
+
+        N_slice, N_row, N_col, _ = pixel_data.shape
 
         slice_coords = np.arange(N_slice) * spacing[0]
         row_coords = np.arange(N_row) * spacing[1]
         col_coords = np.arange(N_col) * spacing[2]
 
         return ImageData(
-            pixel_data=np.array(pixel_data),
+            pixel_data=pixel_data,
             grid_coords=GridCoords(slice_coords, row_coords, col_coords),
             orientation=np.column_stack(
                 (slice_direction, row_direction, column_direction)

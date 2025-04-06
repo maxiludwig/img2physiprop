@@ -109,6 +109,8 @@ def test_verify_and_load_imagedata(tmp_path: Path):
 
     assert np.array_equal(image_data.pixel_data.shape, (2, 128, 128))
 
-    expected_orientation = np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]])
+    expected_orientation = np.column_stack(
+        (np.array([0, 0, 1]), np.array([0, 1, 0]), np.array([1, 0, 0]))
+    )
 
     assert np.array_equal(image_data.orientation, expected_orientation)
