@@ -4,28 +4,56 @@
 #
 #    pip-compile --all-extras --output-file=requirements.txt requirements.in
 #
+certifi==2025.1.31
+    # via requests
 cfgv==3.4.0
     # via pre-commit
+charset-normalizer==3.4.1
+    # via requests
+contourpy==1.3.1
+    # via matplotlib
 coverage[toml]==7.6.10
     # via pytest-cov
+cycler==0.12.1
+    # via matplotlib
 distlib==0.3.9
     # via virtualenv
 filelock==3.17.0
     # via virtualenv
+fonttools==4.57.0
+    # via matplotlib
 identify==2.6.6
     # via pre-commit
+idna==3.10
+    # via requests
 iniconfig==2.0.0
     # via pytest
 isort==5.13.2
     # via -r requirements.in
+kiwisolver==1.4.8
+    # via matplotlib
 llvmlite==0.42.0
     # via numba
+lnmmeshio==5.6.2
+    # via -r requirements.in
+loguru==0.7.2
+    # via lnmmeshio
 mako==1.3.8
     # via pdoc3
 markdown==3.7
     # via pdoc3
+markdown-it-py==3.0.0
+    # via rich
 markupsafe==3.0.2
     # via mako
+matplotlib==3.10.1
+    # via
+    #   pyvista
+    #   vtk
+mdurl==0.1.2
+    # via markdown-it-py
+meshio==5.3.5
+    # via lnmmeshio
 munch==4.0.0
     # via -r requirements.in
 nodeenv==1.9.1
@@ -35,26 +63,79 @@ numba==0.59.1
 numpy==1.26.4
     # via
     #   -r requirements.in
+    #   contourpy
+    #   lnmmeshio
+    #   matplotlib
+    #   meshio
     #   numba
+    #   pyvista
+    #   scipy
+    #   trimesh
 packaging==24.2
-    # via pytest
+    # via
+    #   matplotlib
+    #   pooch
+    #   pytest
 pdoc3==0.11.5
     # via -r requirements.in
+pillow==11.1.0
+    # via
+    #   matplotlib
+    #   pyvista
 platformdirs==4.3.6
-    # via virtualenv
+    # via
+    #   pooch
+    #   virtualenv
 pluggy==1.5.0
     # via pytest
+pooch==1.8.2
+    # via pyvista
 pre-commit==4.1.0
+    # via -r requirements.in
+pydicom==3.0.1
     # via -r requirements.in
 pyfiglet==1.0.2
     # via -r requirements.in
+pygments==2.19.1
+    # via rich
+pyparsing==3.2.3
+    # via matplotlib
 pytest==8.3.4
     # via pytest-cov
 pytest-cov==6.0.0
     # via -r requirements.in
+python-dateutil==2.9.0.post0
+    # via matplotlib
+python-utils==3.9.1
+    # via lnmmeshio
+pyvista==0.44.2
+    # via -r requirements.in
 pyyaml==6.0.2
     # via
     #   -r requirements.in
+    #   lnmmeshio
     #   pre-commit
+requests==2.32.3
+    # via pooch
+rich==14.0.0
+    # via meshio
+scipy==1.15.2
+    # via -r requirements.in
+scooby==0.10.0
+    # via pyvista
+six==1.17.0
+    # via python-dateutil
+tqdm==4.66.5
+    # via lnmmeshio
+trimesh==4.6.6
+    # via -r requirements.in
+typing-extensions==4.13.1
+    # via
+    #   python-utils
+    #   pyvista
+urllib3==2.3.0
+    # via requests
 virtualenv==20.29.1
     # via pre-commit
+vtk==9.3.1
+    # via pyvista
