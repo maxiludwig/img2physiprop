@@ -17,6 +17,9 @@ docs/
 ### IDE specifications ###
 .vscode/
 
+### YAML ###
+*.4C.yaml
+
 ### STL ###
 *.stl
 
