@@ -1,14 +1,18 @@
-# This file contains all the requirements for img2physiprop
-
-# dependencies from conda environment.yml
-numba==0.59.1
-numpy==1.26.4
-
-# remaining requirements
-isort
-munch
-pdoc3
+lnmmeshio==5.6.2
+matplotlib==3.10.1
+munch==4.0.0
+numpy==2.2.4
+Pillow==11.2.1
+pydicom==3.0.1
+pyvista==0.44.2
+PyYAML==6.0.2
+scipy==1.15.2
+tqdm==4.66.5
+trimesh==4.5.2
+vtk==9.3.1
 pre-commit
+isort
+pdoc3
 pyfiglet
 pytest-cov
-pyyaml
+numba

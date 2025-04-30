@@ -1,88 +1,130 @@
-"""Utilities for img2physiprop main routine."""
+"""Useful functions that are used in other modules."""
 
 import logging
-import os
-import time
+from typing import Optional, Tuple
 
-import yaml
-from pytoda.logger import log_full_width, print_header, setup_logging
-
-log = logging.getLogger("i2pp")
+import numpy as np
+from scipy.ndimage import uniform_filter
 
 
-class RunManager:
-    """Helper functions to manage a img2physiprop run."""
+def find_mins_maxs(
+    points: np.ndarray, enlargement: Optional[float] = 0
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Computes the axis-aligned bounding box for a set of 3D points.
 
-    def __init__(self, config):
+    This function calculates the minimum and maximum coordinate values along
+    each axis (X, Y, Z) to determine the bounding box of the input points.
+    An optional enlargement factor can be applied to expand the bounding box
+    in all directions.
 
-        self.config = config
+    Args:
+        points (np.ndarray): A NumPy array of shape (N, 3) representing N
+            points in 3D space.
+        enlargement (Optional[float]): An optional value to expand the bounding
+            box equally along all axes. Defaults to 0.
 
-    def init_run(self) -> None:
-        """Set up img2physiprop run including logger."""
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Two NumPy arrays representing the
+            minimum and maximum coordinates of the bounding box. The first
+            array contains the minimum values [min_x, min_y, min_z], and the
+            second array contains the maximum values [max_x, max_y, max_z].
+    """
 
-        setup_logging(
-            self.config.general.log_to_console,
-            self.config.general.log_file,
-            self.config.general.output_directory,
-            self.config.general.sim_name,
-            "i2pp",
-        )
+    x = points[:, 0]
+    y = points[:, 1]
+    z = points[:, 2]
 
-        print_header(
-            title="img2physiprop",
-            description="General Python Skeleton",
-        )
+    min_coords = np.array(
+        [
+            np.min(x) - enlargement,
+            np.min(y) - enlargement,
+            np.min(z) - enlargement,
+        ]
+    )
+    max_coords = np.array(
+        [
+            np.max(x) + enlargement,
+            np.max(y) + enlargement,
+            np.max(z) + enlargement,
+        ]
+    )
 
-        log_full_width("RUN STARTED")
+    return min_coords, max_coords
 
-        self.write_config()
 
-    def write_config(self) -> None:
-        """Export and write current setup config to .yaml file for future
-        reference."""
+def normalize_values(data: np.ndarray, pxl_range: np.ndarray) -> np.ndarray:
+    """Normalizes  data to a range between 0 and 1 based on the provided pixel
+    range.
 
-        log.info("Writing input config to file ...")
-        log.info("")
+    This function shifts the data by subtracting the minimum pixel value and
+    then scales it by dividing it by the total range (max - min). The
+    resulting values will be in the range [0, 1].
 
-        # create output folder structure
-        if (
-            self.config.general.output_directory is None
-            or self.config.general.sim_name is None
-        ):
-            raise ValueError(
-                "Output directory and sim name must be provided for output!"
-            )
-        os.makedirs(
-            os.path.join(
-                self.config.general.output_directory,
-                self.config.general.sim_name,
-            ),
-            exist_ok=True,
-        )
+    Arguments:
+        data (np.ndarray): The array of data values to normalize.
+        pxl_range (np.ndarray): A NumPy array containing the minimum and
+            maximum pixel values [min, max] used for normalization.
 
-        with open(
-            os.path.join(
-                self.config.general.output_directory,
-                self.config.general.sim_name,
-                "config.yaml",
-            ),
-            "w",
-        ) as file:
-            yaml.dump(self.config.toDict(), file)
+    Returns:
+        np.ndarray: The normalized data with values scaled between 0 and 1.
+    """
 
-        log.info("     ... done.")
-        log.info("")
+    normalized_data = (data - pxl_range[0]) / (pxl_range[1] - pxl_range[0])
 
-    def finish_run(self, start_time: float) -> None:
-        """Finish run and close all loggers (Important if module is used within
-        other modules including a Python Logger!)"""
+    return normalized_data
 
-        log_full_width()
-        log.info(f"Run took {time.time() - start_time} s.")
-        log_full_width("RUN FINISHED")
 
-        # close logger handlers (file)
-        handlers = log.handlers[:]
-        for handler in handlers:
-            log.removeHandler(handler)
-            handler.close()
+def get_node_position_of_element(
+    element_node_ids: np.ndarray, node_ids: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Retrieves the positions (indices) of element nodes in the global node
+    list.
+
+    This function maps each node ID in `element_node_ids` to its corresponding
+    index in the `node_ids` array, allowing efficient lookup for finite element
+    analysis.
+
+    Arguments:
+        element_node_ids (np.ndarray): An array of node IDs belonging to a
+            specific element.
+        node_ids (np.ndarray): An array of all node IDs in the Discretization.
+
+    Returns:
+        np.ndarray: An array of indices representing the positions of element
+            nodes in `node_ids`.
+    """
+
+    # id_to_index = {node_id: idx for idx, node_id in enumerate(node_ids)}
+
+    # return np.array([id_to_index[nid] for nid in element_node_ids])
+    return np.searchsorted(node_ids, element_node_ids)
+
+
+def smooth_data(
+    data: np.ndarray,
+    smoothing_window: int,
+) -> np.ndarray:
+    """Applies a smoothing filter to 3D image data by averaging pixel values.
+
+    This function reduces noise or measurement errors in the image data by
+    applying a smoothing filter. The filter calculates the average pixel value
+    within a neighborhood defined by the `smoothing_window` parameter, which
+    helps to smooth out irregularities in the data.
+
+    Args:
+        data (np.ndarray): A 3D array containing the pixel data to be smoothed.
+        smoothing_window (int): The size of the neighborhood (in points) used
+            to compute the average. Larger values result in smoother data,
+            but may reduce fine details.
+
+    Returns:
+        np.ndarray: The smoothed image data as a 3D array, where each pixel's
+        value has been replaced by the average of its neighbors within the
+        defined smoothing window.
+    """
+
+    logging.info("Smooth data!")
+
+    return uniform_filter(
+        data, size=smoothing_window, mode="nearest", axes=(0, 1, 2)
+    )
