@@ -24,6 +24,7 @@ class Exporter:
 
     def __init__(self):
         """Init ExportClass."""
+        pass
 
     def load_user_function(
         self, script_path: str, function_name: str

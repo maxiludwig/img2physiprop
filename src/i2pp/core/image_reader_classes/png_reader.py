@@ -80,18 +80,19 @@ class PngReader(ImageReader):
                     "{shape}, but got: {array_value.shape}."
                 )
 
-    def _extract_number(self, path: Path):
+    def _extract_number(self, path: Path) -> float:
         """Extracts the first number found in the filename (without extension).
 
         Arguments:
             path (Path): The file path to PNG-folder.
 
         Returns:
-            int: The first number found in the filename. If no number is
+            float: The first number found in the filename. If no number is
                 found, returns float('inf') to ensure non-numeric filenames
                 are sorted last.
         """
         match = re.search(r"\d+", path.stem)
+
         return int(match.group()) if match else float("inf")
 
     def load_image(self, folder_path: Path) -> list[np.ndarray]:
@@ -124,6 +125,7 @@ class PngReader(ImageReader):
         for fname in sorted(
             folder_path.glob("*.png"), key=self._extract_number
         ):
+            print(f"Loading image: {fname.name}")
             image_png = Image.open(fname)
             rgb_image = image_png.convert("RGB")
             raw_png.append(np.array(rgb_image))
@@ -141,6 +143,9 @@ class PngReader(ImageReader):
         Args:
             raw_pngs (list[np.ndarray]): A list of 2D NumPy arrays, each
                 representing a slice in a 3D volume.
+
+        Raises:
+            RuntimeError: If PNGs are not in bounding box.
 
         Returns:
             ImageData: A structured representation containing 3D pixel data,
@@ -161,7 +166,7 @@ class PngReader(ImageReader):
             image_metadata.get("slice_direction") or [0, 0, 1]
         )
 
-        slice_orientation = self.get_slice_orientation(
+        slice_orientation = self._get_slice_orientation(
             row_direction, column_direction
         )
 
@@ -181,6 +186,13 @@ class PngReader(ImageReader):
 
                 pixel_data_list.append(png)
                 coords_in_crop.append(np.array(coords_slice))
+            else:
+                continue
+
+        if not pixel_data_list:
+            raise RuntimeError(
+                "No slice images found within the volume of the imported mesh."
+            )
 
         pixel_data = np.array(pixel_data_list)
 

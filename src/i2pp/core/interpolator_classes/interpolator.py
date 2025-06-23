@@ -97,15 +97,9 @@ class Interpolator:
             fill_value=np.full(image_data.pixel_type.num_values, np.nan),
         )
 
-        interpolated_values = interpolator(target_points)
+        return np.array(interpolator(target_points))
 
-        self.nan_elements += np.all(
-            np.isnan(interpolated_values), axis=-1
-        ).sum()
-
-        return np.array(interpolated_values)
-
-    def log_interpolation_warnings(self):
+    def _log_interpolation_warnings(self):
         """Log warnings related to missing or fallback interpolations.
 
         This method checks the number of elements that either:

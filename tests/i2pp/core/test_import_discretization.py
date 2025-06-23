@@ -67,7 +67,7 @@ def test_verify_and_load_discretization():
 
     test_config = {
         "input informations": {
-            "discretization_file_path": "test_path.dat",
+            "FEM_file_path": "test_path.dat",
         },
         "processing options": "options",
     }

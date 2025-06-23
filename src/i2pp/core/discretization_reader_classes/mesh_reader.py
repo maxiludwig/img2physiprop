@@ -21,6 +21,17 @@ class MeshReader(DiscretizationReader):
     data into a `Discretization` object.
     """
 
+    def _filter_discretization(self) -> None:
+        """Filters the finite element model to include only elements with
+        specified material IDs.
+
+        This function iterates through the elements in the discretized model
+        and selects only those whose material ID matches one of the specified
+        `mat_ids`. The corresponding nodes of these elements are also
+        retained. After filtering, the nodes are sorted based on their IDs.
+        """
+        raise RuntimeError("This function is not implemented yet.")
+
     def load_discretization(
         self, file_path: Path, config: dict
     ) -> Discretization:
@@ -41,6 +52,10 @@ class MeshReader(DiscretizationReader):
         logging.info("Importing Model data")
 
         raw_dis = trimesh.load(file_path)
+
+        if config["material_ids"] is not None:
+
+            self._filter_discretization()
 
         nodes = Nodes(
             coords=raw_dis.vertices, ids=list(range(len(raw_dis.faces)))

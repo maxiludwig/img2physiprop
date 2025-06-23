@@ -146,6 +146,7 @@ class InterpolatorAllVoxel(Interpolator):
                     )
 
                     if self._is_inside_element(grid_coord, hull):
+
                         data.append(image_data.pixel_data[i, j, k])
 
         if data:
@@ -205,6 +206,9 @@ class InterpolatorAllVoxel(Interpolator):
                 element_node_grid_coords, image_data
             )
 
-        self.log_interpolation_warnings()
+            if np.all(np.isnan(ele.data)):
+                self.nan_elements += 1
+
+        self._log_interpolation_warnings()
 
         return dis.elements

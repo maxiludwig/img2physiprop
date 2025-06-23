@@ -72,6 +72,9 @@ class InterpolatorNodes(Interpolator):
                 else np.full(image_data.pixel_type.num_values, np.nan)
             )
 
-        self.log_interpolation_warnings()
+            if np.all(np.isnan(ele.data)):
+                self.nan_elements += 1
+
+        self._log_interpolation_warnings()
 
         return dis.elements

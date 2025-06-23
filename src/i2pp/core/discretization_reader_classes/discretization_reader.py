@@ -104,7 +104,7 @@ class DiscretizationReader(ABC):
     def load_discretization(
         self, file_path: Path, config: dict
     ) -> Discretization:
-        """Abstract method to load Discretization data from a file.
+        """Abstract method to load Discretization data from a file path.
 
         This method imports the nodes and elements of a Discretization from a
         specific file format (e.g., .dat, .mesh). The method will parse the

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Type, cast
 
 import numpy as np
+import pydicom
 from i2pp.core.discretization_reader_classes.discretization_reader import (
     BoundingBox,
 )
@@ -15,6 +16,7 @@ from i2pp.core.image_reader_classes.image_reader import (
     PixelValueType,
 )
 from i2pp.core.image_reader_classes.png_reader import PngReader
+from PIL import Image
 
 
 class ImageFormat(Enum):
@@ -46,6 +48,55 @@ class ImageFormat(Enum):
             ImageFormat.DICOM: DicomReader,
             ImageFormat.PNG: PngReader,
         }[self]
+
+    def is_file_of_format(self, path: Path) -> bool:
+        """Checks if a file matches this image format.
+
+        Arguments:
+            path (Path): The file path to check.
+
+        Returns:
+            bool: True if the file matches this image format, False otherwise.
+        """
+        if not path.is_file():
+            return False
+
+        try:
+            if self == ImageFormat.DICOM:
+                pydicom.dcmread(path, stop_before_pixels=True)
+                return True
+
+            elif self == ImageFormat.PNG:
+                with Image.open(path) as img:
+                    img.verify()
+                return True
+
+        except Exception:
+            return False
+
+        return False
+
+
+def _detect_and_append_suffixes(folder_path: Path) -> None:
+    """Scans the folder and appends correct suffixes to image files without
+    extensions based on format-specific logic.
+
+    Arguments:
+        folder_path (Path): Path to folder with possibly suffix-less files.
+
+    Returns:
+        None
+    """
+    for file in folder_path.iterdir():
+        if not file.is_file() or file.suffix:
+            continue
+
+        for fmt in ImageFormat:
+            if fmt.is_file_of_format(file):
+                new_file = file.with_suffix(fmt.value)
+                print(f"Appending suffix: {file.name} -> {new_file.name}")
+                file.rename(new_file)
+                break
 
 
 def determine_image_format(folder_path: Path) -> ImageFormat:
@@ -126,6 +177,8 @@ def verify_and_load_imagedata(
     relative_path = Path(config["input informations"]["image_folder_path"])
 
     folder_path = Path.cwd() / relative_path
+
+    _detect_and_append_suffixes(folder_path)
 
     image_format = determine_image_format(folder_path)
 

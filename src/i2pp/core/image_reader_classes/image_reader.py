@@ -178,7 +178,7 @@ class ImageReader(ABC):
         self.config = config
         self.bounding_box = bounding_box
 
-    def get_slice_orientation(
+    def _get_slice_orientation(
         self, row_direction: np.ndarray, col_direction: np.ndarray
     ) -> SliceOrientation:
         """Determines the slice orientation based on the row and column

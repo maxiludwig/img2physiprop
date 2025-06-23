@@ -109,6 +109,7 @@ class DicomReader(ImageReader):
 
         Raises:
             RuntimeError: If the DICOM modality is not supported.
+            RuntimeError: If Dicom is not in bounding box.
 
         Notes:
             - The function assumes all slices share the same orientation,
@@ -121,11 +122,11 @@ class DicomReader(ImageReader):
         except ValueError:
             raise RuntimeError("Modality not supported")
 
-        row_direction = np.array(raw_dicoms[0].ImageOrientationPatient[:3])
-        column_direction = np.array(raw_dicoms[0].ImageOrientationPatient[3:])
-        slice_direction = np.cross(row_direction, column_direction)
+        row_direction = np.array(raw_dicoms[0].ImageOrientationPatient[3:])
+        column_direction = np.array(raw_dicoms[0].ImageOrientationPatient[:3])
+        slice_direction = np.cross(column_direction, row_direction)
 
-        slice_orientation = self.get_slice_orientation(
+        slice_orientation = self._get_slice_orientation(
             row_direction, column_direction
         )
 
@@ -146,13 +147,14 @@ class DicomReader(ImageReader):
             else:
                 continue
 
+        if not raw_pixel_data:
+            raise RuntimeError(
+                "No slice images found within the volume of the imported mesh."
+            )
+
         slope = float(getattr(sorted_dicoms[0], "RescaleSlope", 1.0))
         intercept = float(getattr(sorted_dicoms[0], "RescaleIntercept", 0.0))
         pixel_data = np.array(raw_pixel_data) * slope + intercept
-
-        orientation = np.column_stack(
-            (np.array([0, 0, 1]), np.array([0, 1, 0]), np.array([1, 0, 0]))
-        )
 
         slice_spacing = float(
             getattr(
@@ -171,7 +173,9 @@ class DicomReader(ImageReader):
         return ImageData(
             pixel_data=np.array(pixel_data),
             grid_coords=GridCoords(slice_coords, row_coords, col_coords),
-            orientation=orientation,
+            orientation=np.column_stack(
+                (slice_direction, row_direction, column_direction)
+            ),
             position=coords_in_crop[0],
             pixel_type=pixel_type,
         )

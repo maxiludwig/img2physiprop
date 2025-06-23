@@ -12,7 +12,7 @@ def test_load_discretization_mesh(tmp_path: Path) -> None:
     test_path = tmp_path / "test_model.mesh"
     test_dis = MeshReader()
 
-    test_config = {"processing informations": None}
+    test_config = {"material_ids": None}
 
     with patch(
         "i2pp.core.discretization_reader_classes.mesh_reader.Discretization",

@@ -156,7 +156,7 @@ class Visualizer(ABC):
             self._update_display(
                 self.grid_visible,
                 scalars="ScalarValues",
-                cmap="grey",
+                cmap="viridis",
                 opacity=self.opacity,
                 clim=(self.pixel_range[0], self.pixel_range[1]),
             )
@@ -189,7 +189,7 @@ class Visualizer(ABC):
             self._update_display(
                 slice_mesh,
                 scalars="ScalarValues",
-                cmap="grey",
+                cmap="viridis",
                 clim=(self.pixel_range[0], self.pixel_range[1]),
             )
 

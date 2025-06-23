@@ -99,6 +99,9 @@ class InterpolatorCenter(Interpolator):
         ):
             ele.data = ele_center_values[i]
 
-        self.log_interpolation_warnings()
+            if np.all(np.isnan(ele.data)):
+                self.nan_elements += 1
+
+        self._log_interpolation_warnings()
 
         return dis.elements

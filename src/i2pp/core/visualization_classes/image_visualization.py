@@ -22,7 +22,7 @@ class ImageVisualizer(Visualizer):
 
         This function constructs a PyVista `StructuredGrid` using the
         predefined grid coordinates from the `ImageData` object. It assigns
-        pixel values to the corresponding grid points. If the image data
+        pixel values to the corresponding cell data. If the image data
         contains RGB values, they are reshaped accordingly; otherwise, scalar
         values are stored.
 

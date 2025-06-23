@@ -1,6 +1,7 @@
 """Runner which executes the main routine of img2physiprop."""
 
 import copy
+import time
 
 from i2pp.core.export_data import export_data
 from i2pp.core.import_discretization import verify_and_load_discretization
@@ -24,11 +25,14 @@ def run_i2pp(config_i2pp):
     4. Interpolates the image data onto the mesh elements based on the
         user-defined calculation type.
     5. Exports the processed data using a user-specified function.
+    6. Visualizes the results if enabled in the configuration.
 
     Arguments:
         config_i2pp(dict): User configuration containing paths, settings,
             and processing options.
     """
+
+    start_time = time.time()
 
     dis = verify_and_load_discretization(config_i2pp)
 
@@ -54,7 +58,13 @@ def run_i2pp(config_i2pp):
         )
 
         if bool_show_smoothing:
+
+            time_pre_smoothing = time.time()
             visualize_smoothing(image_data, image_unsmoothed)
+            time_after_smoothing = time.time()
+            start_time = start_time + (
+                time_after_smoothing - time_pre_smoothing
+            )
 
     elements = interpolate_image_to_discretization(
         dis, image_data, config_i2pp
@@ -62,10 +72,11 @@ def run_i2pp(config_i2pp):
 
     export_data(elements, config_i2pp, image_data.pixel_range)
 
-    visulaization_options: dict = config_i2pp["visualization_options"]
-    bool_show_results = bool(
-        visulaization_options.get("plot_results") or False
-    )
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Execution time of run_i2pp: {elapsed_time:.2f} seconds")
 
-    if bool_show_results:
+    visulaization_options: dict = config_i2pp["visualization_options"]
+
+    if bool(visulaization_options["plot_results"]):
         visualize_results(config_i2pp, elements, image_data)
