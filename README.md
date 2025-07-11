@@ -2,6 +2,12 @@
   img2physiprop
 </h1>
 
+<div align="center">
+
+[![Pipeline](https://github.com/maxiludwig/img2physiprop/actions/workflows/main_pipeline.yml/badge.svg)](https://github.com/maxiludwig/img2physiprop/actions/workflows/main_pipeline.yml)
+[![Documentation](https://github.com/maxiludwig/img2physiprop/actions/workflows/main_documentation.yml/badge.svg)](https://maxiludwig.github.io/img2physiprop/)
+[![Coverage badge](https://github.com/maxiludwig/img2physiprop/raw/python-coverage-comment-action-data/badge.svg)](https://github.com/maxiludwig/img2physiprop/tree/python-coverage-comment-action-data)
+
 </div>
 
 img2physiprop (Image to Physical Property) is a python package that maps medical image data to physical properties. This makes it possible to vary e.g. material parameters in FE simulations according to patient specific medical image data. The package includes the following features to ease the development process and ensure a high code quality:
@@ -16,7 +22,7 @@ The remaining parts of the readme are structured as follows:
 
 - [Installation](#installation)
 - [Execution](#execution)
-  - [Execute img2physiprop](#execute-i2pp)
+  - [Execute img2physiprop](#execute-img2physiprop)
   - [Run testing framework and create coverage report](#run-testing-framework-and-create-coverage-report)
   - [Create documentation](#create-documentation)
 - [Dependency Management](#dependency-management)

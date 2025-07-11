@@ -347,15 +347,24 @@ class Visualizer(ABC):
         if isinstance(self.grid, pv.UnstructuredGrid):
 
             self.plotter.add_text(
-                "Toggle Edges:", position=(0, 600), font_size=8, color="black"
+                "Toggle Edges", position=(35, 605), font_size=8, color="black"
             )
 
             self.plotter.add_checkbox_button_widget(
-                self._toggle_edges, size=30, value=False, position=(210, 600)
+                self._toggle_edges, size=30, value=False, position=(1, 600)
             )
 
+        self.plotter.add_text(
+            "Toggle 3D/Slice View",
+            position=(35, 655),
+            font_size=8,
+            color="black",
+        )
         self.plotter.add_checkbox_button_widget(
-            self._toggle_view, value=True, position=(0.85, 0.95)
+            self._toggle_view,
+            value=True,
+            position=(1, 650),
+            size=30,
         )
 
         self.plotter.show()
