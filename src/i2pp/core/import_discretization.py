@@ -99,7 +99,9 @@ def verify_and_load_discretization(config: dict) -> Discretization:
     Raises:
         RuntimeError: If the mesh file is not valid or in the wrong format.
     """
-    relative_path = Path(config["input informations"]["FEM_file_path"])
+    relative_path = Path(
+        config["input informations"]["discretization_file_path"]
+    )
 
     file_path = Path.cwd() / relative_path
 
