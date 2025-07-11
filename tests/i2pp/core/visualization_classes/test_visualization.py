@@ -179,13 +179,16 @@ def test_plot_grid_without_nan(visualizer):
 
     visualizer._toggle_slicer.assert_called_once()
     visualizer._show_3d_model.assert_called_once()
-    visualizer.plotter.add_text.assert_called_once()
+    assert visualizer.plotter.add_text.call_count == 2
     visualizer.plotter.add_checkbox_button_widget.assert_any_call(
-        visualizer._toggle_view, value=True, position=(0.85, 0.95)
+        visualizer._toggle_view,
+        value=True,
+        position=(1, 650),
+        size=30,
     )
 
     visualizer.plotter.add_checkbox_button_widget.assert_any_call(
-        visualizer._toggle_edges, size=30, value=False, position=(210, 600)
+        visualizer._toggle_edges, size=30, value=False, position=(1, 600)
     )
 
     visualizer.plotter.show.assert_called_once()
@@ -228,13 +231,19 @@ def test_plot_grid_with_nan(visualizer):
     )
 
     visualizer.plotter.add_text.assert_any_call(
-        "Toggle Edges:", position=(0, 600), font_size=8, color="black"
+        "Toggle Edges", position=(35, 605), font_size=8, color="black"
+    )
+    visualizer.plotter.add_text.assert_any_call(
+        "Toggle 3D/Slice View", position=(35, 655), font_size=8, color="black"
     )
 
     visualizer.plotter.add_checkbox_button_widget.assert_any_call(
         visualizer._toggle_nan_view, size=30, value=True, position=(210, 740)
     )
     visualizer.plotter.add_checkbox_button_widget.assert_any_call(
-        visualizer._toggle_view, value=True, position=(0.85, 0.95)
+        visualizer._toggle_view,
+        value=True,
+        position=(1, 650),
+        size=30,
     )
     visualizer.plotter.show.assert_called_once()
