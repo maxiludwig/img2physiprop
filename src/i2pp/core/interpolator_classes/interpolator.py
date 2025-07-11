@@ -8,7 +8,9 @@ from i2pp.core.discretization_reader_classes.discretization_reader import (
     Discretization,
     Element,
 )
-from i2pp.core.image_reader_classes.image_reader import ImageData
+from i2pp.core.image_reader_classes.image_reader import (
+    ImageData,
+)
 from scipy.interpolate import RegularGridInterpolator
 
 
@@ -26,8 +28,9 @@ class Interpolator:
     """
 
     def __init__(self):
-        """Initialize the InterpolatorClass."""
-        pass
+        """Initialize the Interpolator."""
+        self.nan_elements = 0
+        self.backup_interpolation = 0
 
     def world_to_grid_coords(
         self,
@@ -40,7 +43,7 @@ class Interpolator:
         This function transforms world coordinates into grid coordinates by
         applying the inverse of the orientation matrix and adjusting for the
         grid origin. The resulting coordinates are ordered such that the first
-        dimension represents height, the second represents rows, and the third
+        dimension represents depth, the second represents rows, and the third
         represents columns.
 
         Arguments:
@@ -82,7 +85,6 @@ class Interpolator:
                 points.
         """
 
-        logging.info("Start Interpolation!")
         interpolator = RegularGridInterpolator(
             (
                 image_data.grid_coords.slice,
@@ -92,13 +94,41 @@ class Interpolator:
             image_data.pixel_data,
             method="linear",
             bounds_error=False,
-            fill_value=np.nan,
+            fill_value=np.full(image_data.pixel_type.num_values, np.nan),
         )
 
-        interpolated_values = interpolator(target_points)
-        logging.info("Finished Interpolation!")
+        return np.array(interpolator(target_points))
 
-        return np.array(interpolated_values)
+    def _log_interpolation_warnings(self):
+        """Log warnings related to missing or fallback interpolations.
+
+        This method checks the number of elements that either:
+        - Could not be interpolated due to being outside the image grid
+            (`self.nan_elements`), or
+        - Required fallback interpolation at the element center due to having
+            no voxel inside (`self.backup_interpolation`).
+
+        If any such cases exist, it logs a summary warning message using the
+            `logging` module.
+        """
+        messages = []
+
+        if self.nan_elements > 0:
+            messages.append(
+                f"{self.nan_elements} elements had no interpolated values "
+                f"(points were outside the image grid)."
+            )
+
+        if self.backup_interpolation > 0:
+            messages.append(
+                f"{self.backup_interpolation} elements have no voxel inside, "
+                f"fallback interpolation to element center was used."
+            )
+
+        if messages:
+            logging.warning(
+                "Interpolation issues encountered:\n  " + "\n  ".join(messages)
+            )
 
     @abstractmethod
     def compute_element_data(

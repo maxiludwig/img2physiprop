@@ -23,23 +23,23 @@ def test_get_slice_orientation_planes():
 
     test_class = DicomReader([], BoundingBox([], []))
     assert (
-        test_class.get_slice_orientation([0, 0, 3], [0, 1, 0])
+        test_class._get_slice_orientation([0, 0, 3], [0, 1, 0])
         == SliceOrientation.YZ
     )
     assert (
-        test_class.get_slice_orientation([1, 0, 0], [0, 1, 0])
+        test_class._get_slice_orientation([1, 0, 0], [0, 1, 0])
         == SliceOrientation.XY
     )
     assert (
-        test_class.get_slice_orientation([3, 0, 1], [2, 0, 0])
+        test_class._get_slice_orientation([3, 0, 1], [2, 0, 0])
         == SliceOrientation.XZ
     )
     assert (
-        test_class.get_slice_orientation([1 / 2, 1 / 2, 0], [2 / 3, 1 / 3, 0])
+        test_class._get_slice_orientation([1 / 2, 1 / 2, 0], [2 / 3, 1 / 3, 0])
         == SliceOrientation.XY
     )
     assert (
-        test_class.get_slice_orientation(
+        test_class._get_slice_orientation(
             [1 / 2, 1 / 2, 1 / 2], [2 / 3, 1 / 3, 0]
         )
         == SliceOrientation.UNKNOWN

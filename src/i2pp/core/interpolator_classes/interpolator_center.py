@@ -50,7 +50,7 @@ class InterpolatorCenter(Interpolator):
             element_coords = dis.nodes.coords[node_position]
             centroid = np.mean(element_coords, axis=0)
 
-            dis.elements[i].center_coords = np.array(centroid)
+            ele.center_coords = np.array(centroid)
 
         return dis
 
@@ -98,5 +98,10 @@ class InterpolatorCenter(Interpolator):
             desc="Processing Elements",
         ):
             ele.data = ele_center_values[i]
+
+            if np.all(np.isnan(ele.data)):
+                self.nan_elements += 1
+
+        self._log_interpolation_warnings()
 
         return dis.elements

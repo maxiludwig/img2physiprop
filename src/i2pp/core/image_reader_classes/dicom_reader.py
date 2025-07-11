@@ -109,6 +109,7 @@ class DicomReader(ImageReader):
 
         Raises:
             RuntimeError: If the DICOM modality is not supported.
+            RuntimeError: If Dicom is not in bounding box.
 
         Notes:
             - The function assumes all slices share the same orientation,
@@ -121,34 +122,51 @@ class DicomReader(ImageReader):
         except ValueError:
             raise RuntimeError("Modality not supported")
 
-        row_direction = np.array(raw_dicoms[0].ImageOrientationPatient[:3])
-        column_direction = np.array(raw_dicoms[0].ImageOrientationPatient[3:])
-        slice_direction = np.cross(row_direction, column_direction)
+        row_direction = np.array(raw_dicoms[0].ImageOrientationPatient[3:])
+        column_direction = np.array(raw_dicoms[0].ImageOrientationPatient[:3])
+        slice_direction = np.cross(column_direction, row_direction)
 
-        slice_orientation = self.get_slice_orientation(
+        slice_orientation = self._get_slice_orientation(
             row_direction, column_direction
         )
 
         sorted_dicoms = self._sort_dicoms(raw_dicoms, slice_direction)
 
-        pixel_data_list = []
+        raw_pixel_data = []
         coords_in_crop = []
 
         for dicom in tqdm(sorted_dicoms, desc="Processing Elements"):
+
             if slice_orientation.is_within_crop(
                 dicom.ImagePositionPatient, self.bounding_box
             ):
 
-                pixel_data_list.append(dicom.pixel_array)
+                raw_pixel_data.append(dicom.pixel_array)
                 coords_in_crop.append(dicom.ImagePositionPatient)
+
             else:
                 continue
 
-        pixel_data = np.array(pixel_data_list)
+        if not raw_pixel_data:
+            raise RuntimeError(
+                "No slice images found within the volume of the imported mesh."
+            )
 
-        N_slice, N_row, N_col = pixel_data.shape
+        slope = float(getattr(sorted_dicoms[0], "RescaleSlope", 1.0))
+        intercept = float(getattr(sorted_dicoms[0], "RescaleIntercept", 0.0))
+        pixel_data = np.array(raw_pixel_data) * slope + intercept
 
-        slice_coords = np.arange(N_slice) * sorted_dicoms[0].SliceThickness
+        slice_spacing = float(
+            getattr(
+                sorted_dicoms[0],
+                "SpacingBetweenSlices",
+                sorted_dicoms[0].SliceThickness,
+            )
+        )
+
+        N_slice, N_col, N_row = pixel_data.shape
+
+        slice_coords = np.arange(N_slice) * slice_spacing
         row_coords = np.arange(N_row) * sorted_dicoms[0].PixelSpacing[0]
         col_coords = np.arange(N_col) * sorted_dicoms[0].PixelSpacing[1]
 

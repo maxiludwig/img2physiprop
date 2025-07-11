@@ -1,27 +1,23 @@
 input informations:
-  discretization_file_path: Test_dat/inputfile_tutorial.dat
-  #discretization_file_path: /scratch/bayer/Dat_inputs/Wuerfel.dat
-  image_folder_path: Dicom_inputs/Human/
-#Necessary information for the PNG import
+  FEM_file_path: lung_example/discretization.4C.yaml
+  image_folder_path: lung_example/dicom/A10_CT
 image_metadata:
-  pixel_spacing: [1, 1, 1]
-  image_position: [0, 0, 0]
+  pixel_spacing: [1, 0.33, 0.33]
+  image_position: [0, 330, 420]
   row_direction: [0, -1, 0] #default: [0, -1, 0]
   column_direction: [1, 0, 0] #default: [1, 0, 0]
-  slice_direction: [0, 0, 1] #default: [0, 0, 1]
+  slice_direction: [0, 0, -1] #default: [0, 0, 1]
 processing options:
   material_ids:
-  smoothing: True
-  smoothing_area: 5
-  calculation_type: nodes
+  smoothing: False
+  smoothing_area: 10
+  calculation_type: elementcenter #calculation_type: (nodes,elementcenter,allvoxels)
   normalize_values: False
   user_script: user_functions/user_function.py
   user_function: user_function
 output options:
-  output_path: #/scratch/bayer/Git_respository/img2physiprop/  #default: current folder
-  output_name: #pattern_test  #default: 'Output'
-
-#calculation_type:
-# nodes: mean of element-nodes
-# elementcenter: value of element-center
-# allvoxels: mean of all Voxel inside the Mesh
+  output_path: #default: current folder
+  output_name: #pattern_test  #default: 'Output
+visualization_options:
+  plot_smoothing: False #default: False
+  plot_results: True #default: False

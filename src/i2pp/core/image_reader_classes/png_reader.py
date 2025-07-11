@@ -1,6 +1,7 @@
 """Import PNG data and convert it into 3D data."""
 
 import logging
+import re
 from pathlib import Path
 
 import numpy as np
@@ -79,6 +80,21 @@ class PngReader(ImageReader):
                     "{shape}, but got: {array_value.shape}."
                 )
 
+    def _extract_number(self, path: Path) -> float:
+        """Extracts the first number found in the filename (without extension).
+
+        Arguments:
+            path (Path): The file path to PNG-folder.
+
+        Returns:
+            float: The first number found in the filename. If no number is
+                found, returns float('inf') to ensure non-numeric filenames
+                are sorted last.
+        """
+        match = re.search(r"\d+", path.stem)
+
+        return int(match.group()) if match else float("inf")
+
     def load_image(self, folder_path: Path) -> list[np.ndarray]:
         """Loads and processes PNG image data from a specified directory.
 
@@ -106,7 +122,10 @@ class PngReader(ImageReader):
 
         raw_png = []
 
-        for fname in folder_path.glob("*.png"):
+        for fname in sorted(
+            folder_path.glob("*.png"), key=self._extract_number
+        ):
+            print(f"Loading image: {fname.name}")
             image_png = Image.open(fname)
             rgb_image = image_png.convert("RGB")
             raw_png.append(np.array(rgb_image))
@@ -124,6 +143,9 @@ class PngReader(ImageReader):
         Args:
             raw_pngs (list[np.ndarray]): A list of 2D NumPy arrays, each
                 representing a slice in a 3D volume.
+
+        Raises:
+            RuntimeError: If PNGs are not in bounding box.
 
         Returns:
             ImageData: A structured representation containing 3D pixel data,
@@ -144,7 +166,7 @@ class PngReader(ImageReader):
             image_metadata.get("slice_direction") or [0, 0, 1]
         )
 
-        slice_orientation = self.get_slice_orientation(
+        slice_orientation = self._get_slice_orientation(
             row_direction, column_direction
         )
 
@@ -164,16 +186,24 @@ class PngReader(ImageReader):
 
                 pixel_data_list.append(png)
                 coords_in_crop.append(np.array(coords_slice))
+            else:
+                continue
+
+        if not pixel_data_list:
+            raise RuntimeError(
+                "No slice images found within the volume of the imported mesh."
+            )
 
         pixel_data = np.array(pixel_data_list)
-        N_slice, N_row, N_col = pixel_data.shape
+
+        N_slice, N_row, N_col, _ = pixel_data.shape
 
         slice_coords = np.arange(N_slice) * spacing[0]
         row_coords = np.arange(N_row) * spacing[1]
         col_coords = np.arange(N_col) * spacing[2]
 
         return ImageData(
-            pixel_data=np.array(pixel_data),
+            pixel_data=pixel_data,
             grid_coords=GridCoords(slice_coords, row_coords, col_coords),
             orientation=np.column_stack(
                 (slice_direction, row_direction, column_direction)

@@ -64,7 +64,17 @@ class InterpolatorNodes(Interpolator):
             total=len(dis.elements),
             desc="Processing Elements",
         ):
+            ele_nodes = node_values[node_positions[i]]
 
-            ele.data = np.mean(node_values[node_positions[i]], axis=0)
+            ele.data = (
+                np.nanmean(ele_nodes, axis=0)
+                if not np.all(np.isnan(ele_nodes))
+                else np.full(image_data.pixel_type.num_values, np.nan)
+            )
+
+            if np.all(np.isnan(ele.data)):
+                self.nan_elements += 1
+
+        self._log_interpolation_warnings()
 
         return dis.elements

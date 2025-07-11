@@ -48,6 +48,25 @@ class PixelValueType(Enum):
         else:
             raise ValueError(f"Unsupported PixelValueType: {self}")
 
+    @property
+    def num_values(self) -> int:
+        """Return the number of values per pixel for the given pixel type.
+
+        Returns:
+            int:
+                - 1 for scalar types such as CT or MRT
+                - 3 for RGB images
+
+        Raises:
+            ValueError: If the PixelValueType is unsupported.
+        """
+        if self == PixelValueType.CT or self == PixelValueType.MRT:
+            return 1
+        elif self == PixelValueType.RGB:
+            return 3
+        else:
+            raise ValueError(f"Unsupported PixelValueType: {self}")
+
 
 class SliceOrientation(Enum):
     """Enum representing different slice orientations in a 3D volume."""
@@ -159,7 +178,7 @@ class ImageReader(ABC):
         self.config = config
         self.bounding_box = bounding_box
 
-    def get_slice_orientation(
+    def _get_slice_orientation(
         self, row_direction: np.ndarray, col_direction: np.ndarray
     ) -> SliceOrientation:
         """Determines the slice orientation based on the row and column
