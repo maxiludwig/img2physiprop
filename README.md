@@ -24,10 +24,10 @@
 | src/i2pp/core/utilities.py                                              |       19 |        0 |    100% |           |
 | src/i2pp/core/visualization\_classes/discretization\_visualization.py   |       49 |        8 |     84% |77-82, 103, 117, 122 |
 | src/i2pp/core/visualization\_classes/image\_visualization.py            |       18 |        0 |    100% |           |
-| src/i2pp/core/visualization\_classes/visualization.py                   |       90 |        8 |     91% |59, 79, 156, 189, 219, 276, 290-291 |
+| src/i2pp/core/visualization\_classes/visualization.py                   |       91 |        8 |     91% |59, 79, 156, 189, 219, 276, 290-291 |
 | src/i2pp/core/visualize\_results.py                                     |       35 |       12 |     66% |46-56, 65-73, 111-117, 127-133 |
 | src/i2pp/main.py                                                        |       16 |        0 |    100% |           |
-|                                                               **TOTAL** |  **802** |   **75** | **91%** |           |
+|                                                               **TOTAL** |  **803** |   **75** | **91%** |           |
 
 
 ## Setup coverage badge
