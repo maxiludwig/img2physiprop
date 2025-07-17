@@ -3,8 +3,8 @@
 import copy
 import time
 
+from i2pp.core.discretization_helpers import verify_and_load_discretization
 from i2pp.core.export_data import export_data
-from i2pp.core.import_discretization import verify_and_load_discretization
 from i2pp.core.import_image import verify_and_load_imagedata
 from i2pp.core.interpolate_element_data import (
     interpolate_image_to_discretization,
@@ -70,7 +70,13 @@ def run_i2pp(config_i2pp):
         dis, image_data, config_i2pp
     )
 
-    export_data(elements, config_i2pp, image_data.pixel_range)
+    export_data(
+        elements,
+        dis,
+        config_i2pp,
+        image_data.pixel_range,
+        image_data.pixel_type,
+    )
 
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -79,4 +85,4 @@ def run_i2pp(config_i2pp):
     visulaization_options: dict = config_i2pp["visualization_options"]
 
     if bool(visulaization_options["plot_results"]):
-        visualize_results(config_i2pp, elements, image_data)
+        visualize_results(config_i2pp, elements, image_data, dis)

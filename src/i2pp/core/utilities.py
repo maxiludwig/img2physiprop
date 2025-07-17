@@ -1,7 +1,7 @@
 """Useful functions that are used in other modules."""
 
 import logging
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import numpy as np
 from scipy.ndimage import uniform_filter
@@ -125,3 +125,36 @@ def smooth_data(
     return uniform_filter(
         data, size=smoothing_window, mode="nearest", axes=(0, 1, 2)
     )
+
+
+def make_json_serializable(obj: Any) -> Any:
+    """Converts NumPy data types to standard Python types for JSON
+    serialization. This function recursively processes NumPy arrays and scalar
+    types to ensure compatibility with JSON serialization.
+
+    Args:
+        obj: The object to convert, which can be a NumPy array, scalar, or
+            other data type.
+    Returns:
+        Any: The converted object, where NumPy arrays are converted to lists,
+        and NumPy scalars are converted to standard Python types (int, float).
+    """
+    if isinstance(obj, np.ndarray):
+        return [make_json_serializable(item) for item in obj]
+    elif isinstance(
+        obj,
+        (
+            np.int64,
+            np.int32,
+            np.int16,
+            np.int8,
+            np.uint64,
+            np.uint32,
+            np.uint16,
+            np.uint8,
+        ),
+    ):
+        return int(obj)
+    elif isinstance(obj, (np.float64, np.float32, np.float16)):
+        return float(obj)
+    return obj

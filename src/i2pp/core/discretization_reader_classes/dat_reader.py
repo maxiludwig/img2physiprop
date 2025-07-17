@@ -65,7 +65,7 @@ class DatReader(DiscretizationReader):
 
         dis.elements.structure = list(filtered_elements)
         dis.nodes = list(sorted_nodes)
-
+        dis.compute_ids(zero_based=True)
         return dis
 
     def load_discretization(

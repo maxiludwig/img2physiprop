@@ -3,6 +3,7 @@
 from multiprocessing import Process
 
 from i2pp.core.discretization_reader_classes.discretization_reader import (
+    Discretization,
     Element,
 )
 from i2pp.core.image_reader_classes.image_reader import (
@@ -15,7 +16,10 @@ from i2pp.core.visualization_classes.image_visualization import ImageVisualizer
 
 
 def visualize_results(
-    config: dict, elements_with_values: list[Element], image_data: ImageData
+    config: dict,
+    elements_with_values: list[Element],
+    image_data: ImageData,
+    dis: Discretization,
 ) -> None:
     """Visualizes both the finite element discretization and the image data.
 
@@ -30,7 +34,8 @@ def visualize_results(
             assigned values.
         image_data (ImageData): Image data containing pixel values and grid
             coordinates.
-
+        dis (Discretization): The discretization object containing nodes
+            and elements.
     Returns:
         None
     """
@@ -49,9 +54,7 @@ def visualize_results(
             title="Mesh Visualization",
         )
 
-        visualizer_dis.compute_grid(
-            config, elements_with_values, image_data.pixel_range
-        )
+        visualizer_dis.compute_grid(config, elements_with_values, dis)
 
         visualizer_dis.plot_grid()
 
