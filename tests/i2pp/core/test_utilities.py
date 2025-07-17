@@ -7,6 +7,7 @@ from i2pp.core.discretization_reader_classes.discretization_reader import (
 from i2pp.core.utilities import (
     find_mins_maxs,
     get_node_position_of_element,
+    make_json_serializable,
     normalize_values,
     smooth_data,
 )
@@ -129,3 +130,48 @@ def test_smoothing_rgb():
     pixel_data_smoothed = smooth_data(pixel_data, 3)
 
     assert np.array_equal(pixel_data_smoothed[1][1][1], np.array([3, 3, 2]))
+
+
+def test_make_json_serializable_numpy_array():
+    """Test make_json_serializable with a NumPy array."""
+    arr = np.array([[1, 2], [3, 4]])
+    result = make_json_serializable(arr)
+    assert result == [[1, 2], [3, 4]]
+    assert isinstance(result, list)
+    assert all(isinstance(sublist, list) for sublist in result)
+
+
+def test_make_json_serializable_numpy_scalar_int():
+    """Test make_json_serializable with a NumPy scalar int."""
+    scalar = np.int32(42)
+    result = make_json_serializable(scalar)
+    assert result == 42
+    assert isinstance(result, int)
+
+
+def test_make_json_serializable_numpy_scalar_float():
+    """Test make_json_serializable with a NumPy scalar float."""
+    scalar = np.float64(3.14)
+    result = make_json_serializable(scalar)
+    assert result == 3.14
+    assert isinstance(result, float)
+
+
+def test_make_json_serializable_mixed_nested():
+    """Test make_json_serializable with mixed nested structures."""
+    obj = {
+        "a": np.array([np.int16(1), np.float32(2.5)]),
+        "b": np.float64(7.8),
+        "c": "string",
+    }
+    serializable = {k: make_json_serializable(v) for k, v in obj.items()}
+    assert serializable["a"] == [1, 2.5]
+    assert serializable["b"] == 7.8
+    assert serializable["c"] == "string"
+
+
+def test_make_json_serializable_non_numpy():
+    """Test make_json_serializable with a non-NumPy object."""
+    value = {"x": 1, "y": [2, 3]}
+    result = make_json_serializable(value)
+    assert result == value

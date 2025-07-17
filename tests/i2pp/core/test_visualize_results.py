@@ -35,16 +35,24 @@ def mock_elements():
     return [MagicMock(spec=Element), MagicMock(spec=Element)]
 
 
+@pytest.fixture
+def mock_discretization():
+    """Creates a mock Discretization object."""
+    return MagicMock()
+
+
 @patch("i2pp.core.visualize_results.Process")
 @patch.object(ImageVisualizer, "plot_grid", MagicMock())
 @patch.object(DiscretizationVisualizer, "plot_grid", MagicMock())
 @patch.object(DiscretizationVisualizer, "compute_grid", MagicMock())
 @patch.object(ImageVisualizer, "compute_grid", MagicMock())
-def test_visualize_results(mock_process, mock_image_data, mock_elements):
+def test_visualize_results(
+    mock_process, mock_image_data, mock_elements, mock_discretization
+):
     """Test that visualize_results starts two processes without actually
     running them."""
 
-    visualize_results({}, mock_elements, mock_image_data)
+    visualize_results({}, mock_elements, mock_image_data, mock_discretization)
 
     assert mock_process.call_count == 2
 

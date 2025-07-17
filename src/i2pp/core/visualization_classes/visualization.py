@@ -146,21 +146,27 @@ class Visualizer(ABC):
 
             self._update_display(
                 self.grid_visible,
-                scalars="rgb_values",
+                scalars=f"{self.pixel_type.value}_values",
                 rgb=True,
                 opacity=self.opacity,
             )
 
-        else:
+        elif (
+            self.pixel_type == PixelValueType.CT
+            or self.pixel_type == PixelValueType.MRT
+        ):
 
             self._update_display(
                 self.grid_visible,
-                scalars="ScalarValues",
+                scalars=f"{self.pixel_type.value}_values",
                 cmap="viridis",
                 opacity=self.opacity,
                 clim=(self.pixel_range[0], self.pixel_range[1]),
             )
-
+        else:
+            raise ValueError(
+                f"Unsupported pixel type: {self.pixel_type.value}"
+            )
         self._update_edges()
         self.plotter.add_axes()
         self.plotter.render()
@@ -184,13 +190,22 @@ class Visualizer(ABC):
         )
 
         if self.pixel_type == PixelValueType.RGB:
-            self._update_display(slice_mesh, scalars="rgb_values", rgb=True)
-        else:
+            self._update_display(
+                slice_mesh, scalars=f"{self.pixel_type.value}_values", rgb=True
+            )
+        elif (
+            self.pixel_type == PixelValueType.CT
+            or self.pixel_type == PixelValueType.MRT
+        ):
             self._update_display(
                 slice_mesh,
-                scalars="ScalarValues",
+                scalars=f"{self.pixel_type.value}_values",
                 cmap="viridis",
                 clim=(self.pixel_range[0], self.pixel_range[1]),
+            )
+        else:
+            raise ValueError(
+                f"Unsupported pixel type: {self.pixel_type.value}"
             )
 
         self._update_edges()
