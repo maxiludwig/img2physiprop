@@ -23,7 +23,6 @@ def main() -> None:
         "-cfp",
         help="Path to config file.",
         type=str,
-        default="src/i2pp/main_example_config.yaml",
     )
     args = parser.parse_args()
 
