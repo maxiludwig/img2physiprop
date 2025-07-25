@@ -74,7 +74,7 @@ Now you are up and running 🎉
 To execute img2physiprop run
 
 ```
-i2pp --config_file_path ../path/to/config.yaml
+i2pp --config path/to/config.yaml
 ````
 
 with your custom configuration file. A template configuration file containing all possible input configurations can be found in the folder `templates/config`.
