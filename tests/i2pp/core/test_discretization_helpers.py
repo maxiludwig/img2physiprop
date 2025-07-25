@@ -14,11 +14,13 @@ from i2pp.core.discretization_helpers import (
     initialize_unstructured_grid,
     verify_and_load_discretization,
 )
-from i2pp.core.discretization_reader_classes.dat_reader import DatReader
 from i2pp.core.discretization_reader_classes.discretization_reader import (
     Discretization,
     Element,
     Nodes,
+)
+from i2pp.core.discretization_reader_classes.fourc_yaml_reader import (
+    FourCYamlReader,
 )
 from i2pp.core.image_reader_classes.image_reader import PixelValueType
 
@@ -29,7 +31,7 @@ def test_determine_discretization_format_path_not_exist():
 
     with pytest.raises(
         RuntimeError,
-        match="Path not_existing_path to the Discretization cannot be found!",
+        match="Path not_existing_path to the discretization cannot be found!",
     ):
         determine_discretization_format(Path(path))
 
@@ -44,20 +46,20 @@ def test_determine_discretization_format_wrong_format(tmp_path: Path) -> None:
             determine_discretization_format(Path(test_path))
 
 
-def test_determine_discretization_format_dat_format(tmp_path: Path) -> None:
-    """Test determine_discretization_format if file is DAT."""
+def test_determine_discretization_format_fourc_yaml(tmp_path: Path) -> None:
+    """Test determine_discretization_format if file is 4C.yaml."""
 
-    test_path = tmp_path / "test_mesh.dat"
+    test_path = tmp_path / "test_mesh.4C.yaml"
 
     with patch("pathlib.Path.is_file", returnValue=True):
         assert (
             determine_discretization_format(Path(test_path))
-            == DiscretizationFormat.DAT
+            == DiscretizationFormat.YAML
         )
 
 
-def test_determine_discretization_format_mesh_format(tmp_path: Path) -> None:
-    """Test determine_discretization_format if File is mesh."""
+def test_determine_discretization_format_mesh(tmp_path: Path) -> None:
+    """Test determine_discretization_format if file is mesh."""
 
     test_path = tmp_path / "test_mesh.mesh"
 
@@ -73,22 +75,22 @@ def test_verify_and_load_discretization():
 
     test_config = {
         "input informations": {
-            "discretization_file_path": "test_path.dat",
+            "discretization_file_path": "test_path.4C.yaml",
         },
         "processing options": "options",
     }
 
-    absolut_path = Path.cwd() / "test_path.dat"
+    absolut_path = Path.cwd() / "test_path.4C.yaml"
     mock_bounding = tuple([[0, 0, 0], [1, 1, 1]])
     nodes = Nodes([0, 0, 0], 0)
     mock_dis = Discretization(nodes, [])
 
     with patch(
         "i2pp.core.discretization_helpers.determine_discretization_format",
-        return_value=DiscretizationFormat.DAT,
+        return_value=DiscretizationFormat.YAML,
     ) as mock_determine_discretization_format:
         with patch.object(
-            DatReader, "load_discretization", return_value=mock_dis
+            FourCYamlReader, "load_discretization", return_value=mock_dis
         ) as mock_load_discretization:
             with patch(
                 "i2pp.core.discretization_helpers.find_mins_maxs",

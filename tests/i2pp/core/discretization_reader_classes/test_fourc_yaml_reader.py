@@ -4,7 +4,9 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-from i2pp.core.discretization_reader_classes.dat_reader import DatReader
+from i2pp.core.discretization_reader_classes.fourc_yaml_reader import (
+    FourCYamlReader,
+)
 
 
 def test___filter_discretization_one_filter():
@@ -22,7 +24,7 @@ def test___filter_discretization_one_filter():
 
     mock_dis.elements.structure = [ele1, ele2, ele3, ele4]
     mock_dis.nodes = [node1, node2, node3, node4]
-    test_dis = DatReader()
+    test_dis = FourCYamlReader()
     dis_filtered = test_dis._filter_discretization(mock_dis, [2])
     coords_list = [node.coords for node in dis_filtered.nodes]
 
@@ -46,7 +48,7 @@ def test__filter_discretization_multiple_filters():
 
     mock_dis.elements.structure = [ele1, ele2, ele3, ele4]
     mock_dis.nodes = [node1, node2, node3, node4]
-    test_dis = DatReader()
+    test_dis = FourCYamlReader()
     dis_filtered = test_dis._filter_discretization(mock_dis, [1, 3])
     coords_list = [node.coords for node in dis_filtered.nodes]
 
@@ -57,11 +59,11 @@ def test__filter_discretization_multiple_filters():
     assert len(coords_list) == 3
 
 
-def test_load_discretization_dat_without_filter(tmp_path: Path) -> None:
-    """Test load_discretization if input is .dat."""
+def test_load_discretization_fourc_yaml_without_filter(tmp_path: Path) -> None:
+    """Test load_discretization if input is 4C.yaml."""
 
-    test_path = tmp_path / "test_mesh.dat"
-    test_dis = DatReader()
+    test_path = tmp_path / "test_mesh.4C.yaml"
+    test_dis = FourCYamlReader()
     with patch("lnmmeshio.read") as mock_lnmread:
 
         mock_dis = MagicMock()

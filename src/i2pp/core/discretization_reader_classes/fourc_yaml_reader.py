@@ -1,4 +1,4 @@
-"""Import Dat data."""
+"""Import 4C.yaml data."""
 
 import logging
 from pathlib import Path
@@ -11,36 +11,37 @@ from i2pp.core.discretization_reader_classes.discretization_reader import (
     Element,
     Nodes,
 )
-from lnmmeshio import Discretization as DiscretizationLNM
+from lnmmeshio import Discretization as FourCDiscretization
 from tqdm import tqdm
 
 
-class DatReader(DiscretizationReader):
-    """Class for reading and processing finite element models from .dat files.
+class FourCYamlReader(DiscretizationReader):
+    """Class for reading and processing finite element models from .4C.yaml
+    files.
 
-    This class extends `DiscretizationReader` to handle `.dat` files, which
+    This class extends `DiscretizationReader` to handle `.4C.yaml` files, which
     store discretized finite element models. It provides functionality to
     import the Discretization, filter elements based on material IDs, and
     structure the data into a `Discretization` object.
     """
 
     def _filter_discretization(
-        self, dis: DiscretizationLNM, mat_ids: np.ndarray
-    ) -> DiscretizationLNM:
-        """Filters the finite element model to include only elements with
-        specified material IDs.
+        self, dis: FourCDiscretization, mat_ids: np.ndarray
+    ) -> FourCDiscretization:
+        """Filters the discretization to include only elements with specified
+        material IDs.
 
-        This function iterates through the elements in the discretized model
+        This function iterates through the elements in the discretization
         and selects only those whose material ID matches one of the specified
         `mat_ids`. The corresponding nodes of these elements are also
         retained. After filtering, the nodes are sorted based on their IDs.
 
         Arguments:
-            dis (DiscretizationLNM): The discretized finite element model.
+            dis (FourCDiscretization): The discretization.
             mat_ids (np.ndarray): Array of material IDs to filter.
 
         Returns:
-            DiscretizationLNM: The filtered discretized model containing only
+            FourCDiscretization: The filtered discretization containing only
                 the selected elements and nodes.
         """
 
@@ -71,22 +72,23 @@ class DatReader(DiscretizationReader):
     def load_discretization(
         self, file_path: Path, config: dict
     ) -> Discretization:
-        """Loads and processes a finite element model from a .dat file.
+        """Loads and processes a finite element discretization from a .4C.yaml
+        file.
 
-        This function imports nodes and elements from a .dat file using
+        This function imports nodes and elements from a .4C.yaml file using
         `lnmmeshio`, applies optional material ID filtering, and organizes
         the data into a `Discretization` object.
 
         Arguments:
-            file_path (Path): Path to the .dat file.
+            file_path (Path): Path to the .4C.yaml file.
             config (dict): User configuration containing material ID filters.
 
         Returns:
-            Discretization: A structured representation of the finite element
-                model, including nodes and elements.
+            Discretization: The finite element discretization including nodes
+            and elements.
         """
 
-        logging.info("Importing Discretization data")
+        logging.info("Importing discretization data")
 
         raw_dis = lnmmeshio.read(str(file_path))
 
