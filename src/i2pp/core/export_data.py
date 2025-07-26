@@ -9,11 +9,11 @@ from typing import Any, Callable
 
 import numpy as np
 from i2pp.core.discretization_helpers import initialize_unstructured_grid
-from i2pp.core.discretization_reader_classes.discretization_reader import (
+from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
     Element,
 )
-from i2pp.core.image_reader_classes.image_reader import PixelValueType
+from i2pp.core.image_readers.image_reader import PixelValueType
 from i2pp.core.utilities import make_json_serializable, normalize_values
 
 

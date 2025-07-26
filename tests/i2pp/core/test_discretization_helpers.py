@@ -14,15 +14,13 @@ from i2pp.core.discretization_helpers import (
     initialize_unstructured_grid,
     verify_and_load_discretization,
 )
-from i2pp.core.discretization_reader_classes.discretization_reader import (
+from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
     Element,
     Nodes,
 )
-from i2pp.core.discretization_reader_classes.fourc_yaml_reader import (
-    FourCYamlReader,
-)
-from i2pp.core.image_reader_classes.image_reader import PixelValueType
+from i2pp.core.discretization_readers.fourc_yaml_reader import FourCYamlReader
+from i2pp.core.image_readers.image_reader import PixelValueType
 
 
 def test_determine_discretization_format_path_not_exist():

@@ -5,9 +5,7 @@ from pathlib import Path
 import numpy as np
 import pydicom
 import pytest
-from i2pp.core.discretization_reader_classes.discretization_reader import (
-    BoundingBox,
-)
+from i2pp.core.discretization_readers.discretization_reader import BoundingBox
 from i2pp.core.import_image import (
     ImageFormat,
     _detect_and_append_suffixes,

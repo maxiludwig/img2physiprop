@@ -6,17 +6,15 @@ from typing import Type, cast
 
 import numpy as np
 import pyvista as pv
-from i2pp.core.discretization_reader_classes.discretization_reader import (
+from i2pp.core.discretization_readers.discretization_reader import (
     BoundingBox,
     Discretization,
     DiscretizationReader,
     Element,
 )
-from i2pp.core.discretization_reader_classes.fourc_yaml_reader import (
-    FourCYamlReader,
-)
-from i2pp.core.discretization_reader_classes.mesh_reader import MeshReader
-from i2pp.core.image_reader_classes.image_reader import PixelValueType
+from i2pp.core.discretization_readers.fourc_yaml_reader import FourCYamlReader
+from i2pp.core.discretization_readers.mesh_reader import MeshReader
+from i2pp.core.image_readers.image_reader import PixelValueType
 from i2pp.core.utilities import find_mins_maxs
 
 

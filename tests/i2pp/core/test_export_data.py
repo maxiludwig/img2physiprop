@@ -9,11 +9,9 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-from i2pp.core.discretization_reader_classes.discretization_reader import (
-    Element,
-)
+from i2pp.core.discretization_readers.discretization_reader import Element
 from i2pp.core.export_data import Exporter, ExportFormat, export_data
-from i2pp.core.image_reader_classes.image_reader import PixelValueType
+from i2pp.core.image_readers.image_reader import PixelValueType
 
 
 def test_load_user_function_not_exist():

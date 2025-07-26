@@ -3,19 +3,15 @@
 from enum import Enum
 from typing import Type
 
-from i2pp.core.discretization_reader_classes.discretization_reader import (
+from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
     Element,
 )
-from i2pp.core.image_reader_classes.image_reader import ImageData
-from i2pp.core.interpolator_classes.interpolator import Interpolator
-from i2pp.core.interpolator_classes.interpolator_all_voxel import (
-    InterpolatorAllVoxel,
-)
-from i2pp.core.interpolator_classes.interpolator_center import (
-    InterpolatorCenter,
-)
-from i2pp.core.interpolator_classes.interpolator_nodes import InterpolatorNodes
+from i2pp.core.image_readers.image_reader import ImageData
+from i2pp.core.interpolators.interpolator import Interpolator
+from i2pp.core.interpolators.interpolator_all_voxel import InterpolatorAllVoxel
+from i2pp.core.interpolators.interpolator_center import InterpolatorCenter
+from i2pp.core.interpolators.interpolator_nodes import InterpolatorNodes
 
 
 class InterpolationType(Enum):

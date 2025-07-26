@@ -1,9 +1,7 @@
 """Test Utilities Routine."""
 
 import numpy as np
-from i2pp.core.discretization_reader_classes.discretization_reader import (
-    BoundingBox,
-)
+from i2pp.core.discretization_readers.discretization_reader import BoundingBox
 from i2pp.core.utilities import (
     find_mins_maxs,
     get_node_position_of_element,

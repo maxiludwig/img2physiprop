@@ -7,16 +7,14 @@ from typing import Type
 
 import numpy as np
 import pydicom
-from i2pp.core.discretization_reader_classes.discretization_reader import (
-    BoundingBox,
-)
-from i2pp.core.image_reader_classes.dicom_reader import DicomReader
-from i2pp.core.image_reader_classes.image_reader import (
+from i2pp.core.discretization_readers.discretization_reader import BoundingBox
+from i2pp.core.image_readers.dicom_reader import DicomReader
+from i2pp.core.image_readers.image_reader import (
     ImageData,
     ImageReader,
     PixelValueType,
 )
-from i2pp.core.image_reader_classes.png_reader import PngReader
+from i2pp.core.image_readers.png_reader import PngReader
 from PIL import Image
 
 
