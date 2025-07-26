@@ -14,50 +14,6 @@ from i2pp.core.export_data import Exporter, ExportFormat, export_data
 from i2pp.core.image_readers.image_reader import PixelValueType
 
 
-def test_load_user_function_not_exist():
-    """_load_user_function if Path not found."""
-    path = Path("not_exisitng_path.py")
-    function_name = "function_name"
-    exporter = Exporter()
-
-    with pytest.raises(
-        RuntimeError, match="User script 'not_exisitng_path.py' not found!"
-    ):
-        exporter.load_user_function(path, function_name)
-
-
-def test_load_user_function_exist():
-    """_load_user_function if funtion exist."""
-    test_script = tempfile.NamedTemporaryFile(delete=False, suffix=".py")
-    test_script.write(b"def test_function(data): return 2*data+1\n")
-    test_script.close()
-
-    script_path = Path(test_script.name)
-
-    exporter = Exporter()
-    loaded_function = exporter.load_user_function(script_path, "test_function")
-
-    os.remove(script_path)
-
-    assert callable(loaded_function)
-    assert loaded_function(2) == 5
-
-
-def test_load_user_function_not_callable():
-    """_load_user_function if funtion exist."""
-    test_script = tempfile.NamedTemporaryFile(delete=False, suffix=".py")
-    test_script.close()
-
-    script_path = Path(test_script.name)
-
-    exporter = Exporter()
-
-    with pytest.raises(RuntimeError, match="Userfunction not found"):
-        exporter.load_user_function(script_path, "test_function")
-
-        os.remove(script_path)
-
-
 def test_parse_export_format_invalid_format():
     """Test parse_export_format raises error for invalid format."""
     exporter = Exporter()
@@ -284,10 +240,6 @@ def test_export_vtk_adds_cell_data_and_saves_file():
 def exporter_mocks():
     """Fixture to mock Exporter methods for testing."""
     with (
-        patch(
-            "i2pp.core.export_data.normalize_values",
-            return_value=np.array([1, 2]),
-        ) as mock_normalize_values,
         patch.object(
             Exporter,
             "parse_export_format",
@@ -297,11 +249,6 @@ def exporter_mocks():
             ),
         ) as mock_parse_export_format,
         patch.object(
-            Exporter,
-            "load_user_function",
-            return_value=lambda ids, data: data / 5,
-        ) as mock_load_user_function,
-        patch.object(
             Exporter, "write_data", return_value=None
         ) as mock_write_data,
         patch.object(
@@ -309,9 +256,7 @@ def exporter_mocks():
         ) as mock_export_vtk,
     ):
         yield {
-            "mock_normalize_values": mock_normalize_values,
             "mock_parse_export_format": mock_parse_export_format,
-            "mock_load_user_function": mock_load_user_function,
             "mock_write_data": mock_write_data,
             "mock_export_vtk": mock_export_vtk,
         }
@@ -321,13 +266,16 @@ def test_export_data(exporter_mocks):
     """Test export_data."""
 
     user_script = Path("mock_script.py")
+    with open(user_script, "w") as f:
+        f.write("def mock_function(ids, data): return data / 5\n")
+
     user_function = "mock_function"
     normalize = True
     pixel_range = np.array([0, 20])
     element1 = Element([0, 1], 0, data=10)
     element2 = Element([0, 1], 1, data=20)
     elements = [element1, element2]
-    expected_result = np.array([0.2, 0.4])
+    expected_result = np.array([0.1, 0.2])
     mock_discretization = MagicMock()
 
     export_data(
@@ -347,13 +295,8 @@ def test_export_data(exporter_mocks):
     exporter_mocks["mock_parse_export_format"].assert_called_once_with(
         export_format="json"
     )
-    args, _ = exporter_mocks["mock_normalize_values"].call_args
-    np.testing.assert_array_equal(args[0], np.array([10, 20]))
-    np.testing.assert_array_equal(args[1], np.array([0, 20]))
-
-    exporter_mocks["mock_load_user_function"].assert_called_once_with(
-        Path("mock_script.py"), "mock_function"
-    )
+    # exporter uses UserFunctionTransformer to load the user function
+    # this will be modified, so tests come in next commits
 
     args, _ = exporter_mocks["mock_write_data"].call_args
     np.testing.assert_array_equal(args[0], expected_result)

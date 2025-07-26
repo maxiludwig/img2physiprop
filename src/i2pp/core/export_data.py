@@ -1,11 +1,10 @@
 """Export data to a file using user function."""
 
-import importlib.util
 import json
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 from i2pp.core.discretization_helpers import initialize_unstructured_grid
@@ -14,7 +13,10 @@ from i2pp.core.discretization_readers.discretization_reader import (
     Element,
 )
 from i2pp.core.image_readers.image_reader import PixelValueType
-from i2pp.core.utilities import make_json_serializable, normalize_values
+from i2pp.core.user_function_transformer.user_function_transformer import (
+    UserFunctionTransformer,
+)
+from i2pp.core.utilities import make_json_serializable
 
 
 class ExportFormat(Enum):
@@ -41,55 +43,6 @@ class Exporter:
     def __init__(self):
         """Init ExportClass."""
         pass
-
-    def load_user_function(
-        self, script_path: Path, function_name: str
-    ) -> Callable[..., Any]:
-        """Dynamically loads a user-defined function from a script file.
-
-        This function attempts to import a Python script as a module and
-        retrieve a specified function from it. If the script or function is
-        not found, an error is raised.
-
-        Arguments:
-            script_path (str): The file path to the user script.
-            function_name (str): The name of the function to load.
-
-        Returns:
-            Callable: The loaded user-defined function.
-
-        Raises:
-            RuntimeError: If the script file does not exist.
-            RuntimeError: If the script cannot be loaded as a module.
-            RuntimeError: If the function is not found or is not callable.
-        """
-
-        if not Path(script_path).is_file():
-            raise RuntimeError(
-                f"User script '{script_path}' not found!"
-                "img2physiprop can not be executed!"
-            )
-
-        spec = importlib.util.spec_from_file_location(
-            "user_module", script_path
-        )
-
-        if spec is None:
-            raise RuntimeError(f"Failed to load module spec for {script_path}")
-
-        user_module = importlib.util.module_from_spec(spec)
-
-        if spec.loader is None:
-            raise RuntimeError(f"Failed to load module from {script_path}")
-
-        spec.loader.exec_module(user_module)
-
-        user_function = getattr(user_module, function_name, None)
-
-        if not callable(user_function):
-            raise RuntimeError("Userfunction not found")
-
-        return user_function
 
     def parse_export_format(self, export_format: str):
         """Parses the export format from the user configuration.
@@ -327,20 +280,17 @@ def export_data(
     """
     logging.info("Exporting file.")
 
-    element_ids = np.array([ele.id + 1 for ele in elements])
-    element_data = np.array([ele.data for ele in elements])
-
-    exporter = Exporter()
-    exporter.parse_export_format(export_format=export_format)
-
-    if normalize:
-        element_data = normalize_values(element_data, pixel_range)
-
-    user_function = exporter.load_user_function(
-        user_script_path, user_function_name
+    # Apply transformation
+    transformer = UserFunctionTransformer(
+        normalize=normalize, pixel_range=pixel_range
+    )
+    result = transformer.apply_transformation(
+        elements, user_script_path, user_function_name
     )
 
-    result = user_function(element_ids, element_data)
+    # Export data
+    exporter = Exporter()
+    exporter.parse_export_format(export_format=export_format)
 
     exported_data = exporter.write_data(
         result, property_output_file, name_of_output_property
