@@ -52,7 +52,7 @@ def test_visualize_results(
     """Test that visualize_results starts two processes without actually
     running them."""
 
-    visualize_results({}, mock_elements, mock_image_data, mock_discretization)
+    visualize_results(mock_elements, mock_image_data, mock_discretization)
 
     assert mock_process.call_count == 2
 

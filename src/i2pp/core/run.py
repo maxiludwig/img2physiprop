@@ -106,4 +106,4 @@ def run_i2pp(config_i2pp):
     visualization_options: dict = config_i2pp["visualization_options"]
 
     if bool(visualization_options["plot_results"]):
-        visualize_results(config_i2pp, elements, image_data, dis)
+        visualize_results(elements, image_data, dis)

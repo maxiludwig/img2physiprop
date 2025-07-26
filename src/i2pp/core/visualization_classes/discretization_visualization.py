@@ -20,7 +20,6 @@ class DiscretizationVisualizer(Visualizer):
 
     def compute_grid(
         self,
-        config: dict,
         elements_with_values: list[Element],
         dis: Discretization,
     ) -> None:
@@ -42,8 +41,6 @@ class DiscretizationVisualizer(Visualizer):
         later use.
 
         Arguments:
-            config (dict): Configuration dictionary containing processing
-                options.
             elements_with_values (list[Element]): List of elements with
                 assigned values.
             dis (Discretization): The discretization object containing nodes
@@ -52,7 +49,6 @@ class DiscretizationVisualizer(Visualizer):
             None
         """
 
-        config["processing options"]["material_ids"] = None
         unstructured_grid, ele_has_value = initialize_unstructured_grid(
             elements_with_values, self.pixel_type, dis
         )
