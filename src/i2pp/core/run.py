@@ -1,6 +1,7 @@
 """Runner which executes the main routine of img2physiprop."""
 
 import copy
+import os
 import time
 from pathlib import Path
 
@@ -96,12 +97,44 @@ def run_i2pp(config_i2pp):
         dis, image_data, interpolation_method=interpolation_method
     )
 
+    # Retrieve export/output options from the configuration
+    export_format = config_i2pp["output options"].get(
+        "export_format", "Not specified"
+    )
+    directory = Path(
+        config_i2pp["output options"].get("output_path") or Path.cwd()
+    )
+    output_name = str(
+        config_i2pp["output options"].get("output_name") or "i2pp_output"
+    )
+    property_output_path = os.path.join(
+        directory, f"{output_name}.{export_format}"
+    )
+    name_of_output_property = config_i2pp["output options"].get(
+        "name_of_output_property", None
+    )
+    vtk_output_path = os.path.join(
+        config_i2pp["output options"]["output_path"] or Path.cwd(),
+        f"{config_i2pp['output options']['output_name'] or 'i2pp_output'}.vtu",
+    )
+    processing_options = config_i2pp["processing options"]
+    script_path = processing_options["user_script"]
+    function_name = processing_options["user_function"]
+    normalize = processing_options.get("normalize_values", False)
+
+    # Export the data
     export_data(
-        elements,
-        dis,
-        config_i2pp,
-        image_data.pixel_range,
-        image_data.pixel_type,
+        elements=elements,
+        dis=dis,
+        user_script_path=Path(script_path),
+        user_function_name=function_name,
+        export_format=export_format,
+        property_output_file=Path(property_output_path),
+        name_of_output_property=name_of_output_property,
+        normalize=normalize,
+        vtk_output_file=Path(vtk_output_path),
+        pxl_range=image_data.pixel_range,
+        pixel_type=image_data.pixel_type,
     )
 
     end_time = time.time()

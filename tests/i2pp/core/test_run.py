@@ -1,5 +1,6 @@
 """Test run routine."""
 
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -21,12 +22,19 @@ def minimal_valid_config(tmp_path):
             "smoothing": True,
             "smoothing_area": 3,
             "interpolation_method": "nodes",
+            "user_script": "tests/testdata/user_script.py",
+            "user_function": "process_image_data",
+            "normalize_values": False,
         },
         "visualization_options": {
             "plot_smoothing": False,
             "plot_results": False,
         },
-        "export": {"path": tmp_path / "output.pattern", "format": "pattern"},
+        "output options": {
+            "output_path": tmp_path,
+            "output_name": "output",
+            "export_format": "pattern",
+        },
     }
 
 
@@ -71,8 +79,24 @@ def test_run_i2pp_runs_successfully(
     mock_load_image.assert_called_once()
     mock_interpolate.assert_called_once()
     mock_export.assert_called_once_with(
-        mock_elements, mock_dis, minimal_valid_config, (0, 255), "dummy"
+        elements=mock_elements,
+        dis=mock_dis,
+        user_script_path=Path("tests/testdata/user_script.py"),
+        user_function_name="process_image_data",
+        export_format="pattern",
+        property_output_file=Path(
+            minimal_valid_config["output options"]["output_path"]
+        )
+        / "output.pattern",
+        name_of_output_property=None,
+        normalize=False,
+        vtk_output_file=Path(
+            minimal_valid_config["output options"]["output_path"]
+        )
+        / "output.vtu",
+        pxl_range=(0, 255),
+        pixel_type="dummy",
     )
-    mock_smooth_data.assert_called_once()
+    mock_smooth_data.assert_called_once_with([[0]], 3)
     mock_vis_results.assert_not_called()
     mock_vis_smoothing.assert_not_called()
