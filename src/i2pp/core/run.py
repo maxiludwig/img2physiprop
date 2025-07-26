@@ -87,8 +87,13 @@ def run_i2pp(config_i2pp):
                 time_after_smoothing - time_pre_smoothing
             )
 
+    # Retrieve the interpolation method from the configuration
+    interpolation_method = (
+        config_i2pp["processing options"]["interpolation_method"],
+    )
+    # Interpolate the image data onto the mesh elements
     elements = interpolate_image_to_discretization(
-        dis, image_data, config_i2pp
+        dis, image_data, interpolation_method=interpolation_method
     )
 
     export_data(
