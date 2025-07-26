@@ -342,7 +342,7 @@ def test_export_data(exporter_mocks):
         name_of_output_property="property_name",
         normalize=normalize,
         vtk_output_file=Path("output.vtu"),
-        pxl_range=pixel_range,
+        pixel_range=pixel_range,
         pixel_type=PixelValueType.CT,
     )
 

@@ -202,6 +202,6 @@ def verify_and_load_imagedata(
             [image_data.pixel_data.min(), image_data.pixel_data.max()]
         )
     else:
-        image_data.pixel_range = image_data.pixel_type.pxl_range
+        image_data.pixel_range = image_data.pixel_type.pixel_range
 
     return image_data

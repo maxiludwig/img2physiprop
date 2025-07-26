@@ -133,7 +133,7 @@ def run_i2pp(config_i2pp):
         name_of_output_property=name_of_output_property,
         normalize=normalize,
         vtk_output_file=Path(vtk_output_path),
-        pxl_range=image_data.pixel_range,
+        pixel_range=image_data.pixel_range,
         pixel_type=image_data.pixel_type,
     )
 

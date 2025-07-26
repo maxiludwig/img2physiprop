@@ -285,7 +285,7 @@ def export_data(
     name_of_output_property: str,
     normalize: bool,
     vtk_output_file: Path,
-    pxl_range: np.ndarray,
+    pixel_range: np.ndarray,
     pixel_type: PixelValueType,
 ) -> None:
     """Exports element data to a file using a user-defined function.
@@ -319,7 +319,7 @@ def export_data(
         normalize (bool): Whether to normalize the element values
             before exporting.
         vtk_output_file (Path): Path to the output file for VTK export.
-        pxl_range (np.ndarray): Pixel range for normalization if enabled.
+        pixel_range (np.ndarray): Pixel range for normalization if enabled.
         pixel_type (PixelValueType): Type of pixel values.
 
     Raises:
@@ -334,7 +334,7 @@ def export_data(
     exporter.parse_export_format(export_format=export_format)
 
     if normalize:
-        element_data = normalize_values(element_data, pxl_range)
+        element_data = normalize_values(element_data, pixel_range)
 
     user_function = exporter.load_user_function(
         user_script_path, user_function_name
