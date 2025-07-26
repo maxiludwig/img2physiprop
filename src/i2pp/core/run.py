@@ -45,8 +45,8 @@ def run_i2pp(config_i2pp):
 
         smoothing_area = int(processing_options.get("smoothing_area", 3))
 
-        visulaization_options: dict = config_i2pp["visualization_options"]
-        bool_show_smoothing = visulaization_options.get(
+        visualization_options: dict = config_i2pp["visualization_options"]
+        bool_show_smoothing = visualization_options.get(
             "plot_smoothing", False
         )
 
@@ -82,7 +82,7 @@ def run_i2pp(config_i2pp):
     elapsed_time = end_time - start_time
     print(f"Execution time of run_i2pp: {elapsed_time:.2f} seconds")
 
-    visulaization_options: dict = config_i2pp["visualization_options"]
+    visualization_options: dict = config_i2pp["visualization_options"]
 
-    if bool(visulaization_options["plot_results"]):
+    if bool(visualization_options["plot_results"]):
         visualize_results(config_i2pp, elements, image_data, dis)
