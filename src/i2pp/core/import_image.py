@@ -1,5 +1,6 @@
 """Import image data and convert it into 3D data."""
 
+import logging
 from enum import Enum
 from pathlib import Path
 from typing import Type, cast
@@ -23,12 +24,12 @@ class ImageFormat(Enum):
     """ImageFormat (Enum): Represents the supported formats for image data.
 
     Attributes:
-        Dicom: Represents the DICOM image format, commonly used in medical
+        DICOM: Represents the DICOM image format, commonly used in medical
             imaging.
         PNG: Represents the PNG (Portable Network Graphics) image format,
             typically used for color images.
 
-    This enum is used to define the format of th input data and helps
+    This enum is used to define the format of the input data and helps
     in determining how the image data should be processed based on its format
     (e.g., DICOM vs. PNG).
     """
@@ -43,11 +44,19 @@ class ImageFormat(Enum):
         Returns:
             Type[ImageReader]: A class that is a subclass of `ImageReader`,
                 either `DicomReader` or `PngReader`.
+
+        Raises:
+            ValueError: If the image format is not supported.
         """
-        return {
+        readers = {
             ImageFormat.DICOM: DicomReader,
             ImageFormat.PNG: PngReader,
-        }[self]
+        }
+
+        if self not in readers:
+            raise ValueError(f"Unsupported image format: {self}")
+
+        return readers[self]
 
     def is_file_of_format(self, path: Path) -> bool:
         """Checks if a file matches this image format.
@@ -94,7 +103,9 @@ def _detect_and_append_suffixes(folder_path: Path) -> None:
         for fmt in ImageFormat:
             if fmt.is_file_of_format(file):
                 new_file = file.with_suffix(fmt.value)
-                print(f"Appending suffix: {file.name} -> {new_file.name}")
+                logging.info(
+                    f"Appending suffix: {file.name} -> {new_file.name}"
+                )
                 file.rename(new_file)
                 break
 

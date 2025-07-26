@@ -1,7 +1,7 @@
 """Interpolate image data to FEM-Elements."""
 
 from enum import Enum
-from typing import Type, cast
+from typing import Type
 
 from i2pp.core.discretization_reader_classes.discretization_reader import (
     Discretization,
@@ -52,13 +52,21 @@ class CalculationType(Enum):
         Returns:
             Type[Interpolator]: The interpolator class that matches the
                 specified calculation type.
+
+        Raises:
+            ValueError: If the calculation type is not supported.
         """
 
-        return {
+        interpolator_map = {
             CalculationType.NODES: InterpolatorNodes,
             CalculationType.ALLVOXELS: InterpolatorAllVoxel,
             CalculationType.CENTER: InterpolatorCenter,
-        }[self]
+        }
+
+        if self not in interpolator_map:
+            raise ValueError(f"Unsupported calculation type: {self}")
+
+        return interpolator_map[self]
 
 
 def interpolate_image_to_discretization(
@@ -73,7 +81,7 @@ def interpolate_image_to_discretization(
 
     - "nodes": Computes the mean pixel value for each element based on its
         node values.
-    - "allVoxel": Computes the mean pixel value for each element based on
+    - "allvoxels": Computes the mean pixel value for each element based on
         all voxels inside it.
     - "elementcenter": Assigns pixel values based on the center of each
         element.
@@ -93,6 +101,6 @@ def interpolate_image_to_discretization(
         config["processing options"]["calculation_type"]
     )
 
-    interpolator = cast(Interpolator, calculation_type.get_interpolator()())
+    interpolator = calculation_type.get_interpolator()()
 
     return interpolator.compute_element_data(dis, image_data)

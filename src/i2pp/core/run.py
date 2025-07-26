@@ -15,11 +15,11 @@ from i2pp.core.visualize_results import visualize_results, visualize_smoothing
 
 def run_i2pp(config_i2pp):
     """Executes the img2physiprop (i2pp) workflow by processing image data and
-    mapping it to a finite element Discretization.
+    mapping it to a finite element discretization.
 
     This function performs the following steps:
-    1. Loads and verifies the finite element Discretization data.
-    2. Loads and verifies the image data within the Discretization's bounding
+    1. Loads and verifies the finite element discretization data.
+    2. Loads and verifies the image data within the discretization's bounding
         box.
     3. Optionally applying smoothing to the image data before interpolation.
     4. Interpolates the image data onto the mesh elements based on the
