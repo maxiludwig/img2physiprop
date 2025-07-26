@@ -3,7 +3,7 @@
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Type, cast
+from typing import Type
 
 import numpy as np
 import pydicom
@@ -161,7 +161,7 @@ def determine_image_format(folder_path: Path) -> ImageFormat:
 
 
 def verify_and_load_imagedata(
-    config: dict, bounding_box: BoundingBox
+    folder_path: Path, options: dict, bounding_box: BoundingBox
 ) -> ImageData:
     """Validates input data format and loads 3D image data.
 
@@ -172,8 +172,9 @@ def verify_and_load_imagedata(
     the pixel intensity range based on the pixel type.
 
     Arguments:
-        config (dict): User configuration containing the directory for input
-            data and other settings.
+        folder_path (Path): Path to the image-data folder.
+        options (dict): Options for loading image data (e.g., metadata
+            settings).
         bounding_box (BoundingBox): The spatial region defining the area of
             interest for image processing.
 
@@ -185,17 +186,11 @@ def verify_and_load_imagedata(
         RuntimeError: If the input data folder is invalid or contains
             unsupported data formats.
     """
-    relative_path = Path(config["input informations"]["image_folder_path"])
-
-    folder_path = Path.cwd() / relative_path
-
     _detect_and_append_suffixes(folder_path)
 
     image_format = determine_image_format(folder_path)
 
-    image_reader = cast(
-        ImageReader, image_format.get_reader()(config, bounding_box)
-    )
+    image_reader = image_format.get_reader()(options, bounding_box)
 
     raw_image = image_reader.load_image(folder_path)
 

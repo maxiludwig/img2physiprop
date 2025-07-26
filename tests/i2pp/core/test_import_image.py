@@ -162,11 +162,10 @@ def test_verify_and_load_imagedata(tmp_path: Path):
     ds.save_as(dicom_file_path1, enforce_file_format=False)
     ds.save_as(dicom_file_path2, enforce_file_format=False)
     input_path = tmp_path
-
-    config = {"input informations": {"image_folder_path": input_path}}
+    options: dict = {}
 
     image_data = verify_and_load_imagedata(
-        config, BoundingBox(max=[0, 0, 1000], min=[1, 1, -1000])
+        input_path, options, BoundingBox(max=[0, 0, 1000], min=[1, 1, -1000])
     )
 
     assert np.array_equal(image_data.pixel_data.shape, (2, 128, 128))

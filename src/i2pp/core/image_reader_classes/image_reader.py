@@ -173,9 +173,9 @@ class ImageReader(ABC):
     images (PNG).
     """
 
-    def __init__(self, config: dict, bounding_box: BoundingBox):
+    def __init__(self, options: dict, bounding_box: BoundingBox):
         """Init ImageReader."""
-        self.config = config
+        self.options = options
         self.bounding_box = bounding_box
 
     def _get_slice_orientation(

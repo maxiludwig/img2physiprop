@@ -2,6 +2,7 @@
 
 import copy
 import time
+from pathlib import Path
 
 from i2pp.core.discretization_helpers import verify_and_load_discretization
 from i2pp.core.export_data import export_data
@@ -36,7 +37,20 @@ def run_i2pp(config_i2pp):
 
     dis = verify_and_load_discretization(config_i2pp)
 
-    image_data = verify_and_load_imagedata(config_i2pp, dis.bounding_box)
+    # Retrieve information from configuration for loading image data
+    try:
+        relative_path = Path(config_i2pp["image"]["path"])
+    except KeyError as e:
+        raise ValueError(f"Missing required configuration key: {e}") from e
+    image_path = Path.cwd() / relative_path
+
+    image_options = dict()
+    image_options["image_metadata"] = config_i2pp["image"].get("metadata", {})
+
+    # Load the image data
+    image_data = verify_and_load_imagedata(
+        image_path, image_options, dis.bounding_box
+    )
 
     processing_options: dict = config_i2pp["processing options"]
     smoothing_bool = processing_options.get("smoothing", False)
