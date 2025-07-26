@@ -35,7 +35,14 @@ def run_i2pp(config_i2pp):
 
     start_time = time.time()
 
-    dis = verify_and_load_discretization(config_i2pp)
+    relative_path = Path(config_i2pp["discretization"]["path"])
+    discretization_path = Path.cwd() / relative_path
+
+    options = dict()
+    options["material_ids"] = config_i2pp["processing options"].get(
+        "material_ids", None
+    )
+    dis = verify_and_load_discretization(discretization_path, options)
 
     # Retrieve information from configuration for loading image data
     try:

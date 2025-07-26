@@ -33,7 +33,7 @@ class MeshReader(DiscretizationReader):
         raise RuntimeError("This function is not implemented yet.")
 
     def load_discretization(
-        self, file_path: Path, config: dict
+        self, file_path: Path, options: dict
     ) -> Discretization:
         """Loads and processes a finite element model from a .mesh file.
 
@@ -43,6 +43,7 @@ class MeshReader(DiscretizationReader):
 
         Arguments:
             file_path (Path): Path to the .mesh file.
+            options (dict): Options for loading the discretization.
 
         Returns:
             Discretization: A structured representation of the finite element
@@ -53,8 +54,7 @@ class MeshReader(DiscretizationReader):
 
         raw_dis = trimesh.load(file_path)
 
-        if config["material_ids"] is not None:
-
+        if options["material_ids"] is not None:
             self._filter_discretization()
 
         nodes = Nodes(

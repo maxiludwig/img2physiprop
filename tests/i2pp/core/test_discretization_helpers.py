@@ -73,14 +73,8 @@ def test_determine_discretization_format_mesh(tmp_path: Path) -> None:
 def test_verify_and_load_discretization():
     """Test verify_and_load_discretization."""
 
-    test_config = {
-        "input informations": {
-            "discretization_file_path": "test_path.4C.yaml",
-        },
-        "processing options": "options",
-    }
-
     absolut_path = Path.cwd() / "test_path.4C.yaml"
+    options_dict = {}
     mock_bounding = tuple([[0, 0, 0], [1, 1, 1]])
     nodes = Nodes([0, 0, 0], 0)
     mock_dis = Discretization(nodes, [])
@@ -96,13 +90,15 @@ def test_verify_and_load_discretization():
                 "i2pp.core.discretization_helpers.find_mins_maxs",
                 return_value=mock_bounding,
             ) as mock_find_mins_maxs:
-                dis = verify_and_load_discretization(test_config)
+                dis = verify_and_load_discretization(
+                    absolut_path, options_dict
+                )
 
                 mock_determine_discretization_format.assert_called_once_with(
                     absolut_path
                 )
                 mock_load_discretization.assert_called_once_with(
-                    absolut_path, "options"
+                    absolut_path, options_dict
                 )
                 mock_find_mins_maxs.assert_called_once_with(
                     points=[0, 0, 0], enlargement=2
