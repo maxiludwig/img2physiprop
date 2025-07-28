@@ -1,8 +1,5 @@
 """Test Export Data Routine."""
 
-import json
-import os
-import tempfile
 from pathlib import Path
 from unittest import mock
 from unittest.mock import MagicMock, patch
@@ -10,183 +7,45 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 from i2pp.core.discretization_readers.discretization_reader import Element
-from i2pp.core.export_data import Exporter, ExportFormat, export_data
+from i2pp.core.export_data import ExportFormat, export_data, export_vtk
+from i2pp.core.exporters.json_exporter import JsonExporter
+from i2pp.core.exporters.txt_exporter import TxtExporter
 from i2pp.core.image_readers.image_reader import PixelValueType
 
 
-def test_parse_export_format_invalid_format():
-    """Test parse_export_format raises error for invalid format."""
-    exporter = Exporter()
+def test_export_format_enum():
+    """Test ExportFormat Enum."""
+    assert ExportFormat("json") == ExportFormat.JSON
+    assert ExportFormat("txt") == ExportFormat.TXT
 
-    with pytest.raises(
-        RuntimeError, match="Export format 'invalid_format' is not supported!"
-    ):
-        exporter.parse_export_format("invalid_format")
-
-
-def test_parse_export_format_valid_format():
-    """Test parse_export_format sets the correct export format."""
-    exporter = Exporter()
-    exporter.parse_export_format("json")
-
-    assert exporter.export_format == ExportFormat.JSON
+    with pytest.raises(ValueError):
+        ExportFormat("xml")
 
 
-def test_write_data_creates_json_file():
-    """Test write_data creates JSON file with correct content."""
-    data = np.array(
-        [(1, [2.0, 3.0], "string1", 5), (2, [6.0, 7.0], "string2", 9)],
-        dtype=[
-            ("index", "i4"),
-            ("property1", "f8", 2),
-            ("property2", "U10"),
-            ("property3", "i4"),
-        ],
-    )
-    expected_output = {
-        "MUE": {
-            "1": [[2.0, 3.0], "string1", 5],
-            "2": [[6.0, 7.0], "string2", 9],
-        }
-    }
-    exporter = Exporter()
-    exporter.export_format = ExportFormat.JSON
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        output_file = Path(os.path.join(temp_dir, "test_output.json"))
-        property_name = "MUE"
-        exporter.write_data(data, output_file, property_name)
-
-        with open(output_file, "r") as json_file:
-            written_data = json.load(json_file)
-            assert written_data == expected_output
-
-        # Error handling
-        with pytest.raises(
-            AssertionError,
-            match=(
-                "You specified a JSON export format. In this case, the user "
-                "function must return a structured numpy array. First field "
-                "must be integer-valued and named 'index'. The other fields "
-                "can be of any type, but must be JSON serializable."
-            ),
-        ):
-            exporter.write_data(
-                "not a numpy array",
-                output_file,
-                property_name,
-            )
-        with pytest.raises(
-            AssertionError,
-            match=(
-                "The structured numpy array must have named fields. "
-                "Adapt the user function."
-            ),
-        ):
-            exporter.write_data(
-                np.array([1, 2], dtype=int),
-                output_file,
-                property_name,
-            )
-        with pytest.raises(
-            AssertionError,
-            match=(
-                "The first field of the structured numpy array must be "
-                "integer-valued. Adapt the user function."
-            ),
-        ):
-            exporter.write_data(
-                np.array(
-                    [(2.3, [1.1, 2.5])],
-                    dtype=[("index", "f8"), ("property1", "f8", 2)],
-                ),
-                output_file,
-                property_name,
-            )
-
-        with pytest.raises(
-            AssertionError,
-            match=(
-                "The first field of the structured numpy array must be named "
-                "'index'. Adapt the user function."
-            ),
-        ):
-            exporter.write_data(
-                np.array(
-                    [(1, [1.1, 2.5])],
-                    dtype=[("not_index", "i4"), ("property1", "f8", 2)],
-                ),
-                output_file,
-                property_name,
-            )
-        with pytest.raises(
-            AssertionError,
-            match=(
-                "The structured numpy array must have at least one additional "
-                "field. Adapt the user function."
-            ),
-        ):
-            exporter.write_data(
-                np.array([1], dtype=[("index", "i4")]),
-                output_file,
-                property_name,
-            )
-        with pytest.raises(
-            RuntimeError,
-            match=(
-                "Failed to write JSON data. Ensure all data is JSON "
-                "serializable."
-            ),
-        ):
-            arr = np.array(
-                [(1, np.array([1.1, 2.5]), lambda x: x)],
-                dtype=[
-                    ("index", "i4"),
-                    ("property1", "f8", 2),
-                    ("property2", "O"),
-                ],
-            )
-            exporter.write_data(
-                arr,
-                output_file,
-                property_name,
-            )
-        with pytest.raises(
-            RuntimeError,
-            match=(
-                "You specified a JSON export format. In this case, you must "
-                "also specify the 'name_of_output_property' in the "
-                "configuration."
-            ),
-        ):
-            exporter.write_data(arr, output_file)
+def test_get_exporter_json():
+    """Test that the correct exporter is returned for JSON format."""
+    assert ExportFormat.JSON.get_exporter() is JsonExporter
 
 
-def test_write_data_creates_txt_file():
-    """Test write_data creates a txt file."""
-    export_string = "test."
+def test_get_exporter_txt():
+    """Test that the correct exporter is returned for TXT format."""
+    assert ExportFormat.TXT.get_exporter() is TxtExporter
 
-    test_config = {
-        "output_path": str(Path.cwd() / "test_directory"),
-        "output_name": "test_output",
-    }
-    exporter = Exporter()
-    exporter.export_format = ExportFormat.TXT
-    file_path = os.path.join(
-        Path(test_config["output_path"]), "test_output.txt"
-    )
 
-    err_string = (
-        "You specified a TXT export format. In this case, the user"
-        " function must return a string."
-    )
-    with mock.patch("builtins.open", mock.mock_open()) as mocked_file:
-        exporter.write_data(export_string, Path(file_path))
-        mocked_file.assert_called_once_with(Path(file_path), "w")
-        mocked_file().write.assert_called_once_with(export_string)
+def test_get_exporter_invalid(monkeypatch):
+    """Test that an error is raised for an unsupported export format."""
 
-        with pytest.raises(AssertionError, match=err_string):
-            exporter.write_data(0, Path(file_path))
+    class FakeExportFormat:
+        """Fake ExportFormat for testing."""
+
+        def __str__(self):
+            """Return a string representation for the fake format."""
+            return "fake"
+
+    fake_format = FakeExportFormat()
+
+    with pytest.raises(ValueError, match="Unsupported export format: fake"):
+        ExportFormat.get_exporter(fake_format)
 
 
 def test_export_vtk_adds_cell_data_and_saves_file():
@@ -204,8 +63,6 @@ def test_export_vtk_adds_cell_data_and_saves_file():
         )
     }
 
-    exporter = Exporter()
-
     mock_grid = mock.MagicMock()
     mock_grid.cell_data = {}
     mock_discretization = mock.MagicMock()
@@ -215,7 +72,7 @@ def test_export_vtk_adds_cell_data_and_saves_file():
         return_value=(mock_grid, None),
     ) as mock_init_grid:
         with patch.object(mock_grid, "save") as mock_save:
-            exporter.export_vtk(
+            export_vtk(
                 vtk_output_path,
                 elements,
                 pixel_type,
@@ -237,74 +94,91 @@ def test_export_vtk_adds_cell_data_and_saves_file():
 
 
 @pytest.fixture
-def exporter_mocks():
-    """Fixture to mock Exporter methods for testing."""
-    with (
-        patch.object(
-            Exporter,
-            "parse_export_format",
-            return_value=ExportFormat.JSON,
-            side_effect=lambda export_format: setattr(
-                Exporter, "export_format", ExportFormat.JSON
-            ),
-        ) as mock_parse_export_format,
-        patch.object(
-            Exporter, "write_data", return_value=None
-        ) as mock_write_data,
-        patch.object(
-            Exporter, "export_vtk", return_value=None
-        ) as mock_export_vtk,
-    ):
+def exporter_mocks(monkeypatch):
+    """Mocks Exporter.write_data and export_vtk."""
+
+    # Mock return from exporter.write_data
+    mock_write_data = MagicMock(
+        return_value={"property_name": np.array([[0, 0.1], [1, 0.2]])}
+    )
+
+    # Mock exporter class
+    class MockExporter:
+        """Mock Exporter class for testing."""
+
+        export_format = "json"
+
+        def write_data(self, *args, **kwargs):
+            """Mock write_data method."""
+            return mock_write_data(*args, **kwargs)
+
+    # Patch ExportFormat.get_exporter to return MockExporter
+    def mock_get_exporter(self):
+        """Return MockExporter for testing."""
+        return MockExporter
+
+    monkeypatch.setattr(ExportFormat, "get_exporter", mock_get_exporter)
+
+    # Patch export_vtk function
+    with patch("i2pp.core.export_data.export_vtk") as mock_export_vtk:
         yield {
-            "mock_parse_export_format": mock_parse_export_format,
             "mock_write_data": mock_write_data,
             "mock_export_vtk": mock_export_vtk,
         }
 
 
-def test_export_data(exporter_mocks):
-    """Test export_data."""
+def test_export_data(exporter_mocks, tmp_path):
+    """Test full export_data pipeline with normalization and JSON export."""
 
-    user_script = Path("mock_script.py")
-    with open(user_script, "w") as f:
-        f.write("def mock_function(ids, data): return data / 5\n")
+    # Arrange: Create temporary user script defining mock function
+    user_script = tmp_path / "mock_script.py"
+    user_script.write_text("def mock_function(ids, data): return data / 5\n")
 
+    # Define parameters
     user_function = "mock_function"
     normalize = True
     pixel_range = np.array([0, 20])
     element1 = Element([0, 1], 0, data=10)
     element2 = Element([0, 1], 1, data=20)
     elements = [element1, element2]
-    expected_result = np.array([0.1, 0.2])
+    expected_transformed = np.array([0.1, 0.2])
+    expected_output_file = tmp_path / "output.json"
+    expected_vtk_file = tmp_path / "output.vtu"
+
+    # Fake discretization object
     mock_discretization = MagicMock()
 
+    # Act: Call export_data
     export_data(
-        elements,
-        mock_discretization,
+        elements=elements,
+        dis=mock_discretization,
         user_script_path=user_script,
         user_function_name=user_function,
         export_format="json",
-        property_output_file=Path("output.json"),
+        property_output_file=expected_output_file,
         name_of_output_property="property_name",
         normalize=normalize,
-        vtk_output_file=Path("output.vtu"),
+        vtk_output_file=expected_vtk_file,
         pixel_range=pixel_range,
         pixel_type=PixelValueType.CT,
     )
 
-    exporter_mocks["mock_parse_export_format"].assert_called_once_with(
-        export_format="json"
-    )
-    # exporter uses UserFunctionTransformer to load the user function
-    # this will be modified, so tests come in next commits
+    # Assert: Check write_data was called correctly
+    write_data_args, _ = exporter_mocks["mock_write_data"].call_args
+    np.testing.assert_array_equal(write_data_args[0], expected_transformed)
+    assert write_data_args[1] == expected_output_file
+    assert write_data_args[2] == "property_name"
 
-    args, _ = exporter_mocks["mock_write_data"].call_args
-    np.testing.assert_array_equal(args[0], expected_result)
-    assert args[1] == Path("output.json")
-    exporter_mocks["mock_export_vtk"].assert_called_once_with(
-        Path("output.vtu"),
-        elements,
-        PixelValueType.CT,
-        None,
-        mock_discretization,
-    )
+    # Assert: Check export_vtk was called with correct structured data
+    exporter_mocks["mock_export_vtk"].assert_called_once()
+    vtk_args, _ = exporter_mocks["mock_export_vtk"].call_args
+
+    assert vtk_args[0] == expected_vtk_file
+    assert vtk_args[1] == elements
+    assert vtk_args[2] == PixelValueType.CT
+    assert vtk_args[4] == mock_discretization
+
+    actual_data = vtk_args[3]["property_name"]
+    expected_data = np.array([[0.0, 0.1], [1.0, 0.2]])
+
+    np.testing.assert_array_equal(actual_data, expected_data)

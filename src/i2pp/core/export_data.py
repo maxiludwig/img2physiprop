@@ -1,10 +1,9 @@
 """Export data to a file using user function."""
 
-import json
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Type
 
 import numpy as np
 from i2pp.core.discretization_helpers import initialize_unstructured_grid
@@ -12,220 +11,93 @@ from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
     Element,
 )
+from i2pp.core.exporters.exporter import Exporter
+from i2pp.core.exporters.json_exporter import JsonExporter
+from i2pp.core.exporters.txt_exporter import TxtExporter
 from i2pp.core.image_readers.image_reader import PixelValueType
 from i2pp.core.user_function_transformer.user_function_transformer import (
     UserFunctionTransformer,
 )
-from i2pp.core.utilities import make_json_serializable
 
 
 class ExportFormat(Enum):
-    """Enum for export formats."""
+    """ExportFormat (Enum): Represents the supported formats for exporting
+    data.
+
+    Attributes:
+        JSON: Represents the JSON format for exporting data.
+        TXT: Represents the TXT format for exporting data.
+
+    This enum is used to define the format of the exported data and helps
+    in determining which exporter class to use for writing the data to a file.
+    """
 
     JSON = "json"
     TXT = "txt"
 
-
-class Exporter:
-    """Class to handle the export of data by loading user-defined functions and
-    writing output.
-
-    The `Exporter` class provides methods to load user-defined functions
-    dynamically from a script and use them to process data. Additionally,
-    it handles the saving of the processed data to a file according to user
-    configuration.
-
-    Attributes:
-        export_format (ExportFormat): The format in which the data will be
-        exported.
-    """
-
-    def __init__(self):
-        """Init ExportClass."""
-        pass
-
-    def parse_export_format(self, export_format: str):
-        """Parses the export format from the user configuration.
-
-        This function retrieves the export format from the user configuration
-        and returns it as an `ExportFormat` enum value. If the format is not
-        specified or is invalid, it raises an error.
-
-        Arguments:
-            export_format (str): The export format as a string.
-        Raises:
-            RuntimeError: If the export format is not supported or not
-            specified.
-        """
-        try:
-            self.export_format = ExportFormat(export_format)
-        except ValueError:
-            supported_formats = ", ".join(fmt.value for fmt in ExportFormat)
-            raise RuntimeError(
-                (
-                    f"Export format '{export_format}' is not supported! "
-                    f"Supported formats are: {supported_formats}."
-                )
-            )
-
-    def write_data(
-        self, data: Any, output_file: Path, name_of_output_property: str = ""
-    ) -> dict:
-        """Writes the provided data to a file based on user configuration.
-
-        This function saves data resulting from the evaluation of the user
-        function to a file in a specified directory with a user-defined or
-        default filename. Depending on the user function and the export
-        format it writes either a JSON or TXT file.
-
-        Arguments:
-            data (Any): The data to be written to the file. It can be a
-                string for TXT format or a numpy array for JSON format.
-            element_ids (np.ndarray): Array of element IDs corresponding
-                to the data.
-            output_file (Path): Path to the output file.
+    def get_exporter(self) -> Type[Exporter]:
+        """Returns the appropriate exporter class based on the export format.
 
         Returns:
-            dict: A dictionary containing the exported data. For JSON
-                format, it has the output property name as the key and the
-                processed data as the value. For TXT format, it returns an
-                empty dictionary.
+            Type[Exporter]: A class that is a subclass of `Exporter`, either
+                `JsonExporter` or `TxtExporter`.
+
+        Raises:
+            ValueError: If the export format is not supported.
         """
+        exporters = {
+            ExportFormat.JSON: JsonExporter,
+            ExportFormat.TXT: TxtExporter,
+        }
+        if self not in exporters:
+            raise ValueError(f"Unsupported export format: {self}")
+        return exporters[self]
 
-        if not output_file.suffix:
-            logging.warning(
-                "Output file has no suffix. Appending the export format "
-                "suffix."
-            )
-            output_file = output_file.with_suffix(
-                f".{self.export_format.value}"
-            )
-        if not output_file.parent.exists():
-            logging.info(
-                f"Creating directory {output_file.parent} for output file."
-            )
-            output_file.parent.mkdir(parents=True, exist_ok=True)
-        logging.info(f"Writing data to {output_file}")
 
-        if self.export_format == ExportFormat.JSON:
-            assert isinstance(data, np.ndarray), (
-                "You specified a JSON export format. In this case, the user "
-                "function must return a structured numpy array. First field "
-                "must be integer-valued and named 'index'. The other fields "
-                "can be of any type, but must be JSON serializable."
-            )
-            assert data.dtype.names is not None, (
-                "The structured numpy array must have named fields. "
-                "Adapt the user function."
-            )
-            assert np.issubdtype(data.dtype[0], np.integer), (
-                "The first field of the structured numpy array must be "
-                "integer-valued. Adapt the user function."
-            )
-            assert data.dtype.names[0] == "index", (
-                "The first field of the structured numpy array must be named "
-                "'index'. Adapt the user function."
-            )
-            assert len(data.dtype.names) > 1, (
-                "The structured numpy array must have at least one additional "
-                "field. Adapt the user function."
-            )
-            if name_of_output_property == "":
-                raise RuntimeError(
-                    "You specified a JSON export format. In this case, you "
-                    "must also specify the 'name_of_output_property' in the "
-                    "configuration."
-                )
+def export_vtk(
+    output_file: Path,
+    elements: list[Element],
+    pixel_type: PixelValueType,
+    exported_data: dict,
+    dis: Discretization,
+):
+    """Exports the interpolated physical property data to a VTK file for the
+    verification of the i2pp output.
 
-            field_names = data.dtype.names
-
-            # Convert the structured numpy array to a dictionary
-            json_dump_data = {
-                name_of_output_property: {
-                    str(entry[field_names[0]]): (
-                        make_json_serializable(entry[field_names[1]])
-                        if len(field_names) == 2
-                        else [
-                            make_json_serializable(entry[field])
-                            for field in field_names[1:]
-                        ]
-                    )
-                    for entry in data
-                }
-            }
-
-            with open(output_file, "w") as json_file:
-                try:
-                    json.dump(json_dump_data, json_file, indent=4)
-                except TypeError as e:
-                    logging.error(f"Error writing JSON data: {e}")
-                    raise RuntimeError(
-                        "Failed to write JSON data. Ensure all data is "
-                        "JSON serializable."
-                    )
-
-            return {name_of_output_property: data}
-
-        elif self.export_format == ExportFormat.TXT:
-            err_msg = (
-                "You specified a TXT export format. In this case, the user "
-                "function must return a string."
-            )
-            assert isinstance(data, str), err_msg
-            with open(output_file, "w") as txt_file:
-                txt_file.write(data)
-            return {}
-        else:
+    Arguments:
+        output_file (Path): The path to the output vtk file.
+        elements (list[Element]): List of elements with IDs and data.
+        pixel_type (PixelValueType): Type of pixel values used in the
+            discretization.
+        exported_data (dict): Data to be exported, typically containing
+            interpolated physical properties.
+    """
+    unstructured_grid, _ = initialize_unstructured_grid(
+        elements, pixel_type, dis
+    )
+    for key, value in exported_data.items():
+        names = exported_data[key].dtype.names
+        if names is None:
             raise RuntimeError(
-                f"Export format '{self.export_format.value}' is not supported!"
+                "The exported data must be a structured numpy array "
+                "with named fields."
             )
+        assert np.array_equal(
+            np.array([ele.id for ele in dis.elements]), value[names[0]] - 1
+        ), "The keys of the exported data must match the element IDs."
+        for name in names[1:]:  # Skip the 'index' field
+            if np.issubdtype(value[name].dtype, np.number):
+                # only add if the data is transferable to a VTK file
+                unstructured_grid.cell_data[f"{key}_{name}"] = value[name]
 
-    def export_vtk(
-        self,
-        output_file: Path,
-        elements: list[Element],
-        pixel_type: PixelValueType,
-        exported_data: dict,
-        dis: Discretization,
-    ):
-        """Exports the interpolated physical property data to a VTK file for
-        the verification of the i2pp output.
-
-        Arguments:
-            output_file (Path): The path to the output vtk file.
-            elements (list[Element]): List of elements with IDs and data.
-            pixel_type (PixelValueType): Type of pixel values used in the
-                discretization.
-            exported_data (dict): Data to be exported, typically containing
-                interpolated physical properties.
-        """
-        unstructured_grid, _ = initialize_unstructured_grid(
-            elements, pixel_type, dis
+    # Ensure the output file ends with the correct suffix
+    if not output_file.suffix:
+        logging.warning(
+            "Output file has no suffix. Appending the export format " "suffix."
         )
-        for key, value in exported_data.items():
-            names = exported_data[key].dtype.names
-            if names is None:
-                raise RuntimeError(
-                    "The exported data must be a structured numpy array "
-                    "with named fields."
-                )
-            assert np.array_equal(
-                np.array([ele.id for ele in dis.elements]), value[names[0]] - 1
-            ), "The keys of the exported data must match the element IDs."
-            for name in names[1:]:  # Skip the 'index' field
-                if np.issubdtype(value[name].dtype, np.number):
-                    # only add if the data is transferable to a VTK file
-                    unstructured_grid.cell_data[f"{key}_{name}"] = value[name]
+        output_file = output_file.with_suffix(".vtu")
 
-        # Ensure the output file ends with the correct suffix
-        if not output_file.suffix:
-            logging.warning(
-                "Output file has no suffix. Appending the export format "
-                "suffix."
-            )
-            output_file = output_file.with_suffix(".vtu")
-
-        unstructured_grid.save(output_file)
+    unstructured_grid.save(output_file)
 
 
 def export_data(
@@ -289,14 +161,13 @@ def export_data(
     )
 
     # Export data
-    exporter = Exporter()
-    exporter.parse_export_format(export_format=export_format)
-
+    export_format_enum = ExportFormat(export_format)
+    exporter: Exporter = export_format_enum.get_exporter()()
     exported_data = exporter.write_data(
         result, property_output_file, name_of_output_property
     )
 
-    if exporter.export_format == ExportFormat.JSON:
-        exporter.export_vtk(
-            vtk_output_file, elements, pixel_type, exported_data, dis
-        )
+    # if we have a json exporter, we can export to vtk
+    if exporter.export_format == ExportFormat.JSON.value:
+        logging.info("Exporting data to VTK file {vtk_output_file}.")
+        export_vtk(vtk_output_file, elements, pixel_type, exported_data, dis)
