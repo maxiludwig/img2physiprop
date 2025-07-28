@@ -8,44 +8,7 @@ import numpy as np
 import pytest
 from i2pp.core.discretization_readers.discretization_reader import Element
 from i2pp.core.export_data import ExportFormat, export_data, export_vtk
-from i2pp.core.exporters.json_exporter import JsonExporter
-from i2pp.core.exporters.txt_exporter import TxtExporter
 from i2pp.core.image_readers.image_reader import PixelValueType
-
-
-def test_export_format_enum():
-    """Test ExportFormat Enum."""
-    assert ExportFormat("json") == ExportFormat.JSON
-    assert ExportFormat("txt") == ExportFormat.TXT
-
-    with pytest.raises(ValueError):
-        ExportFormat("xml")
-
-
-def test_get_exporter_json():
-    """Test that the correct exporter is returned for JSON format."""
-    assert ExportFormat.JSON.get_exporter() is JsonExporter
-
-
-def test_get_exporter_txt():
-    """Test that the correct exporter is returned for TXT format."""
-    assert ExportFormat.TXT.get_exporter() is TxtExporter
-
-
-def test_get_exporter_invalid(monkeypatch):
-    """Test that an error is raised for an unsupported export format."""
-
-    class FakeExportFormat:
-        """Fake ExportFormat for testing."""
-
-        def __str__(self):
-            """Return a string representation for the fake format."""
-            return "fake"
-
-    fake_format = FakeExportFormat()
-
-    with pytest.raises(ValueError, match="Unsupported export format: fake"):
-        ExportFormat.get_exporter(fake_format)
 
 
 def test_export_vtk_adds_cell_data_and_saves_file():

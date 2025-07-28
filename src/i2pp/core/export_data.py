@@ -1,9 +1,7 @@
 """Export data to a file using user function."""
 
 import logging
-from enum import Enum
 from pathlib import Path
-from typing import Type
 
 import numpy as np
 from i2pp.core.discretization_helpers import initialize_unstructured_grid
@@ -11,47 +9,12 @@ from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
     Element,
 )
+from i2pp.core.exporters.export_format import ExportFormat
 from i2pp.core.exporters.exporter import Exporter
-from i2pp.core.exporters.json_exporter import JsonExporter
-from i2pp.core.exporters.txt_exporter import TxtExporter
 from i2pp.core.image_readers.image_reader import PixelValueType
 from i2pp.core.user_function_transformer.user_function_transformer import (
     UserFunctionTransformer,
 )
-
-
-class ExportFormat(Enum):
-    """ExportFormat (Enum): Represents the supported formats for exporting
-    data.
-
-    Attributes:
-        JSON: Represents the JSON format for exporting data.
-        TXT: Represents the TXT format for exporting data.
-
-    This enum is used to define the format of the exported data and helps
-    in determining which exporter class to use for writing the data to a file.
-    """
-
-    JSON = "json"
-    TXT = "txt"
-
-    def get_exporter(self) -> Type[Exporter]:
-        """Returns the appropriate exporter class based on the export format.
-
-        Returns:
-            Type[Exporter]: A class that is a subclass of `Exporter`, either
-                `JsonExporter` or `TxtExporter`.
-
-        Raises:
-            ValueError: If the export format is not supported.
-        """
-        exporters = {
-            ExportFormat.JSON: JsonExporter,
-            ExportFormat.TXT: TxtExporter,
-        }
-        if self not in exporters:
-            raise ValueError(f"Unsupported export format: {self}")
-        return exporters[self]
 
 
 def export_vtk(
