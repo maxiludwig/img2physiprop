@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock
 
+import numpy as np
 import pytest
 import pyvista as pv
 from i2pp.core.image_readers.image_reader import PixelValueType
@@ -153,16 +154,19 @@ def test_plot_grid_without_nan(visualizer):
     visualizer._toggle_slicer = MagicMock()
     visualizer._show_3d_model = MagicMock()
 
-    points = [
-        [0, 0, 0],
-        [1, 0, 0],
-        [0, 1, 0],
-        [1, 1, 0],
-        [0, 0, 1],
-        [1, 0, 1],
-        [0, 1, 1],
-        [1, 1, 1],
-    ]
+    points = np.array(
+        [
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 1, 0],
+            [1, 1, 0],
+            [0, 0, 1],
+            [1, 0, 1],
+            [0, 1, 1],
+            [1, 1, 1],
+        ],
+        dtype=np.float32,
+    )
 
     cells = [8, 0, 1, 3, 2, 4, 5, 6, 7]
     cell_types = [12]
@@ -203,16 +207,19 @@ def test_plot_grid_with_nan(visualizer):
     visualizer._toggle_slicer = MagicMock()
     visualizer._show_3d_model = MagicMock()
 
-    points = [
-        [0, 0, 0],
-        [1, 0, 0],
-        [0, 1, 0],
-        [1, 1, 0],
-        [0, 0, 1],
-        [1, 0, 1],
-        [0, 1, 1],
-        [1, 1, 1],
-    ]
+    points = np.array(
+        [
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 1, 0],
+            [1, 1, 0],
+            [0, 0, 1],
+            [1, 0, 1],
+            [0, 1, 1],
+            [1, 1, 1],
+        ],
+        dtype=np.float32,
+    )
 
     cells = [8, 0, 1, 3, 2, 4, 5, 6, 7]
     cell_types = [12]
