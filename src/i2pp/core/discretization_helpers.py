@@ -1,47 +1,19 @@
 """Import discretization data."""
 
-from enum import Enum
 from pathlib import Path
-from typing import Type, cast
 
 import numpy as np
 import pyvista as pv
+from i2pp.core.discretization_readers.discretization_format import (
+    DiscretizationFormat,
+)
 from i2pp.core.discretization_readers.discretization_reader import (
     BoundingBox,
     Discretization,
-    DiscretizationReader,
     Element,
 )
-from i2pp.core.discretization_readers.fourc_yaml_reader import FourCYamlReader
-from i2pp.core.discretization_readers.mesh_reader import MeshReader
 from i2pp.core.image_readers.image_reader import PixelValueType
 from i2pp.core.utilities import find_mins_maxs
-
-
-class DiscretizationFormat(Enum):
-    """DiscretizationFormat (Enum): Defines the supported file formats for
-    discretization data.
-
-    Attributes:
-        MESH: Represents the discretization data in '.mesh' format
-        YAML: Represents the discretization data in the '.4C.yaml' format
-    """
-
-    MESH = ".mesh"
-    YAML = ".yaml"
-
-    def get_reader(self) -> Type[DiscretizationReader]:
-        """Returns the appropriate discretization reader class based on the
-        discretization format.
-
-        Returns:
-            Type[DiscretizationReader]: A class that is a subclass of
-        `DiscretizationReader`, either `MeshReader` or `FourCYamlReader`.
-        """
-        return {
-            DiscretizationFormat.MESH: MeshReader,
-            DiscretizationFormat.YAML: FourCYamlReader,
-        }[self]
 
 
 def determine_discretization_format(file_path: Path) -> DiscretizationFormat:
@@ -96,7 +68,7 @@ def verify_and_load_discretization(
     """
     dis_format = determine_discretization_format(discretization_path)
 
-    dis_reader = cast(DiscretizationReader, dis_format.get_reader()())
+    dis_reader = dis_format.get_reader()()
 
     dis = dis_reader.load_discretization(discretization_path, options)
 
