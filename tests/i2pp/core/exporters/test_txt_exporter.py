@@ -1,8 +1,8 @@
 """Test suite for the TxtExporter class in i2pp.core.exporters.txt_exporter
 module."""
 
+import tempfile
 from pathlib import Path
-from unittest import mock
 
 import pytest
 from i2pp.core.exporters.txt_exporter import TxtExporter
@@ -17,17 +17,30 @@ def test_txt_exporter_initialization():
 def test_txt_exporter_write_data_success():
     """Test TxtExporter writes string data to a text file."""
     exporter = TxtExporter()
-    output_path = Path("some_path/output.txt")
-    data = "Sample export string."
+    expected_output = "Sample export string."
 
-    with mock.patch("builtins.open", mock.mock_open()) as mocked_file:
-        with mock.patch.object(exporter, "_validate_outfile") as mock_validate:
-            result = exporter.write_data(data, output_path)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_path = Path(tmpdir) / "output.txt"
+        exporter.write_data(expected_output, output_path)
 
-            mocked_file.assert_called_once_with(output_path, "w")
-            mocked_file().write.assert_called_once_with(data)
-            mock_validate.assert_called_once_with(output_path)
-            assert result == {}
+        with open(output_path, "r") as txt_file:
+            written_data = txt_file.read()
+            assert written_data == expected_output
+
+
+def test_txt_exporter_write_data_success_missing_suffix():
+    """Test TxtExporter writes string data to a text file even if no suffix is
+    provided."""
+    exporter = TxtExporter()
+    expected_output = "Sample export string."
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_path = Path(tmpdir) / "output"
+        exporter.write_data(expected_output, output_path)
+
+        with open(output_path.with_suffix(".txt"), "r") as txt_file:
+            written_data = txt_file.read()
+            assert written_data == expected_output
 
 
 def test_txt_exporter_write_data_invalid_type():

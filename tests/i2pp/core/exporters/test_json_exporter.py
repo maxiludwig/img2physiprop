@@ -112,3 +112,32 @@ def test_json_exporter_unserializable_data():
             match="Ensure all data is JSON serializable",
         ):
             exporter.write_data(arr, output_file, "bad_prop")
+
+
+def test_json_exporter_write_data_success_suffix_missing():
+    """Test JsonExporter writes valid structured array to JSON file even if the
+    suffix is missing."""
+    data = np.array(
+        [(1, [2.0, 3.0], "string1", 5), (2, [6.0, 7.0], "string2", 9)],
+        dtype=[
+            ("index", "i4"),
+            ("property1", "f8", 2),
+            ("property2", "U10"),
+            ("property3", "i4"),
+        ],
+    )
+    expected_output = {
+        "MUE": {
+            "1": [[2.0, 3.0], "string1", 5],
+            "2": [[6.0, 7.0], "string2", 9],
+        }
+    }
+    exporter = JsonExporter()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_file = Path(tmpdir) / "output"
+        exporter.write_data(data, output_file, "MUE")
+
+        with open(output_file.with_suffix(".json"), "r") as f:
+            written_data = json.load(f)
+            assert written_data == expected_output

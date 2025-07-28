@@ -27,7 +27,7 @@ class TxtExporter(Exporter):
             dict: A dictionary containing the exported data. For TXT format,
                 it returns an empty dictionary.
         """
-        self._validate_outfile(output_file)
+        output_file = self._validate_outfile(output_file)
 
         err_msg = (
             "You specified a TXT export format. In this case, the user "

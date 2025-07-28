@@ -34,7 +34,7 @@ class JsonExporter(Exporter):
                 format, it has the output property name as the key and the
                 processed data as the value.
         """
-        self._validate_outfile(output_file)
+        output_file = self._validate_outfile(output_file)
 
         assert isinstance(data, np.ndarray), (
             "You specified a JSON export format. In this case, the user "

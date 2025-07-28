@@ -37,7 +37,7 @@ class Exporter(ABC):
         """
         pass
 
-    def _validate_outfile(self, output_file: Path) -> None:
+    def _validate_outfile(self, output_file: Path) -> Path:
         """Validates the output file path and ensures the directory exists.
         This function checks if the output file has a suffix and appends the
         export format suffix if it does not. It also creates the output
@@ -61,3 +61,5 @@ class Exporter(ABC):
             )
             output_file.parent.mkdir(parents=True, exist_ok=True)
         logging.info(f"Writing data to {output_file}")
+
+        return output_file
