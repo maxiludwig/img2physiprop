@@ -30,8 +30,8 @@ def test_create_structured_grid_from_image_data_scalar_no_transformation():
 
     visualizer.compute_grid(image_data)
 
-    assert "ScalarValues" in visualizer.grid.point_data
-    assert visualizer.grid.point_data["ScalarValues"].shape == (8,)
+    assert "CT_values" in visualizer.grid.point_data
+    assert visualizer.grid.point_data["CT_values"].shape == (8,)
 
 
 def test_create_structured_grid_from_image_data_RGB_no_transformation():
@@ -57,8 +57,8 @@ def test_create_structured_grid_from_image_data_RGB_no_transformation():
 
     visualizer.compute_grid(image_data)
 
-    assert "rgb_values" in visualizer.grid.point_data
-    assert visualizer.grid.point_data["rgb_values"].shape == (8, 3)
+    assert "RGB_values" in visualizer.grid.point_data
+    assert visualizer.grid.point_data["RGB_values"].shape == (8, 3)
 
 
 def test_create_structured_grid_from_image_data_scalar_with_transformation():

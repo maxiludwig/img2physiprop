@@ -1,5 +1,5 @@
 input informations:
-  FEM_file_path: lung_example/discretization.4C.yaml
+  discretization_file_path: lung_example/discretization.4C.yaml
   image_folder_path: lung_example/dicom/A10_CT
 image_metadata:
   pixel_spacing: [1, 0.33, 0.33]
@@ -14,10 +14,12 @@ processing options:
   calculation_type: elementcenter #calculation_type: (nodes,elementcenter,allvoxels)
   normalize_values: False
   user_script: user_functions/user_function.py
-  user_function: user_function
+  user_function: user_function_array
 output options:
   output_path: #default: current folder
   output_name: #pattern_test  #default: 'Output
+  export_format: json # can be eiter 'json' or 'txt', this needs to fit the user function output
+  name_of_output_property: frac # for json export, this is the key for the 4C input_field reading
 visualization_options:
   plot_smoothing: False #default: False
   plot_results: True #default: False

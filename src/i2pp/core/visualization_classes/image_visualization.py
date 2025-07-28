@@ -49,14 +49,16 @@ class ImageVisualizer(Visualizer):
         structured_grid = pv.StructuredGrid(x, y, z)
 
         if image_data.pixel_type == PixelValueType.RGB:
-
-            structured_grid.point_data["rgb_values"] = (
-                image_data.pixel_data.reshape(-1, 3, order="F")
-            )
-        else:
-            structured_grid.point_data["ScalarValues"] = (
-                image_data.pixel_data.flatten(order="F")
-            )
+            structured_grid.point_data[
+                f"{image_data.pixel_type.value}_values"
+            ] = image_data.pixel_data.reshape(-1, 3, order="F")
+        elif (
+            image_data.pixel_type == PixelValueType.CT
+            or image_data.pixel_type == PixelValueType.MRT
+        ):
+            structured_grid.point_data[
+                f"{image_data.pixel_type.value}_values"
+            ] = image_data.pixel_data.flatten(order="F")
 
         transform_matrix = np.eye(4)
         transform_matrix[:3, :3] = image_data.orientation

@@ -57,6 +57,7 @@ def test_run_i2pp_runs_successfully(
     mock_image = mock.Mock()
     mock_image.pixel_data = [[0]]
     mock_image.pixel_range = (0, 255)
+    mock_image.pixel_type = "dummy"
     mock_load_image.return_value = mock_image
 
     mock_smooth_data.return_value = mock_image
@@ -70,7 +71,7 @@ def test_run_i2pp_runs_successfully(
     mock_load_image.assert_called_once()
     mock_interpolate.assert_called_once()
     mock_export.assert_called_once_with(
-        mock_elements, minimal_valid_config, (0, 255)
+        mock_elements, mock_dis, minimal_valid_config, (0, 255), "dummy"
     )
     mock_smooth_data.assert_called_once()
     mock_vis_results.assert_not_called()

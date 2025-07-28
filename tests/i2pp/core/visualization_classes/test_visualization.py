@@ -27,12 +27,12 @@ def test_update_display(visualizer):
     grid = pv.UnstructuredGrid()
 
     visualizer._update_display(
-        grid, scalars="rgb_values", rgb=True, opacity=0.5
+        grid, scalars="RGB_values", rgb=True, opacity=0.5
     )
 
     assert visualizer.current_actor is not None
     visualizer.plotter.add_mesh.assert_called_once_with(
-        grid, scalars="rgb_values", rgb=True, opacity=0.5
+        grid, scalars="RGB_values", rgb=True, opacity=0.5
     )
 
 
