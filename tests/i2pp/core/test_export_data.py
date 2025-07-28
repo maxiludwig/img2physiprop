@@ -98,9 +98,6 @@ def test_export_data(exporter_mocks, tmp_path):
     user_script.write_text("def mock_function(ids, data): return data / 5\n")
 
     # Define parameters
-    user_function = "mock_function"
-    normalize = True
-    pixel_range = np.array([0, 20])
     element1 = Element([0, 1], 0, data=10)
     element2 = Element([0, 1], 1, data=20)
     elements = [element1, element2]
@@ -113,16 +110,13 @@ def test_export_data(exporter_mocks, tmp_path):
 
     # Act: Call export_data
     export_data(
+        transformed_data=expected_transformed,
         elements=elements,
-        dis=mock_discretization,
-        user_script_path=user_script,
-        user_function_name=user_function,
+        discretization=mock_discretization,
         export_format="json",
         property_output_file=expected_output_file,
         name_of_output_property="property_name",
-        normalize=normalize,
         vtk_output_file=expected_vtk_file,
-        pixel_range=pixel_range,
         pixel_type=PixelValueType.CT,
     )
 
