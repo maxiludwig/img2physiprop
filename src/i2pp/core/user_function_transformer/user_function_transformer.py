@@ -57,6 +57,22 @@ class UserFunctionTransformer:
                 f"User function {function_name} not found or not callable"
             )
 
+        # check that the function accepts two arguments
+        if user_function.__code__.co_argcount != 2:
+            raise RuntimeError(
+                f"User function {function_name} must accept two arguments"
+            )
+
+        # check that the user function returns a numpy array
+        # Use test data that simulates realistic element data structure
+        test_ids = np.array([1, 2])  # Two element IDs
+        test_data = np.array([[0.5, 0.3, 0.2], [0.4, 0.4, 0.2]])  # 2D data
+        result = user_function(test_ids, test_data)
+        if not isinstance(result, np.ndarray):
+            raise RuntimeError(
+                f"User function {function_name} must return a numpy array"
+            )
+
         return user_function
 
     def apply_transformation(
