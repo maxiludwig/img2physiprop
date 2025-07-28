@@ -71,7 +71,7 @@ def test_verify_image_metadata_wrong_shape():
         test_class._verify_image_metadata(test_config["image_metadata"])
 
 
-def test__extract_number():
+def test_extract_number():
     """Test _extract_number method."""
 
     test_path = Path("test_123.png")
