@@ -1,25 +1,31 @@
-input informations:
-  discretization_file_path: path/to/discretization.4C.yaml
-  image_folder_path: path/to/dicom/images
-image_metadata:
-  pixel_spacing: [1, 0.33, 0.33]
-  image_position: [0, 330, 420]
-  row_direction: [0, -1, 0] # default: [0, -1, 0]
-  column_direction: [1, 0, 0] # default: [1, 0, 0]
-  slice_direction: [0, 0, -1] # default: [0, 0, 1]
-processing options:
-  material_ids:
-  smoothing: False
-  smoothing_area: 10
-  calculation_type: elementcenter # calculation_type: (nodes,elementcenter,allvoxels)
-  normalize_values: False
-  user_script: user_functions/user_function.py
-  user_function: user_function_array
-output options:
-  output_path: # default: current folder
-  output_name: # default: i2pp_output
-  export_format: json # can be eiter 'json' or 'txt', this needs to fit the user function output
-  name_of_output_property: frac # for json export, this is the key for the 4C input_field reading
-visualization_options:
-  plot_smoothing: False # default: False
-  plot_results: True # default: False
+import:
+  discretization:
+    path: tests/testdata/discretization_large.mesh
+    type: mesh
+    options:
+      material_ids: [1, 2, 3]
+  image:
+    path: tests/testdata/image_large.dcm
+    type: dicom
+    options:
+      metadata:
+        pixel_spacing: [0.5, 0.5, 1.0]
+        row_direction: [0, -1, 0]
+        column_direction: [1, 0, 0]
+        slice_direction: [0, 0, 1]
+        image_position: [0, 0, 0]
+processing:
+  smoothing:
+    smoothing_area: 5
+    visualize: true
+  interpolation_method: elements
+  transformation:
+    user_script: tests/testdata/user_script.py
+    user_function: process_image_data
+    normalize_values: true
+    visualize: true
+export:
+  folder_path: your/tmp/path
+  file_name: output_name
+  type: json
+  output_parameter_name: STIFFNESS
