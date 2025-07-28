@@ -3,7 +3,11 @@
 from pathlib import Path
 
 import pydicom
+import pytest
+from i2pp.core.image_readers.dicom_reader import DicomReader
 from i2pp.core.image_readers.image_format import ImageFormat
+from i2pp.core.image_readers.image_reader import ImageReader
+from i2pp.core.image_readers.png_reader import PngReader
 from PIL import Image
 from pydicom.data import get_testdata_file
 
@@ -30,3 +34,29 @@ def test_is_file_of_format_with_unrelated_file(tmp_path: Path):
     file.write_text("This is not image data.")
     assert not ImageFormat.DICOM.is_file_of_format(file)
     assert not ImageFormat.PNG.is_file_of_format(file)
+
+
+def test_image_format_dicom_reader():
+    """Test that DICOM format returns the correct reader class."""
+    reader_class = ImageFormat.DICOM.get_reader()
+    assert issubclass(reader_class, ImageReader)
+    assert reader_class is DicomReader
+
+
+def test_image_format_png_reader():
+    """Test that PNG format returns the correct reader class."""
+    reader_class = ImageFormat.PNG.get_reader()
+    assert issubclass(reader_class, ImageReader)
+    assert reader_class is PngReader
+
+
+def test_image_format_invalid():
+    """Test get_reader raises ValueError for unsupported image format."""
+
+    class FakeImageFormat:
+        """Fake enum class to simulate an unsupported image format."""
+
+        pass
+
+    with pytest.raises(ValueError, match="Unsupported image format"):
+        ImageFormat.get_reader(FakeImageFormat())
