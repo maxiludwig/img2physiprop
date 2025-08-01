@@ -96,7 +96,7 @@ class FourCYamlReader(DiscretizationReader):
 
         raw_dis.compute_ids(zero_based=True)
 
-        if options["material_ids"] is not None:
+        if options.get("material_ids") and options is not None:
             raw_dis = self._filter_discretization(
                 raw_dis, np.array(options["material_ids"])
             )
