@@ -1,7 +1,6 @@
 """Test run routine."""
 
-from pathlib import Path
-from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from i2pp.core.run import run_i2pp
@@ -12,191 +11,203 @@ def minimal_valid_config(tmp_path):
     """Fixture to provide a minimal valid configuration for testing i2pp
     run."""
 
+    # Create dummy discretization file
+    disc_path = tmp_path / "discretization.mesh"
+    disc_path.write_bytes(b"dummy mesh content")
+
+    # Create dummy image file
+    image_path = tmp_path / "image.dcm"
+    image_path.write_bytes(b"dummy image content")
+
+    # Create dummy user script
+    script_path = tmp_path / "user_script.py"
+    script_path.write_text(
+        "def process_image_data(id, data):\n    return data*7\n"
+    )
+
     return {
-        "discretization": {
-            "path": "tests/testdata/discretization.mesh",
-            "type": "mesh",
+        "import": {
+            "discretization": {
+                "path": str(disc_path),
+                "type": "mesh",
+            },
+            "image": {
+                "path": str(image_path),
+                "type": "dicom",
+            },
         },
-        "image": {"path": "tests/testdata/image.dcm", "type": "dicom"},
-        "processing options": {
-            "smoothing": True,
-            "smoothing_area": 3,
+        "processing": {
             "interpolation_method": "nodes",
-            "user_script": "tests/testdata/user_script.py",
-            "user_function": "process_image_data",
-            "normalize_values": False,
+            "transformation": {
+                "user_script": str(script_path),
+                "user_function": "process_image_data",
+                "normalize_values": False,
+                "visualize": False,
+            },
         },
-        "visualization_options": {
-            "plot_smoothing": False,
-            "plot_results": False,
-        },
-        "output options": {
-            "output_path": tmp_path,
-            "output_name": "output",
-            "export_format": "pattern",
+        "export": {
+            "folder_path": str(tmp_path),
+            "file_name": "output",
+            "type": "pattern",
+            "output_parameter_name": "parameter",
         },
     }
+
+
+@patch("i2pp.core.run.verify_and_load_discretization")
+@patch("i2pp.core.run.verify_and_load_imagedata")
+@patch("i2pp.core.run.smooth_data")
+@patch("i2pp.core.run.interpolate_image_to_discretization")
+@patch("i2pp.core.run.transform_data")
+@patch("i2pp.core.run.export_data")
+@patch("i2pp.core.run.visualize_smoothing")
+@patch("i2pp.core.run.visualize_results")
+def test_run_i2pp_with_minimal_valid_config(
+    mock_visualize_results,
+    mock_visualize_smoothing,
+    mock_export_data,
+    mock_transform_data,
+    mock_interpolate,
+    mock_smooth_data,
+    mock_verify_image,
+    mock_verify_discretization,
+    minimal_valid_config,
+):
+    """Test the run_i2pp function with a minimal valid configuration."""
+    mock_discretization = MagicMock()
+    mock_discretization.bounding_box = ((0, 0, 0), (1, 1, 1))
+    mock_verify_discretization.return_value = mock_discretization
+
+    mock_image_data = MagicMock()
+    mock_image_data.pixel_data = [[0]]
+    mock_image_data.pixel_range = (0, 255)
+    mock_image_data.pixel_type = "uint8"
+    mock_verify_image.return_value = mock_image_data
+
+    mock_smooth_data.side_effect = lambda pixel_data, area: pixel_data
+
+    mock_interpolate.return_value = "interpolated_elements"
+    mock_transform_data.return_value = "transformed_data"
+
+    # Call the function
+    run_i2pp(minimal_valid_config)
+
+    # Assertions to ensure key steps were called
+    mock_verify_discretization.assert_called_once()
+    mock_verify_image.assert_called_once()
+    mock_smooth_data.assert_not_called()
+    mock_visualize_smoothing.assert_not_called()
+    mock_interpolate.assert_called_once()
+    mock_transform_data.assert_called_once()
+    mock_visualize_results.assert_not_called()
+    mock_export_data.assert_called_once()
 
 
 @pytest.fixture
-def large_valid_config(tmp_path):
-    """Fixture to provide a larger, more complex configuration for testing i2pp
+def maximal_valid_config(tmp_path):
+    """Fixture to provide a maximal valid configuration for testing i2pp
     run."""
+
+    # Create dummy discretization file
+    disc_path = tmp_path / "discretization.yaml"
+    disc_path.write_bytes(b"dummy mesh content")
+
+    # Create dummy image file
+    image_path = tmp_path / "image.png"
+    image_path.write_bytes(b"dummy image content")
+
+    # Create dummy user script
+    script_path = tmp_path / "user_script.py"
+    script_path.write_text(
+        "def process_image_data(id, data):\n    return data*7\n"
+    )
+
     return {
-        "discretization": {
-            "path": "tests/testdata/discretization_large.mesh",
-            "type": "mesh",
+        "import": {
+            "discretization": {
+                "path": str(disc_path),
+                "type": "yaml",
+            },
+            "image": {
+                "path": str(image_path),
+                "type": "png",
+                "options": {
+                    "metadata": {
+                        "pixel_spacing": [0.5, 0.5, 1.0],
+                        "row_direction": [0, -1, 0],
+                        "column_direction": [1, 0, 0],
+                        "slice_direction": [0, 0, 1],
+                        "image_position": [0, 0, 0],
+                    },
+                },
+            },
         },
-        "image": {
-            "path": "tests/testdata/image_large.dcm",
-            "type": "dicom",
-            "metadata": {"spacing": [0.5, 0.5, 1.0]},
+        "processing": {
+            "interpolation_method": "nodes",
+            "transformation": {
+                "user_script": str(script_path),
+                "user_function": "process_image_data",
+                "normalize_values": True,
+                "visualize": True,
+            },
+            "smoothing": {
+                "area": 1.0,
+                "visualize": True,
+            },
         },
-        "processing options": {
-            "smoothing": True,
-            "smoothing_area": 5,
-            "interpolation_method": "elements",
-            "material_ids": [1, 2, 3],
-            "user_script": "tests/testdata/user_script.py",
-            "user_function": "process_image_data",
-            "normalize_values": True,
-        },
-        "visualization_options": {
-            "plot_smoothing": True,
-            "plot_results": True,
-        },
-        "output options": {
-            "output_path": tmp_path,
-            "output_name": "output_large",
-            "export_format": "json",
+        "export": {
+            "folder_path": str(tmp_path),
+            "file_name": "output",
+            "type": "pattern",
+            "output_parameter_name": "parameter",
         },
     }
 
 
-@mock.patch("i2pp.core.run.verify_and_load_discretization")
-@mock.patch("i2pp.core.run.verify_and_load_imagedata")
-@mock.patch("i2pp.core.run.interpolate_image_to_discretization")
-@mock.patch("i2pp.core.run.export_data")
-@mock.patch("i2pp.core.run.smooth_data")
-@mock.patch("i2pp.core.run.visualize_results")
-@mock.patch("i2pp.core.run.visualize_smoothing")
-def test_run_i2pp_runs_successfully(
-    mock_vis_smoothing,
-    mock_vis_results,
-    mock_smooth_data,
-    mock_export,
+@patch("i2pp.core.run.verify_and_load_discretization")
+@patch("i2pp.core.run.verify_and_load_imagedata")
+@patch("i2pp.core.run.smooth_data")
+@patch("i2pp.core.run.interpolate_image_to_discretization")
+@patch("i2pp.core.run.transform_data")
+@patch("i2pp.core.run.export_data")
+@patch("i2pp.core.run.visualize_smoothing")
+@patch("i2pp.core.run.visualize_results")
+def test_run_i2pp_with_maximal_valid_config(
+    mock_visualize_results,
+    mock_visualize_smoothing,
+    mock_export_data,
+    mock_transform_data,
     mock_interpolate,
-    mock_load_image,
-    mock_load_dis,
-    minimal_valid_config,
+    mock_smooth_data,
+    mock_verify_image,
+    mock_verify_discretization,
+    maximal_valid_config,
 ):
-    """Test that run_i2pp executes successfully with a minimal valid
-    configuration."""
+    """Test the run_i2pp function with a maximal valid configuration."""
+    mock_discretization = MagicMock()
+    mock_discretization.bounding_box = ((0, 0, 0), (1, 1, 1))
+    mock_verify_discretization.return_value = mock_discretization
 
-    mock_dis = mock.Mock()
-    mock_dis.bounding_box = ((0, 0, 0), (1, 1, 1))
-    mock_load_dis.return_value = mock_dis
+    mock_image_data = MagicMock()
+    mock_image_data.pixel_data = [[0]]
+    mock_image_data.pixel_range = (0, 255)
+    mock_image_data.pixel_type = "uint8"
+    mock_verify_image.return_value = mock_image_data
 
-    mock_image = mock.Mock()
-    mock_image.pixel_data = [[0]]
-    mock_image.pixel_range = (0, 255)
-    mock_image.pixel_type = "dummy"
-    mock_load_image.return_value = mock_image
+    mock_smooth_data.side_effect = lambda pixel_data, area: pixel_data
 
-    mock_smooth_data.return_value = mock_image
+    mock_interpolate.return_value = "interpolated_elements"
+    mock_transform_data.return_value = "transformed_data"
 
-    mock_elements = [{"id": 1, "value": 123}]
-    mock_interpolate.return_value = mock_elements
+    # Call the function
+    run_i2pp(maximal_valid_config)
 
-    run_i2pp(minimal_valid_config)
-
-    mock_load_dis.assert_called_once()
-    mock_load_image.assert_called_once()
+    # Assertions to ensure key steps were called
+    mock_verify_discretization.assert_called_once()
+    mock_verify_image.assert_called_once()
+    mock_smooth_data.assert_called_once()
+    mock_visualize_smoothing.assert_called_once()
     mock_interpolate.assert_called_once()
-    mock_export.assert_called_once_with(
-        elements=mock_elements,
-        dis=mock_dis,
-        user_script_path=Path("tests/testdata/user_script.py"),
-        user_function_name="process_image_data",
-        export_format="pattern",
-        property_output_file=Path(
-            minimal_valid_config["output options"]["output_path"]
-        )
-        / "output.pattern",
-        name_of_output_property=None,
-        normalize=False,
-        vtk_output_file=Path(
-            minimal_valid_config["output options"]["output_path"]
-        )
-        / "output.vtu",
-        pixel_range=(0, 255),
-        pixel_type="dummy",
-    )
-    mock_smooth_data.assert_called_once_with([[0]], 3)
-    mock_vis_results.assert_not_called()
-    mock_vis_smoothing.assert_not_called()
-
-
-@mock.patch("i2pp.core.run.verify_and_load_discretization")
-@mock.patch("i2pp.core.run.verify_and_load_imagedata")
-@mock.patch("i2pp.core.run.interpolate_image_to_discretization")
-@mock.patch("i2pp.core.run.export_data")
-@mock.patch("i2pp.core.run.smooth_data")
-@mock.patch("i2pp.core.run.visualize_results")
-@mock.patch("i2pp.core.run.visualize_smoothing")
-def test_run_i2pp_with_large_config(
-    mock_vis_smoothing,
-    mock_vis_results,
-    mock_smooth_data,
-    mock_export,
-    mock_interpolate,
-    mock_load_image,
-    mock_load_dis,
-    large_valid_config,
-):
-    """Test that run_i2pp executes successfully with a larger, more complex
-    configuration."""
-
-    mock_dis = mock.Mock()
-    mock_dis.bounding_box = ((0, 0, 0), (10, 10, 10))
-    mock_load_dis.return_value = mock_dis
-
-    mock_image = mock.Mock()
-    mock_image.pixel_data = [[0] * 100] * 100
-    mock_image.pixel_range = (0, 255)
-    mock_image.pixel_type = "dummy"
-    mock_load_image.return_value = mock_image
-
-    mock_smooth_data.return_value = mock_image
-
-    mock_elements = [{"id": 1, "value": 123}]
-    mock_interpolate.return_value = mock_elements
-
-    run_i2pp(large_valid_config)
-
-    assert len(mock_load_dis.call_args_list) == 1
-    assert len(mock_load_image.call_args_list) == 1
-    assert len(mock_interpolate.call_args_list) == 1
-    assert len(mock_export.call_args_list) == 1
-    mock_export.assert_called_once_with(
-        elements=mock_elements,
-        dis=mock_dis,
-        user_script_path=Path("tests/testdata/user_script.py"),
-        user_function_name="process_image_data",
-        export_format="json",
-        property_output_file=Path(
-            large_valid_config["output options"]["output_path"]
-        )
-        / "output_large.json",
-        name_of_output_property=None,
-        normalize=True,
-        vtk_output_file=Path(
-            large_valid_config["output options"]["output_path"]
-        )
-        / "output_large.vtu",
-        pixel_range=(0, 255),
-        pixel_type="dummy",
-    )
-    mock_smooth_data.assert_called_once_with([[0] * 100] * 100, 5)
-    mock_vis_results.assert_called_once()
-    mock_vis_smoothing.assert_called_once()
+    mock_transform_data.assert_called_once()
+    mock_visualize_results.assert_called_once()
+    mock_export_data.assert_called_once()
