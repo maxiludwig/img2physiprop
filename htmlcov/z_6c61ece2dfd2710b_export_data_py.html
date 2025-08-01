@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_9993f1ce2f4722b4_dicom_reader_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.10.0">coverage.py v7.10.0</a>,
-            created at 2025-07-28 07:19 +0000
+            created at 2025-08-01 15:33 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -236,7 +236,7 @@
     <p class="run"><span class="n"><a id="t154" href="#t154">154</a></span><span class="t">        <span class="nam">user_config</span><span class="op">:</span> <span class="nam">dict</span> <span class="op">=</span> <span class="nam">config</span><span class="op">[</span><span class="str">"output options"</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t155" href="#t155">155</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t156" href="#t156">156</a></span><span class="t">        <span class="nam">directory</span> <span class="op">=</span> <span class="nam">Path</span><span class="op">(</span><span class="nam">user_config</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="str">"output_path"</span><span class="op">)</span> <span class="key">or</span> <span class="nam">Path</span><span class="op">.</span><span class="nam">cwd</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t157" href="#t157">157</a></span><span class="t">        <span class="nam">output_name</span> <span class="op">=</span> <span class="nam">str</span><span class="op">(</span><span class="nam">user_config</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="str">"output_name"</span><span class="op">)</span> <span class="key">or</span> <span class="str">"output"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t157" href="#t157">157</a></span><span class="t">        <span class="nam">output_name</span> <span class="op">=</span> <span class="nam">str</span><span class="op">(</span><span class="nam">user_config</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="str">"output_name"</span><span class="op">)</span> <span class="key">or</span> <span class="str">"i2pp_output"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t158" href="#t158">158</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t159" href="#t159">159</a></span><span class="t">        <span class="nam">path</span> <span class="op">=</span> <span class="nam">os</span><span class="op">.</span><span class="nam">path</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t160" href="#t160">160</a></span><span class="t">            <span class="nam">directory</span><span class="op">,</span> <span class="fst">f"</span><span class="op">{</span><span class="nam">output_name</span><span class="op">}</span><span class="fst">.</span><span class="op">{</span><span class="nam">self</span><span class="op">.</span><span class="nam">export_format</span><span class="op">.</span><span class="nam">value</span><span class="op">}</span><span class="fst">"</span>&nbsp;</span><span class="r"></span></p>
@@ -357,7 +357,7 @@
     <p class="pln"><span class="n"><a id="t275" href="#t275">275</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t276" href="#t276">276</a></span><span class="t">        <span class="nam">output_path</span> <span class="op">=</span> <span class="nam">os</span><span class="op">.</span><span class="nam">path</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t277" href="#t277">277</a></span><span class="t">            <span class="nam">config</span><span class="op">[</span><span class="str">"output options"</span><span class="op">]</span><span class="op">[</span><span class="str">"output_path"</span><span class="op">]</span> <span class="key">or</span> <span class="nam">Path</span><span class="op">.</span><span class="nam">cwd</span><span class="op">(</span><span class="op">)</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t278" href="#t278">278</a></span><span class="t">            <span class="fst">f"</span><span class="op">{</span><span class="nam">config</span><span class="op">[</span><span class="str">'output options'</span><span class="op">]</span><span class="op">[</span><span class="str">'output_name'</span><span class="op">]</span> <span class="key">or</span> <span class="str">'Output'</span><span class="op">}</span><span class="fst">.vtu</span><span class="fst">"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t278" href="#t278">278</a></span><span class="t">            <span class="fst">f"</span><span class="op">{</span><span class="nam">config</span><span class="op">[</span><span class="str">'output options'</span><span class="op">]</span><span class="op">[</span><span class="str">'output_name'</span><span class="op">]</span> <span class="key">or</span> <span class="str">'i2pp_output'</span><span class="op">}</span><span class="fst">.vtu</span><span class="fst">"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t279" href="#t279">279</a></span><span class="t">        <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t280" href="#t280">280</a></span><span class="t">        <span class="nam">unstructured_grid</span><span class="op">.</span><span class="nam">save</span><span class="op">(</span><span class="nam">output_path</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t281" href="#t281">281</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -430,7 +430,7 @@
             <a class="nav" href="z_9993f1ce2f4722b4_dicom_reader_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.10.0">coverage.py v7.10.0</a>,
-            created at 2025-07-28 07:19 +0000
+            created at 2025-08-01 15:33 +0000
         </p>
     </div>
 </footer>
