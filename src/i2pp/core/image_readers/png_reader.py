@@ -118,7 +118,7 @@ class PngReader(ImageReader):
 
         logging.info("Load image data!")
 
-        self._verify_image_metadata(self.options["image_metadata"])
+        self._verify_image_metadata(self.options["metadata"])
 
         raw_png = []
 
@@ -152,7 +152,7 @@ class PngReader(ImageReader):
                 grid coordinates, orientation, and metadata.
         """
 
-        image_metadata = self.options["image_metadata"]
+        image_metadata = self.options["metadata"]
 
         row_direction = np.array(
             image_metadata.get("row_direction") or [0, -1, 0]
