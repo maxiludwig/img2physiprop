@@ -1,18 +1,41 @@
 """Functions for visualizations."""
 
+import logging
 from multiprocessing import Process
 
 from i2pp.core.discretization_reader_classes.discretization_reader import (
     Discretization,
     Element,
 )
-from i2pp.core.image_reader_classes.image_reader import (
-    ImageData,
-)
+from i2pp.core.image_reader_classes.image_reader import ImageData
 from i2pp.core.visualization_classes.discretization_visualization import (
     DiscretizationVisualizer,
 )
 from i2pp.core.visualization_classes.image_visualization import ImageVisualizer
+
+
+def _run_processes_safely(*processes: Process) -> None:
+    """Safely run multiple processes with error handling.
+
+    Args:
+        *processes: Variable number of Process objects to run.
+    """
+    try:
+        # Start all processes
+        for process in processes:
+            process.start()
+
+        # Wait for all processes to complete
+        for process in processes:
+            process.join()
+
+    except Exception as e:
+        logging.error(f"Error in visualization process: {e}")
+        # Ensure all processes are terminated
+        for process in processes:
+            if process.is_alive():
+                process.terminate()
+                process.join()
 
 
 def visualize_results(
@@ -49,8 +72,8 @@ def visualize_results(
         """
 
         visualizer_dis = DiscretizationVisualizer(
-            image_data.pixel_type,
-            image_data.pixel_range,
+            pixel_type=image_data.pixel_type,
+            pixel_range=image_data.pixel_range,
             title="Mesh Visualization",
         )
 
@@ -66,8 +89,8 @@ def visualize_results(
         """
 
         visualizer_image = ImageVisualizer(
-            image_data.pixel_type,
-            image_data.pixel_range,
+            pixel_type=image_data.pixel_type,
+            pixel_range=image_data.pixel_range,
             title="Image Visualization",
         )
 
@@ -75,14 +98,10 @@ def visualize_results(
 
         visualizer_image.plot_grid()
 
-    thread1 = Process(target=plot_discretization)
-    thread2 = Process(target=plot_image)
+    process_discretization = Process(target=plot_discretization)
+    process_image = Process(target=plot_image)
 
-    thread1.start()
-    thread2.start()
-
-    thread1.join()
-    thread2.join()
+    _run_processes_safely(process_discretization, process_image)
 
 
 def visualize_smoothing(
@@ -98,9 +117,6 @@ def visualize_smoothing(
         image_data_smoothed (ImageData): Image data after smoothing.
         image_data_unsmoothed (ImageData): Original image data before
             smoothing.
-
-    Returns:
-        None
     """
 
     def plot_smoothed():
@@ -112,9 +128,9 @@ def visualize_smoothing(
         """
 
         visualizer_smoothed = ImageVisualizer(
-            image_data_smoothed.pixel_type,
-            image_data_smoothed.pixel_range,
-            "Smoothed Image Visualization",
+            pixel_type=image_data_smoothed.pixel_type,
+            pixel_range=image_data_smoothed.pixel_range,
+            title="Smoothed Image Visualization",
         )
         visualizer_smoothed.compute_grid(image_data_smoothed)
         visualizer_smoothed.plot_grid()
@@ -128,18 +144,14 @@ def visualize_smoothing(
         """
 
         visualizer_unsmoothed = ImageVisualizer(
-            image_data_unsmoothed.pixel_type,
-            image_data_unsmoothed.pixel_range,
-            "Original Image Visualization",
+            pixel_type=image_data_unsmoothed.pixel_type,
+            pixel_range=image_data_unsmoothed.pixel_range,
+            title="Original Image Visualization",
         )
         visualizer_unsmoothed.compute_grid(image_data_unsmoothed)
         visualizer_unsmoothed.plot_grid()
 
-    thread1 = Process(target=plot_smoothed)
-    thread2 = Process(target=plot_unsmoothed)
+    process_smoothed = Process(target=plot_smoothed)
+    process_unsmoothed = Process(target=plot_unsmoothed)
 
-    thread1.start()
-    thread2.start()
-
-    thread1.join()
-    thread2.join()
+    _run_processes_safely(process_smoothed, process_unsmoothed)

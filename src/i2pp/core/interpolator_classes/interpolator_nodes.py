@@ -18,7 +18,7 @@ class InterpolatorNodes(Interpolator):
     This class extends Interpolator and specializes in assigning pixel values
     from 3D image data to finite element mesh elements by interpolating at
     their nodes. This approach is used when `calculation_type` is set to
-    "elementcenter".
+    "nodes".
     """
 
     def compute_element_data(

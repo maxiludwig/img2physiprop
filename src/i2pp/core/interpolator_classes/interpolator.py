@@ -8,9 +8,7 @@ from i2pp.core.discretization_reader_classes.discretization_reader import (
     Discretization,
     Element,
 )
-from i2pp.core.image_reader_classes.image_reader import (
-    ImageData,
-)
+from i2pp.core.image_reader_classes.image_reader import ImageData
 from scipy.interpolate import RegularGridInterpolator
 
 
@@ -77,7 +75,7 @@ class Interpolator:
         Arguments:
             target_points (np.ndarray): An array of grid coordinates where
                 pixel values should be interpolated.
-            image_data (ProcessedImageData): 3D image data containing voxel
+            image_data (ImageData): 3D image data containing voxel
                 coordinates and values
 
         Returns:
@@ -99,7 +97,7 @@ class Interpolator:
 
         return np.array(interpolator(target_points))
 
-    def _log_interpolation_warnings(self):
+    def _log_interpolation_warnings(self) -> None:
         """Log warnings related to missing or fallback interpolations.
 
         This method checks the number of elements that either:

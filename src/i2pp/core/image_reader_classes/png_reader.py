@@ -26,7 +26,7 @@ class PngReader(ImageReader):
         """Validates the format and dimensions of the image_metadata provided.
 
         This method checks that each required parameter in the dictionary
-        config["image_metadata"] is present and has the correct shape or data
+        image_metadata is present and has the correct shape or data
         type. It performs validation for:
         - pixel_spacing: Must be a 3x1 array.
         - image_position: Must be a 3x1 array.

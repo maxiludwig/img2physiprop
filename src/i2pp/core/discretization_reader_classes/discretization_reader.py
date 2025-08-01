@@ -91,9 +91,9 @@ class DiscretizationReader(ABC):
     Discretizations.
 
     The `DiscretizationReader` class defines the interface for reading and
-    processing Discretization data from different file formats (e.g., `.dat`,
-    `.mesh`). Subclasses must implement the `load_discretization` method to
-    handle specific file formats.
+    processing discretization data from different file formats. Subclasses
+    must implement the `load_discretization` method to handle specific file
+    formats.
     """
 
     def __init__(self):
@@ -104,24 +104,23 @@ class DiscretizationReader(ABC):
     def load_discretization(
         self, file_path: Path, config: dict
     ) -> Discretization:
-        """Abstract method to load Discretization data from a file path.
+        """Abstract method to load discretization data from a file path.
 
-        This method imports the nodes and elements of a Discretization from a
-        specific file format (e.g., .dat, .mesh). The method will parse the
-        file, extract the relevant information, and return a Discretization
-        object that encapsulates the nodes, elements, and the boundaries in
-        which the Discretization nodes are located.
+        This method imports the nodes and elements of a discretization from a
+        specific file format. The method will parse the file, extract the
+        relevant information, and return a Discretization object that
+        encapsulates the nodes, elements, and the boundaries in which the
+        discretization nodes are located.
 
         Arguments:
-            file_path (Path): Path to the Discretization file (e.g., .dat or
-                .mesh file).
+            file_path (Path): Path to the discretization file.
             config (dict): A dictionary containing configuration options for
-                loading the Discretization.
+                loading the discretization.
 
         Returns:
             Discretization: An instance of Discretization containing
                 information of the nodes and elements of the imported mesh,
-                along with the boundaries in which the Discretization nodes
+                along with the boundaries in which the discretization nodes
                 are located.
         """
         pass

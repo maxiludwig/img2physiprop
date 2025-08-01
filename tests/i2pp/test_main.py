@@ -17,13 +17,13 @@ def test_main_config_file_exists(tmp_path: Path) -> None:
     """
 
     mock_config_data = {"key": "value"}
-    config_file_path = tmp_path / "test_config.yaml"
-    with open(config_file_path, "w") as f:
+    config = tmp_path / "test_config.yaml"
+    with open(config, "w") as f:
         yaml.dump(mock_config_data, f)
 
     with patch(
         "argparse.ArgumentParser.parse_args",
-        return_value=MagicMock(config_file_path=config_file_path),
+        return_value=MagicMock(config=config),
     ):
         with patch(
             "builtins.open", mock_open(read_data=yaml.dump(mock_config_data))
@@ -43,7 +43,7 @@ def test_main_config_file_not_exists() -> None:
 
     with patch(
         "argparse.ArgumentParser.parse_args",
-        return_value=MagicMock(config_file_path="nonexistent_config.yaml"),
+        return_value=MagicMock(config="nonexistent_config.yaml"),
     ):
         with pytest.raises(RuntimeError, match="Config file not found!"):
             main()

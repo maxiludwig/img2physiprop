@@ -29,54 +29,44 @@ def find_mins_maxs(
             array contains the minimum values [min_x, min_y, min_z], and the
             second array contains the maximum values [max_x, max_y, max_z].
     """
-
-    x = points[:, 0]
-    y = points[:, 1]
-    z = points[:, 2]
-
-    min_coords = np.array(
-        [
-            np.min(x) - enlargement,
-            np.min(y) - enlargement,
-            np.min(z) - enlargement,
-        ]
-    )
-    max_coords = np.array(
-        [
-            np.max(x) + enlargement,
-            np.max(y) + enlargement,
-            np.max(z) + enlargement,
-        ]
-    )
+    min_coords = np.min(points, axis=0) - enlargement
+    max_coords = np.max(points, axis=0) + enlargement
 
     return min_coords, max_coords
 
 
 def normalize_values(data: np.ndarray, pxl_range: np.ndarray) -> np.ndarray:
-    """Normalizes  data to a range between 0 and 1 based on the provided pixel
+    """Normalizes data to a range between 0 and 1 based on the provided pixel
     range.
 
-    This function shifts the data by subtracting the minimum pixel value and
-    then scales it by dividing it by the total range (max - min). The
-    resulting values will be in the range [0, 1].
+    This function shifts the data by subtracting the minimum pixel range value
+    and then scales it by dividing it by the total range. The resulting values
+    will be in the range [0, 1].
 
     Arguments:
         data (np.ndarray): The array of data values to normalize.
         pxl_range (np.ndarray): A NumPy array containing the minimum and
-            maximum pixel values [min, max] used for normalization.
+            maximum pixel range values [min, max] used for normalization.
 
     Returns:
         np.ndarray: The normalized data with values scaled between 0 and 1.
     """
+    # Validate supplied pixel range
+    range_diff = pxl_range[1] - pxl_range[0]
+    if range_diff == 0:
+        logging.error("Pixel range difference is zero.")
+    elif range_diff < 0:
+        logging.error("Pixel range is inverted (max < min).")
 
-    normalized_data = (data - pxl_range[0]) / (pxl_range[1] - pxl_range[0])
+    # Normalize the data
+    normalized_data = (data - pxl_range[0]) / range_diff
 
     return normalized_data
 
 
 def get_node_position_of_element(
     element_node_ids: np.ndarray, node_ids: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """Retrieves the positions (indices) of element nodes in the global node
     list.
 

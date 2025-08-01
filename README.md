@@ -16,9 +16,8 @@ img2physiprop (Image to Physical Property) is a python package that maps medical
 - Automated [Github CI/CD](https://resources.github.com/devops/ci-cd/)
 - Exhaustive [Pre-Commit](https://pre-commit.com) framework to automatically check code formatting and code quality
 - Automatically generated [Documentation](https://pdoc.dev) based on the included Python docstrings
-- Pre-defined framework to gather global settings (see [`main_example_config.yaml`](./src/i2pp/main_example_config.yaml)) and execute a specific workflow
 
-The remaining parts of the readme are structured as follows:
+The remaining parts of the README are structured as follows:
 
 - [Installation](#installation)
 - [Execution](#execution)
@@ -72,19 +71,13 @@ Now you are up and running 🎉
 
 ### Execute img2physiprop
 
-To execute img2physiprop either run
+To execute img2physiprop run
 
 ```
-i2pp
+i2pp --config path/to/config.yaml
 ````
 
-to execute img2physiprop with the provided exemplary config or use
-
-```
-i2pp --config_file_path ../path/to/config.yaml
-````
-
-to utilize your own externally provided config file. Therein, all necessary configurations can be found.
+with your custom configuration file. A template configuration file containing all possible input configurations can be found in the folder `templates/config`.
 
 ### Run testing framework and create coverage report
 

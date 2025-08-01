@@ -19,21 +19,20 @@ def main() -> None:
     logging.basicConfig(level=logging.DEBUG)
     parser = argparse.ArgumentParser(description="Process some integers.")
     parser.add_argument(
-        "--config_file_path",
+        "--config",
         "-cfp",
         help="Path to config file.",
         type=str,
-        default="src/i2pp/main_example_config.yaml",
     )
     args = parser.parse_args()
 
-    if not os.path.isfile(args.config_file_path):
+    if not os.path.isfile(args.config):
         raise RuntimeError(
             "Config file not found! img2physiprop can not be executed!"
         )
 
     # load config and convert to simple namespace for easier access
-    with open(args.config_file_path, "r") as file:
+    with open(args.config, "r") as file:
         config = munchify(yaml.safe_load(file))
 
     # execute i2pp

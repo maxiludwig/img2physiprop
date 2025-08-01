@@ -154,7 +154,7 @@ class Exporter:
         user_config: dict = config["output options"]
 
         directory = Path(user_config.get("output_path") or Path.cwd())
-        output_name = str(user_config.get("output_name") or "output")
+        output_name = str(user_config.get("output_name") or "i2pp_output")
 
         path = os.path.join(
             directory, f"{output_name}.{self.export_format.value}"
@@ -275,7 +275,7 @@ class Exporter:
 
         output_path = os.path.join(
             config["output options"]["output_path"] or Path.cwd(),
-            f"{config['output options']['output_name'] or 'Output'}.vtu",
+            f"{config['output options']['output_name'] or 'i2pp_output'}.vtu",
         )
         unstructured_grid.save(output_path)
 
