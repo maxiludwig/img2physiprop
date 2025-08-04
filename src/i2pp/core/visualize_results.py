@@ -3,15 +3,15 @@
 import logging
 from multiprocessing import Process
 
-from i2pp.core.discretization_reader_classes.discretization_reader import (
+from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
     Element,
 )
-from i2pp.core.image_reader_classes.image_reader import ImageData
-from i2pp.core.visualization_classes.discretization_visualization import (
+from i2pp.core.image_readers.image_reader import ImageData
+from i2pp.core.visualizers.discretization_visualizer import (
     DiscretizationVisualizer,
 )
-from i2pp.core.visualization_classes.image_visualization import ImageVisualizer
+from i2pp.core.visualizers.image_visualizer import ImageVisualizer
 
 
 def _run_processes_safely(*processes: Process) -> None:
