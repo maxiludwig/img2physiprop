@@ -17,8 +17,8 @@ class InterpolatorCenter(Interpolator):
 
     This class extends the Interpolator and specializes in assigning pixel
     values from 3D image data to finite element mesh elements by interpolating
-    at their centers. This approach is used when `calculation_type` is set to
-    "elementcenter".
+    at their centers. This approach is used when `interpolation_method` is set
+    to "elementcenter".
     """
 
     def compute_element_centers(self, dis: Discretization) -> Discretization:

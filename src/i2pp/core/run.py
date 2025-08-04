@@ -27,7 +27,7 @@ def run_i2pp(config_i2pp):
         box.
     3. Optionally applying smoothing to the image data before interpolation.
     4. Interpolates the image data onto the mesh elements based on the
-        user-defined calculation type.
+        user-defined interpolation method.
     5. Exports the processed data using a user-specified function.
     6. Visualizes the results if enabled in the configuration.
 
