@@ -6,28 +6,28 @@
 |------------------------------------------------------------------------ | -------: | -------: | ------: | --------: |
 | src/i2pp/\_\_init\_\_.py                                                |        0 |        0 |    100% |           |
 | src/i2pp/core/\_\_init\_\_.py                                           |        0 |        0 |    100% |           |
-| src/i2pp/core/discretization\_helpers.py                                |       68 |        0 |    100% |           |
+| src/i2pp/core/discretization\_helpers.py                                |       66 |        0 |    100% |           |
 | src/i2pp/core/discretization\_reader\_classes/discretization\_reader.py |       30 |        1 |     97% |       126 |
-| src/i2pp/core/discretization\_reader\_classes/fourc\_yaml\_reader.py    |       43 |        1 |     98% |        99 |
+| src/i2pp/core/discretization\_reader\_classes/fourc\_yaml\_reader.py    |       43 |        1 |     98% |       100 |
 | src/i2pp/core/discretization\_reader\_classes/mesh\_reader.py           |       18 |        3 |     83% |33, 58, 66 |
-| src/i2pp/core/export\_data.py                                           |       99 |        4 |     96% |81, 86, 235, 264 |
+| src/i2pp/core/export\_data.py                                           |       96 |        8 |     92% |78, 83, 143-147, 226, 255, 269-273 |
 | src/i2pp/core/image\_reader\_classes/dicom\_reader.py                   |       53 |        5 |     91% |85, 122-123, 148, 151 |
 | src/i2pp/core/image\_reader\_classes/image\_reader.py                   |       72 |        4 |     94% |49, 68, 242, 266 |
 | src/i2pp/core/image\_reader\_classes/png\_reader.py                     |       57 |        1 |     98% |       193 |
-| src/i2pp/core/import\_image.py                                          |       65 |        4 |     94% |57, 71, 86, 206 |
-| src/i2pp/core/interpolate\_element\_data.py                             |       21 |        7 |     67% |60-69, 100-106 |
+| src/i2pp/core/import\_image.py                                          |       63 |        4 |     94% |57, 71, 86, 201 |
+| src/i2pp/core/interpolate\_element\_data.py                             |       21 |        7 |     67% |60-69, 103-107 |
 | src/i2pp/core/interpolator\_classes/interpolator.py                     |       27 |        4 |     85% |115, 121, 127, 153 |
 | src/i2pp/core/interpolator\_classes/interpolator\_all\_voxel.py         |       47 |        9 |     81% |   186-214 |
 | src/i2pp/core/interpolator\_classes/interpolator\_center.py             |       25 |        1 |     96% |       103 |
 | src/i2pp/core/interpolator\_classes/interpolator\_nodes.py              |       18 |        1 |     94% |        76 |
-| src/i2pp/core/run.py                                                    |       34 |        6 |     82% |54, 62-65, 88 |
+| src/i2pp/core/run.py                                                    |       58 |        2 |     97% |     51-52 |
 | src/i2pp/core/utilities.py                                              |       29 |        2 |     93% |    57, 59 |
-| src/i2pp/core/visualization\_classes/discretization\_visualization.py   |       14 |        0 |    100% |           |
+| src/i2pp/core/visualization\_classes/discretization\_visualization.py   |       13 |        0 |    100% |           |
 | src/i2pp/core/visualization\_classes/image\_visualization.py            |       19 |        0 |    100% |           |
 | src/i2pp/core/visualization\_classes/visualization.py                   |       95 |       12 |     87% |59, 79, 154-167, 196-207, 234, 291, 305-306 |
-| src/i2pp/core/visualize\_results.py                                     |       42 |       18 |     57% |32-38, 74-82, 91-99, 130-136, 146-152 |
+| src/i2pp/core/visualize\_results.py                                     |       42 |       18 |     57% |32-38, 71-79, 88-96, 127-133, 143-149 |
 | src/i2pp/main.py                                                        |       16 |        0 |    100% |           |
-|                                                               **TOTAL** |  **892** |   **83** | **91%** |           |
+|                                                               **TOTAL** |  **908** |   **83** | **91%** |           |
 
 
 ## Setup coverage badge
