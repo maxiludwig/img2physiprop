@@ -1,7 +1,9 @@
 """Runner which executes the main routine of img2physiprop."""
 
 import copy
+import os
 import time
+from pathlib import Path
 
 from i2pp.core.discretization_helpers import verify_and_load_discretization
 from i2pp.core.export_data import export_data
@@ -34,9 +36,29 @@ def run_i2pp(config_i2pp):
 
     start_time = time.time()
 
-    dis = verify_and_load_discretization(config_i2pp)
+    relative_path = Path(config_i2pp["discretization"]["path"])
+    discretization_path = Path.cwd() / relative_path
 
-    image_data = verify_and_load_imagedata(config_i2pp, dis.bounding_box)
+    options = dict()
+    options["material_ids"] = config_i2pp["processing options"].get(
+        "material_ids", None
+    )
+    dis = verify_and_load_discretization(discretization_path, options)
+
+    # Retrieve information from configuration for loading image data
+    try:
+        relative_path = Path(config_i2pp["image"]["path"])
+    except KeyError as e:
+        raise ValueError(f"Missing required configuration key: {e}") from e
+    image_path = Path.cwd() / relative_path
+
+    image_options = dict()
+    image_options["image_metadata"] = config_i2pp["image"].get("metadata", {})
+
+    # Load the image data
+    image_data = verify_and_load_imagedata(
+        image_path, image_options, dis.bounding_box
+    )
 
     processing_options: dict = config_i2pp["processing options"]
     smoothing_bool = processing_options.get("smoothing", False)
@@ -66,16 +88,53 @@ def run_i2pp(config_i2pp):
                 time_after_smoothing - time_pre_smoothing
             )
 
+    # Retrieve the interpolation method from the configuration
+    interpolation_method = (
+        config_i2pp["processing options"]["interpolation_method"],
+    )
+    # Interpolate the image data onto the mesh elements
     elements = interpolate_image_to_discretization(
-        dis, image_data, config_i2pp
+        dis, image_data, interpolation_method=interpolation_method
     )
 
+    # Retrieve export/output options from the configuration
+    export_format = config_i2pp["output options"].get(
+        "export_format", "Not specified"
+    )
+    directory = Path(
+        config_i2pp["output options"].get("output_path") or Path.cwd()
+    )
+    output_name = str(
+        config_i2pp["output options"].get("output_name") or "i2pp_output"
+    )
+    property_output_path = os.path.join(
+        directory, f"{output_name}.{export_format}"
+    )
+    name_of_output_property = config_i2pp["output options"].get(
+        "name_of_output_property", None
+    )
+    vtk_output_path = os.path.join(
+        config_i2pp["output options"]["output_path"] or Path.cwd(),
+        f"{config_i2pp['output options']['output_name'] or 'i2pp_output'}.vtu",
+    )
+    processing_options = config_i2pp["processing options"]
+    script_path = processing_options["user_script"]
+    function_name = processing_options["user_function"]
+    normalize = processing_options.get("normalize_values", False)
+
+    # Export the data
     export_data(
-        elements,
-        dis,
-        config_i2pp,
-        image_data.pixel_range,
-        image_data.pixel_type,
+        elements=elements,
+        dis=dis,
+        user_script_path=Path(script_path),
+        user_function_name=function_name,
+        export_format=export_format,
+        property_output_file=Path(property_output_path),
+        name_of_output_property=name_of_output_property,
+        normalize=normalize,
+        vtk_output_file=Path(vtk_output_path),
+        pixel_range=image_data.pixel_range,
+        pixel_type=image_data.pixel_type,
     )
 
     end_time = time.time()
@@ -85,4 +144,4 @@ def run_i2pp(config_i2pp):
     visualization_options: dict = config_i2pp["visualization_options"]
 
     if bool(visualization_options["plot_results"]):
-        visualize_results(config_i2pp, elements, image_data, dis)
+        visualize_results(elements, image_data, dis)

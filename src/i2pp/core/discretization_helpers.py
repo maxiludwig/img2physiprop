@@ -79,36 +79,28 @@ def determine_discretization_format(file_path: Path) -> DiscretizationFormat:
         )
 
 
-def verify_and_load_discretization(config: dict) -> Discretization:
-    """Loads and processes mesh data based on the user configuration.
+def verify_and_load_discretization(
+    discretization_path: Path, options: dict
+) -> Discretization:
+    """Loads and processes mesh data.
 
-    This function verifies the input file, selects the appropriate reader
-    (MeshReader or FourCYamlReader), and loads the discretization data.
+    This function selects the appropriate reader (MeshReader or
+    FourCYamlReader), and loads the discretization data.
     Finally, it determines the discretization's bounding box.
 
     Arguments:
-        config (dict): User configuration containing paths and processing
-            options.
+        discretization_path (Path): Path to the discretization file.
+        options (dict): Options for loading the discretization that are passed
+            to the reader classes.
 
     Returns:
         DiscretizationData: The loaded and processed mesh data.
-
-    Raises:
-        RuntimeError: If the mesh file is not valid or in the wrong format.
     """
-    relative_path = Path(
-        config["input informations"]["discretization_file_path"]
-    )
-
-    file_path = Path.cwd() / relative_path
-
-    dis_format = determine_discretization_format(file_path)
+    dis_format = determine_discretization_format(discretization_path)
 
     dis_reader = cast(DiscretizationReader, dis_format.get_reader()())
 
-    dis = dis_reader.load_discretization(
-        file_path, config["processing options"]
-    )
+    dis = dis_reader.load_discretization(discretization_path, options)
 
     bounding_box = find_mins_maxs(points=dis.nodes.coords, enlargement=2)
 

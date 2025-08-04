@@ -35,7 +35,7 @@ def find_mins_maxs(
     return min_coords, max_coords
 
 
-def normalize_values(data: np.ndarray, pxl_range: np.ndarray) -> np.ndarray:
+def normalize_values(data: np.ndarray, pixel_range: np.ndarray) -> np.ndarray:
     """Normalizes data to a range between 0 and 1 based on the provided pixel
     range.
 
@@ -45,21 +45,21 @@ def normalize_values(data: np.ndarray, pxl_range: np.ndarray) -> np.ndarray:
 
     Arguments:
         data (np.ndarray): The array of data values to normalize.
-        pxl_range (np.ndarray): A NumPy array containing the minimum and
+        pixel_range (np.ndarray): A NumPy array containing the minimum and
             maximum pixel range values [min, max] used for normalization.
 
     Returns:
         np.ndarray: The normalized data with values scaled between 0 and 1.
     """
     # Validate supplied pixel range
-    range_diff = pxl_range[1] - pxl_range[0]
+    range_diff = pixel_range[1] - pixel_range[0]
     if range_diff == 0:
         logging.error("Pixel range difference is zero.")
     elif range_diff < 0:
         logging.error("Pixel range is inverted (max < min).")
 
     # Normalize the data
-    normalized_data = (data - pxl_range[0]) / range_diff
+    normalized_data = (data - pixel_range[0]) / range_diff
 
     return normalized_data
 

@@ -18,7 +18,7 @@ from i2pp.core.interpolator_classes.interpolator_center import (
 from i2pp.core.interpolator_classes.interpolator_nodes import InterpolatorNodes
 
 
-class CalculationType(Enum):
+class InterpolationType(Enum):
     """Enum representing different calculation types for element value
     determination.
 
@@ -58,9 +58,9 @@ class CalculationType(Enum):
         """
 
         interpolator_map = {
-            CalculationType.NODES: InterpolatorNodes,
-            CalculationType.ALLVOXELS: InterpolatorAllVoxel,
-            CalculationType.CENTER: InterpolatorCenter,
+            InterpolationType.NODES: InterpolatorNodes,
+            InterpolationType.ALLVOXELS: InterpolatorAllVoxel,
+            InterpolationType.CENTER: InterpolatorCenter,
         }
 
         if self not in interpolator_map:
@@ -70,7 +70,7 @@ class CalculationType(Enum):
 
 
 def interpolate_image_to_discretization(
-    dis: Discretization, image_data: ImageData, config: dict
+    dis: Discretization, image_data: ImageData, interpolation_method: str
 ) -> list[Element]:
     """Performs interpolation of image data onto the FEM Discretization based
     on the specified calculation type.
@@ -91,16 +91,17 @@ def interpolate_image_to_discretization(
             elements and node coordinates.
         image_data (ImageData): A structured representation containing 3D
             pixel data, grid coordinates, orientation, and metadata.
-        config (dict): User-defined configuration settings.
+        interpolation_method (str): The type of interpolation to perform for
+            assigning pixel values to the elements. This should match one of
+            the `InterpolationType` enum values (e.g., "nodes",
+            "elementcenter", "allvoxels").
 
     Returns:
         list[Element]: A list of FEM elements with interpolated pixel data.
     """
 
-    calculation_type = CalculationType(
-        config["processing options"]["calculation_type"]
-    )
+    enum_interpolation_method = InterpolationType(interpolation_method)
 
-    interpolator = calculation_type.get_interpolator()()
+    interpolator = enum_interpolation_method.get_interpolator()()
 
     return interpolator.compute_element_data(dis, image_data)

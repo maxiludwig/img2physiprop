@@ -25,7 +25,7 @@ class PixelValueType(Enum):
         MRT: Magnetic resonance tomography pixel values.
 
     Properties:
-        pxl_range: Returns the default pixel range for each pixel value type.
+        pixel_range: Returns the default pixel range for each pixel value type.
             - For CT: The range is between -1024 and 3071.
             - For RGB: The range is between 0 and 255.
             - For MRT: The pixel range of MRT can vary and must be calculated
@@ -37,7 +37,7 @@ class PixelValueType(Enum):
     MRT = "MR"
 
     @property
-    def pxl_range(self) -> np.ndarray:
+    def pixel_range(self) -> np.ndarray:
         """Returns the default pixel range for each pixel value type."""
         if self == PixelValueType.CT:
             return np.array([-1024, 3071])
@@ -173,9 +173,9 @@ class ImageReader(ABC):
     images (PNG).
     """
 
-    def __init__(self, config: dict, bounding_box: BoundingBox):
+    def __init__(self, options: dict, bounding_box: BoundingBox):
         """Init ImageReader."""
-        self.config = config
+        self.options = options
         self.bounding_box = bounding_box
 
     def _get_slice_orientation(

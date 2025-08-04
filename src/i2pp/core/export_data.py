@@ -3,7 +3,6 @@
 import importlib.util
 import json
 import logging
-import os
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
@@ -14,9 +13,7 @@ from i2pp.core.discretization_reader_classes.discretization_reader import (
     Discretization,
     Element,
 )
-from i2pp.core.image_reader_classes.image_reader import (
-    PixelValueType,
-)
+from i2pp.core.image_reader_classes.image_reader import PixelValueType
 from i2pp.core.utilities import make_json_serializable, normalize_values
 
 
@@ -46,7 +43,7 @@ class Exporter:
         pass
 
     def load_user_function(
-        self, script_path: str, function_name: str
+        self, script_path: Path, function_name: str
     ) -> Callable[..., Any]:
         """Dynamically loads a user-defined function from a script file.
 
@@ -94,7 +91,7 @@ class Exporter:
 
         return user_function
 
-    def parse_export_format(self, config: dict):
+    def parse_export_format(self, export_format: str):
         """Parses the export format from the user configuration.
 
         This function retrieves the export format from the user configuration
@@ -102,29 +99,24 @@ class Exporter:
         specified or is invalid, it raises an error.
 
         Arguments:
-            config (dict): User configuration containing export settings.
+            export_format (str): The export format as a string.
         Raises:
             RuntimeError: If the export format is not supported or not
             specified.
         """
-        user_config: dict = config["output options"]
-        export_format_str = user_config.get("export_format", "Not specified")
-
         try:
-            self.export_format = ExportFormat(export_format_str)
+            self.export_format = ExportFormat(export_format)
         except ValueError:
             supported_formats = ", ".join(fmt.value for fmt in ExportFormat)
             raise RuntimeError(
                 (
-                    f"Export format '{export_format_str}' is not supported! "
+                    f"Export format '{export_format}' is not supported! "
                     f"Supported formats are: {supported_formats}."
                 )
             )
 
     def write_data(
-        self,
-        data: Any,
-        config: dict,
+        self, data: Any, output_file: Path, name_of_output_property: str = ""
     ) -> dict:
         """Writes the provided data to a file based on user configuration.
 
@@ -138,11 +130,7 @@ class Exporter:
                 string for TXT format or a numpy array for JSON format.
             element_ids (np.ndarray): Array of element IDs corresponding
                 to the data.
-            config (dict): User configuration containing output settings.
-
-        File location and name are determined by `config["Output options"]`:
-            - "Output path": Directory to save the file (defaults to CWD).
-            - "Output name": Filename (defaults to "Output").
+            output_file (Path): Path to the output file.
 
         Returns:
             dict: A dictionary containing the exported data. For JSON
@@ -151,17 +139,20 @@ class Exporter:
                 empty dictionary.
         """
 
-        user_config: dict = config["output options"]
-
-        directory = Path(user_config.get("output_path") or Path.cwd())
-        output_name = str(user_config.get("output_name") or "i2pp_output")
-
-        path = os.path.join(
-            directory, f"{output_name}.{self.export_format.value}"
-        )
-
-        directory.mkdir(parents=False, exist_ok=True)
-        logging.info(f"Writing data to {path}")
+        if not output_file.suffix:
+            logging.warning(
+                "Output file has no suffix. Appending the export format "
+                "suffix."
+            )
+            output_file = output_file.with_suffix(
+                f".{self.export_format.value}"
+            )
+        if not output_file.parent.exists():
+            logging.info(
+                f"Creating directory {output_file.parent} for output file."
+            )
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+        logging.info(f"Writing data to {output_file}")
 
         if self.export_format == ExportFormat.JSON:
             assert isinstance(data, np.ndarray), (
@@ -186,7 +177,7 @@ class Exporter:
                 "The structured numpy array must have at least one additional "
                 "field. Adapt the user function."
             )
-            if not ("name_of_output_property" in user_config):
+            if name_of_output_property == "":
                 raise RuntimeError(
                     "You specified a JSON export format. In this case, you "
                     "must also specify the 'name_of_output_property' in the "
@@ -197,7 +188,7 @@ class Exporter:
 
             # Convert the structured numpy array to a dictionary
             json_dump_data = {
-                config["output options"]["name_of_output_property"]: {
+                name_of_output_property: {
                     str(entry[field_names[0]]): (
                         make_json_serializable(entry[field_names[1]])
                         if len(field_names) == 2
@@ -210,7 +201,7 @@ class Exporter:
                 }
             }
 
-            with open(path, "w") as json_file:
+            with open(output_file, "w") as json_file:
                 try:
                     json.dump(json_dump_data, json_file, indent=4)
                 except TypeError as e:
@@ -220,7 +211,7 @@ class Exporter:
                         "JSON serializable."
                     )
 
-            return {config["output options"]["name_of_output_property"]: data}
+            return {name_of_output_property: data}
 
         elif self.export_format == ExportFormat.TXT:
             err_msg = (
@@ -228,7 +219,7 @@ class Exporter:
                 "function must return a string."
             )
             assert isinstance(data, str), err_msg
-            with open(path, "w") as txt_file:
+            with open(output_file, "w") as txt_file:
                 txt_file.write(data)
             return {}
         else:
@@ -238,7 +229,7 @@ class Exporter:
 
     def export_vtk(
         self,
-        config: dict,
+        output_file: Path,
         elements: list[Element],
         pixel_type: PixelValueType,
         exported_data: dict,
@@ -248,7 +239,7 @@ class Exporter:
         the verification of the i2pp output.
 
         Arguments:
-            config (dict): User configuration containing output settings.
+            output_file (Path): The path to the output vtk file.
             elements (list[Element]): List of elements with IDs and data.
             pixel_type (PixelValueType): Type of pixel values used in the
                 discretization.
@@ -273,18 +264,28 @@ class Exporter:
                     # only add if the data is transferable to a VTK file
                     unstructured_grid.cell_data[f"{key}_{name}"] = value[name]
 
-        output_path = os.path.join(
-            config["output options"]["output_path"] or Path.cwd(),
-            f"{config['output options']['output_name'] or 'i2pp_output'}.vtu",
-        )
-        unstructured_grid.save(output_path)
+        # Ensure the output file ends with the correct suffix
+        if not output_file.suffix:
+            logging.warning(
+                "Output file has no suffix. Appending the export format "
+                "suffix."
+            )
+            output_file = output_file.with_suffix(".vtu")
+
+        unstructured_grid.save(output_file)
 
 
 def export_data(
     elements: list[Element],
     dis: Discretization,
-    config: dict,
-    pxl_range: np.ndarray,
+    user_script_path: Path,
+    user_function_name: str,
+    export_format: str,
+    property_output_file: Path,
+    name_of_output_property: str,
+    normalize: bool,
+    vtk_output_file: Path,
+    pixel_range: np.ndarray,
     pixel_type: PixelValueType,
 ) -> None:
     """Exports element data to a file using a user-defined function.
@@ -295,9 +296,8 @@ def export_data(
 
     Workflow:
         - Extracts element values and IDs.
-        - Loads the user function from `config["Processing options"]`.
-        - If normalization is enabled in `config["Processing options"]`,
-          it normalizes the element values.
+        - Loads the user function.
+        - If normalization is enabled, normalizes the element values.
         - Calls the user function to generate the export string.
         - Writes the export string to a file using `Exporter.write_data()`.
         - Depending on the export format, it also exports the data to a VTK
@@ -307,35 +307,46 @@ def export_data(
         elements (List[Element]): List of elements with IDs and data.
         dis (Discretization): The discretization object containing nodes
             and elements.
-        config (dict): User configuration containing export settings.
-        pxl_range (np.ndarray): Pixel range for normalization if enabled.
+        user_script_path (Path): Path to the user script containing the
+            user-defined function.
+        user_function_name (str): Name of the user-defined function to call
+            for exporting data.
+        export_format (str): The format in which the data will be
+            exported (e.g., "json", "txt").
+        property_output_file (Path): Path to the output file where the
+            exported data will be written.
+        name_of_output_property (str): Name of the property to be exported.
+        normalize (bool): Whether to normalize the element values
+            before exporting.
+        vtk_output_file (Path): Path to the output file for VTK export.
+        pixel_range (np.ndarray): Pixel range for normalization if enabled.
         pixel_type (PixelValueType): Type of pixel values.
 
     Raises:
         RuntimeError: If the user function cannot be loaded.
     """
-
-    logging.info("Export File!")
+    logging.info("Exporting file.")
 
     element_ids = np.array([ele.id + 1 for ele in elements])
     element_data = np.array([ele.data for ele in elements])
 
-    processing_options = config["processing options"]
-
-    script_path = processing_options["user_script"]
-    function_name = processing_options["user_function"]
-
     exporter = Exporter()
-    exporter.parse_export_format(config)
+    exporter.parse_export_format(export_format=export_format)
 
-    if processing_options["normalize_values"]:
-        element_data = normalize_values(element_data, pxl_range)
+    if normalize:
+        element_data = normalize_values(element_data, pixel_range)
 
-    user_function = exporter.load_user_function(script_path, function_name)
+    user_function = exporter.load_user_function(
+        user_script_path, user_function_name
+    )
 
     result = user_function(element_ids, element_data)
 
-    exported_data = exporter.write_data(result, config)
+    exported_data = exporter.write_data(
+        result, property_output_file, name_of_output_property
+    )
 
     if exporter.export_format == ExportFormat.JSON:
-        exporter.export_vtk(config, elements, pixel_type, exported_data, dis)
+        exporter.export_vtk(
+            vtk_output_file, elements, pixel_type, exported_data, dis
+        )

@@ -11,11 +11,13 @@ from i2pp.core.image_reader_classes.image_reader import (
 )
 
 
-def test_pxl_range():
-    """Test pxl_range of enum PixelValueType."""
-    assert np.array_equal(PixelValueType.RGB.pxl_range, np.array([0, 255]))
-    assert np.array_equal(PixelValueType.CT.pxl_range, np.array([-1024, 3071]))
-    assert PixelValueType.MRT.pxl_range is None
+def test_pixel_range():
+    """Test pixel_range of enum PixelValueType."""
+    assert np.array_equal(PixelValueType.RGB.pixel_range, np.array([0, 255]))
+    assert np.array_equal(
+        PixelValueType.CT.pixel_range, np.array([-1024, 3071])
+    )
+    assert PixelValueType.MRT.pixel_range is None
 
 
 def test_get_slice_orientation_planes():

@@ -18,7 +18,7 @@ from i2pp.core.image_reader_classes.image_reader import PixelValueType
 
 def test_load_user_function_not_exist():
     """_load_user_function if Path not found."""
-    path = "not_exisitng_path.py"
+    path = Path("not_exisitng_path.py")
     function_name = "function_name"
     exporter = Exporter()
 
@@ -34,7 +34,7 @@ def test_load_user_function_exist():
     test_script.write(b"def test_function(data): return 2*data+1\n")
     test_script.close()
 
-    script_path = test_script.name
+    script_path = Path(test_script.name)
 
     exporter = Exporter()
     loaded_function = exporter.load_user_function(script_path, "test_function")
@@ -50,7 +50,7 @@ def test_load_user_function_not_callable():
     test_script = tempfile.NamedTemporaryFile(delete=False, suffix=".py")
     test_script.close()
 
-    script_path = test_script.name
+    script_path = Path(test_script.name)
 
     exporter = Exporter()
 
@@ -62,20 +62,18 @@ def test_load_user_function_not_callable():
 
 def test_parse_export_format_invalid_format():
     """Test parse_export_format raises error for invalid format."""
-    test_config = {"output options": {"export_format": "invalid_format"}}
     exporter = Exporter()
 
     with pytest.raises(
         RuntimeError, match="Export format 'invalid_format' is not supported!"
     ):
-        exporter.parse_export_format(test_config)
+        exporter.parse_export_format("invalid_format")
 
 
 def test_parse_export_format_valid_format():
     """Test parse_export_format sets the correct export format."""
-    test_config = {"output options": {"export_format": "json"}}
     exporter = Exporter()
-    exporter.parse_export_format(test_config)
+    exporter.parse_export_format("json")
 
     assert exporter.export_format == ExportFormat.JSON
 
@@ -91,12 +89,6 @@ def test_write_data_creates_json_file():
             ("property3", "i4"),
         ],
     )
-    test_config = {
-        "output options": {
-            "output_name": "test_output",
-            "name_of_output_property": "MUE",
-        }
-    }
     expected_output = {
         "MUE": {
             "1": [[2.0, 3.0], "string1", 5],
@@ -107,12 +99,11 @@ def test_write_data_creates_json_file():
     exporter.export_format = ExportFormat.JSON
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        test_config["output options"]["output_path"] = temp_dir
-        exporter.write_data(data, test_config)
+        output_file = Path(os.path.join(temp_dir, "test_output.json"))
+        property_name = "MUE"
+        exporter.write_data(data, output_file, property_name)
 
-        with open(
-            os.path.join(temp_dir, "test_output.json"), "r"
-        ) as json_file:
+        with open(output_file, "r") as json_file:
             written_data = json.load(json_file)
             assert written_data == expected_output
 
@@ -126,7 +117,11 @@ def test_write_data_creates_json_file():
                 "can be of any type, but must be JSON serializable."
             ),
         ):
-            exporter.write_data("not a numpy array", test_config)
+            exporter.write_data(
+                "not a numpy array",
+                output_file,
+                property_name,
+            )
         with pytest.raises(
             AssertionError,
             match=(
@@ -134,7 +129,11 @@ def test_write_data_creates_json_file():
                 "Adapt the user function."
             ),
         ):
-            exporter.write_data(np.array([1, 2], dtype=int), test_config)
+            exporter.write_data(
+                np.array([1, 2], dtype=int),
+                output_file,
+                property_name,
+            )
         with pytest.raises(
             AssertionError,
             match=(
@@ -147,7 +146,8 @@ def test_write_data_creates_json_file():
                     [(2.3, [1.1, 2.5])],
                     dtype=[("index", "f8"), ("property1", "f8", 2)],
                 ),
-                test_config,
+                output_file,
+                property_name,
             )
 
         with pytest.raises(
@@ -162,7 +162,8 @@ def test_write_data_creates_json_file():
                     [(1, [1.1, 2.5])],
                     dtype=[("not_index", "i4"), ("property1", "f8", 2)],
                 ),
-                test_config,
+                output_file,
+                property_name,
             )
         with pytest.raises(
             AssertionError,
@@ -172,7 +173,9 @@ def test_write_data_creates_json_file():
             ),
         ):
             exporter.write_data(
-                np.array([1], dtype=[("index", "i4")]), test_config
+                np.array([1], dtype=[("index", "i4")]),
+                output_file,
+                property_name,
             )
         with pytest.raises(
             RuntimeError,
@@ -189,7 +192,11 @@ def test_write_data_creates_json_file():
                     ("property2", "O"),
                 ],
             )
-            exporter.write_data(arr, test_config)
+            exporter.write_data(
+                arr,
+                output_file,
+                property_name,
+            )
         with pytest.raises(
             RuntimeError,
             match=(
@@ -198,8 +205,7 @@ def test_write_data_creates_json_file():
                 "configuration."
             ),
         ):
-            test_config["output options"].pop("name_of_output_property")
-            exporter.write_data(arr, test_config)
+            exporter.write_data(arr, output_file)
 
 
 def test_write_data_creates_txt_file():
@@ -207,15 +213,13 @@ def test_write_data_creates_txt_file():
     export_string = "test."
 
     test_config = {
-        "output options": {
-            "output_path": str(Path.cwd() / "test_directory"),
-            "output_name": "test_output",
-        }
+        "output_path": str(Path.cwd() / "test_directory"),
+        "output_name": "test_output",
     }
     exporter = Exporter()
     exporter.export_format = ExportFormat.TXT
     file_path = os.path.join(
-        Path(test_config["output options"]["output_path"]), "test_output.txt"
+        Path(test_config["output_path"]), "test_output.txt"
     )
 
     err_string = (
@@ -223,23 +227,20 @@ def test_write_data_creates_txt_file():
         " function must return a string."
     )
     with mock.patch("builtins.open", mock.mock_open()) as mocked_file:
-        exporter.write_data(export_string, test_config)
-        mocked_file.assert_called_once_with(file_path, "w")
+        exporter.write_data(export_string, Path(file_path))
+        mocked_file.assert_called_once_with(Path(file_path), "w")
         mocked_file().write.assert_called_once_with(export_string)
 
         with pytest.raises(AssertionError, match=err_string):
-            exporter.write_data(0, test_config)
+            exporter.write_data(0, Path(file_path))
 
 
 def test_export_vtk_adds_cell_data_and_saves_file():
     """Test export_vtk adds cell data to unstructured grid and saves the
     file."""
-    test_config = {
-        "output options": {
-            "output_path": str(Path.cwd() / "test_directory"),
-            "output_name": "test_output",
-        }
-    }
+    vtk_output_path = Path(
+        str(Path.cwd() / "test_directory" / "test_output.vtu"),
+    )
     elements = [Element([0, 1], 0, data=10), Element([0, 1], 1, data=20)]
     pixel_type = PixelValueType.CT
     exported_data = {
@@ -261,7 +262,7 @@ def test_export_vtk_adds_cell_data_and_saves_file():
     ) as mock_init_grid:
         with patch.object(mock_grid, "save") as mock_save:
             exporter.export_vtk(
-                test_config,
+                vtk_output_path,
                 elements,
                 pixel_type,
                 exported_data,
@@ -278,11 +279,7 @@ def test_export_vtk_adds_cell_data_and_saves_file():
                     np.array([[1.0, 2.0], [2.0, 3.0]]),
                 )
 
-            expected_file_path = os.path.join(
-                test_config["output options"]["output_path"],
-                f"{test_config['output options']['output_name']}.vtu",
-            )
-            mock_save.assert_called_once_with(expected_file_path)
+            mock_save.assert_called_once_with(vtk_output_path)
 
 
 @pytest.fixture
@@ -296,7 +293,8 @@ def exporter_mocks():
         patch.object(
             Exporter,
             "parse_export_format",
-            side_effect=lambda config: setattr(
+            return_value=ExportFormat.JSON,
+            side_effect=lambda export_format: setattr(
                 Exporter, "export_format", ExportFormat.JSON
             ),
         ) as mock_parse_export_format,
@@ -323,13 +321,10 @@ def exporter_mocks():
 
 def test_export_data(exporter_mocks):
     """Test export_data."""
-    test_config = {
-        "processing options": {
-            "user_script": "mock_script.py",
-            "user_function": "mock_function",
-            "normalize_values": True,
-        }
-    }
+
+    user_script = Path("mock_script.py")
+    user_function = "mock_function"
+    normalize = True
     pixel_range = np.array([0, 20])
     element1 = Element([0, 1], 0, data=10)
     element2 = Element([0, 1], 1, data=20)
@@ -340,25 +335,35 @@ def test_export_data(exporter_mocks):
     export_data(
         elements,
         mock_discretization,
-        test_config,
-        pixel_range,
-        PixelValueType.CT,
+        user_script_path=user_script,
+        user_function_name=user_function,
+        export_format="json",
+        property_output_file=Path("output.json"),
+        name_of_output_property="property_name",
+        normalize=normalize,
+        vtk_output_file=Path("output.vtu"),
+        pixel_range=pixel_range,
+        pixel_type=PixelValueType.CT,
     )
 
     exporter_mocks["mock_parse_export_format"].assert_called_once_with(
-        test_config
+        export_format="json"
     )
     args, _ = exporter_mocks["mock_normalize_values"].call_args
     np.testing.assert_array_equal(args[0], np.array([10, 20]))
     np.testing.assert_array_equal(args[1], np.array([0, 20]))
 
     exporter_mocks["mock_load_user_function"].assert_called_once_with(
-        "mock_script.py", "mock_function"
+        Path("mock_script.py"), "mock_function"
     )
 
     args, _ = exporter_mocks["mock_write_data"].call_args
     np.testing.assert_array_equal(args[0], expected_result)
-    assert args[1] == test_config
+    assert args[1] == Path("output.json")
     exporter_mocks["mock_export_vtk"].assert_called_once_with(
-        test_config, elements, PixelValueType.CT, None, mock_discretization
+        Path("output.vtu"),
+        elements,
+        PixelValueType.CT,
+        None,
+        mock_discretization,
     )

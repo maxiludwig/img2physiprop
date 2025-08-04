@@ -70,7 +70,7 @@ class FourCYamlReader(DiscretizationReader):
         return dis
 
     def load_discretization(
-        self, file_path: Path, config: dict
+        self, file_path: Path, options: dict
     ) -> Discretization:
         """Loads and processes a finite element discretization from a .4C.yaml
         file.
@@ -81,7 +81,9 @@ class FourCYamlReader(DiscretizationReader):
 
         Arguments:
             file_path (Path): Path to the .4C.yaml file.
-            config (dict): User configuration containing material ID filters.
+            options (dict): Options for loading the discretization.
+                Filtering for material ids can be enabled by specifying
+                `material_ids` in the options dictionary.
 
         Returns:
             Discretization: The finite element discretization including nodes
@@ -94,10 +96,9 @@ class FourCYamlReader(DiscretizationReader):
 
         raw_dis.compute_ids(zero_based=True)
 
-        if config["material_ids"] is not None:
-
+        if options["material_ids"] is not None:
             raw_dis = self._filter_discretization(
-                raw_dis, np.array(config["material_ids"])
+                raw_dis, np.array(options["material_ids"])
             )
 
         nodes_coords = []

@@ -99,7 +99,7 @@ class PngReader(ImageReader):
         """Loads and processes PNG image data from a specified directory.
 
         This function reads all PNG files in the given folder, verifies
-        the format of the image_metadata in the configuration, and
+        the format of the image_metadata dictionary, and
         converts the images to RGB format. The 2-dimensional PNG images
         together represent a 3D image.
 
@@ -118,7 +118,7 @@ class PngReader(ImageReader):
 
         logging.info("Load image data!")
 
-        self._verify_image_metadata(self.config["image_metadata"])
+        self._verify_image_metadata(self.options["image_metadata"])
 
         raw_png = []
 
@@ -152,7 +152,7 @@ class PngReader(ImageReader):
                 grid coordinates, orientation, and metadata.
         """
 
-        image_metadata = self.config["image_metadata"]
+        image_metadata = self.options["image_metadata"]
 
         row_direction = np.array(
             image_metadata.get("row_direction") or [0, -1, 0]

@@ -39,7 +39,6 @@ def _run_processes_safely(*processes: Process) -> None:
 
 
 def visualize_results(
-    config: dict,
     elements_with_values: list[Element],
     image_data: ImageData,
     dis: Discretization,
@@ -51,8 +50,6 @@ def visualize_results(
     - One for visualizing the image data as a structured grid.
 
     Arguments:
-        config (dict): Configuration dictionary containing visualization
-            options.
         elements_with_values (list[Element]): List of elements with their
             assigned values.
         image_data (ImageData): Image data containing pixel values and grid
@@ -77,7 +74,7 @@ def visualize_results(
             title="Mesh Visualization",
         )
 
-        visualizer_dis.compute_grid(config, elements_with_values, dis)
+        visualizer_dis.compute_grid(elements_with_values, dis)
 
         visualizer_dis.plot_grid()
 
