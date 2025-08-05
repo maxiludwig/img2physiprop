@@ -17,18 +17,6 @@ docs/
 ### IDE specifications ###
 .vscode/
 
-### YAML ###
-*.4C.yaml
-
-### STL ###
-*.stl
-
-### Dicom ###
-*.dcm
-
-### PNG ###
-*.png
-
 # temporary files which can be created if a process still has a handle open of a deleted file
 .fuse_hidden*
 
@@ -49,7 +37,6 @@ docs/
 
 # Icon must end with two \r
 Icon
-
 
 # Thumbnails
 ._*

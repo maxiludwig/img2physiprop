@@ -51,3 +51,6 @@ src_paths = ["src/i2pp/", "tests/"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-p pytest_cov --cov-report=term --cov-report=html --cov-fail-under=90 --cov=src/i2pp/ --cov-append"
+markers = [
+    "integration: mark a test as an integration test"
+]
