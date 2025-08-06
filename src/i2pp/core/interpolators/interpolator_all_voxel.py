@@ -21,7 +21,7 @@ class InterpolatorAllVoxel(Interpolator):
     This class extends Interpolator and specializes in assigning pixel values
     from 3D image data to finite element mesh elements by computing the mean
     of all voxels contained within each element. This approach is used when
-    `calculation_type` is set to "allvoxels".
+    `interpolation_method` is set to "allvoxels".
     """
 
     def _search_bounding_box(

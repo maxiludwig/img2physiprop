@@ -19,8 +19,7 @@ def main() -> None:
     logging.basicConfig(level=logging.DEBUG)
     parser = argparse.ArgumentParser(description="Process some integers.")
     parser.add_argument(
-        "--config",
-        "-cfp",
+        "config",
         help="Path to config file.",
         type=str,
     )

@@ -1,0 +1,29 @@
+import:
+  discretization:
+    path: {{ mesh_file }}
+    type: yaml
+  image:
+    path: {{ image_folder }}
+    type: png
+    options:
+      metadata:
+        pixel_spacing: [0.1, 0.02, 0.05]
+        row_direction: [0, 1, 0]
+        column_direction: [1, 0, 0]
+        slice_direction: [0, 0, 1]
+        image_position: [-0.25, -0.1, -0.5]
+processing:
+  smoothing:
+    smoothing_area: 2
+    visualize: false
+  interpolation_method: nodes
+  transformation:
+    user_script: {{ user_function }}
+    user_function: user_function
+    normalize_values: true
+    visualize: false
+export:
+  folder_path: {{ tmp_test_dir }}
+  file_name: physical_property
+  type: json
+  output_parameter_name: STIFFNESS

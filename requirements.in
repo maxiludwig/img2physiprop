@@ -16,3 +16,4 @@ pdoc3
 pyfiglet
 pytest-cov
 numba
+jinja2

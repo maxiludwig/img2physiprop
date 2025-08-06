@@ -12,7 +12,7 @@ def interpolate_image_to_discretization(
     dis: Discretization, image_data: ImageData, interpolation_method: str
 ) -> list[Element]:
     """Performs interpolation of image data onto the FEM Discretization based
-    on the specified calculation type.
+    on the specified interpolation method.
 
     This function applies different interpolation methods depending on the
     user configuration. The pixel values are assigned to the FEM elements
