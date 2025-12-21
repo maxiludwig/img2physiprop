@@ -43,8 +43,8 @@ class DiscretizationVisualizer(Visualizer):
         Arguments:
             elements_with_values (list[Element]): List of elements with
                 assigned values.
-            dis (Discretization): The discretization object containing nodes
-                and elements.
+            dis (Discretization): The discretization object containing nodes,
+                elements and surfaces.
         Returns:
             None
         """

@@ -174,7 +174,7 @@ class InterpolatorAllVoxel(Interpolator):
 
         Arguments:
             dis (Discretization): The Discretization object containing FEM
-                elements and node coordinates.
+                surfaces, elements and node coordinates.
             image_data (ImageData): A structured representation containing 3D
                 pixel data, grid coordinates, orientation, and metadata.
 

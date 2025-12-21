@@ -65,6 +65,9 @@ class MeshReader(DiscretizationReader):
         for i, face in enumerate(raw_dis.faces):
             elements.append(Element(node_ids=face, id=i))
 
-        dis = Discretization(nodes=nodes, elements=elements)
+        # TODO: Add surfaces if needed in the future
+        # surfaces = []
+
+        dis = Discretization(nodes=nodes, elements=elements, surfaces=[])
 
         return dis

@@ -82,8 +82,8 @@ def export_data(
     Arguments:
         transformed_data (Any): The result from the transform_data function.
         elements (List[Element]): List of elements with IDs and data.
-        dis (Discretization): The discretization object containing nodes
-            and elements.
+        dis (Discretization): The discretization object containing nodes,
+            elements and surfaces.
         export_format (str): The format in which the data will be
             exported (e.g., "json", "txt").
         property_output_file (Path): Path to the output file where the

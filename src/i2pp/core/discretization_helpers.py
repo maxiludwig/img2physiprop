@@ -94,8 +94,8 @@ def initialize_unstructured_grid(
             values.
         pixel_type (PixelValueType): The type of pixel values (e.g., RGB,
             MRT, CT).
-        dis (Discretization): The discretization object containing nodes and
-            elements.
+        dis (Discretization): The discretization object containing nodes,
+            elements and surfaces.
     Returns:
         tuple[pv.UnstructuredGrid, np.ndarray]: A tuple containing the
             PyVista `UnstructuredGrid` and a boolean array indicating which
@@ -150,8 +150,8 @@ def get_elementwise_image_values(
     Arguments:
         elements_with_values (list[Element]): List of elements with assigned
             values.
-        dis (Discretization): The discretization object containing nodes and
-            elements.
+        dis (Discretization): The discretization object containing nodes,
+            elements and surfaces.
         pixel_type (PixelValueType): The type of pixel values (e.g., RGB,
             MRT, CT).
     Returns:

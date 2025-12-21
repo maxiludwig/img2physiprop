@@ -30,8 +30,8 @@ class InterpolatorCenter(Interpolator):
         element.
 
         Arguments:
-            dis (Discretization): A finite element mesh containing elements
-                and their associated nodes.
+            dis (Discretization): A finite element mesh containing surfaces,
+                elements and their associated nodes.
 
         Returns:
             Discretization: The input Discretization object with updated
@@ -66,8 +66,8 @@ class InterpolatorCenter(Interpolator):
         retrieves the corresponding pixel values through interpolation.
 
         Arguments:
-            dis (Discretization): A finite element mesh containing elements
-                and their associated nodes.
+            dis (Discretization): A finite element mesh containing surfaces
+                elements and their associated nodes.
             image_data (ImageData): A structured representation of 3D image
                 data, including pixel intensities, grid coordinates, and
                 orientation.

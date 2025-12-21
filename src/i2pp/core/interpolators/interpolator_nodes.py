@@ -34,8 +34,8 @@ class InterpolatorNodes(Interpolator):
         representative value to the element.
 
         Arguments:
-            dis (Discretization): The FEM discretization containing elements
-                and node coordinate data.
+            dis (Discretization): The FEM discretization containing surfaces,
+                elements and node coordinate data.
             image_data (ImageData): The 3D image dataset, including voxel
                 values, spatial positioning, and metadata.
 

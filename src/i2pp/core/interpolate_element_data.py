@@ -27,7 +27,7 @@ def interpolate_image_to_discretization(
 
     Arguments:
         dis (Discretization): The Discretization object containing FEM
-            elements and node coordinates.
+            surfaces, elements and node coordinates.
         image_data (ImageData): A structured representation containing 3D
             pixel data, grid coordinates, orientation, and metadata.
         interpolation_method (str): The type of interpolation to perform for

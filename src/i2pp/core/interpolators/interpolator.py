@@ -142,7 +142,7 @@ class Interpolator:
 
         Arguments:
             dis (Discretization): The Discretization object containing FEM
-                elements and node coordinates.
+                surfaces, elements and node coordinates.
             image_data (ImageData): The 3D image data containing voxel
                 coordinates and intensity values.
 

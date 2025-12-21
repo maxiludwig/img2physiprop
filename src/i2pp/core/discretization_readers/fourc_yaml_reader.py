@@ -10,6 +10,7 @@ from i2pp.core.discretization_readers.discretization_reader import (
     DiscretizationReader,
     Element,
     Nodes,
+    Surface,
 )
 from lnmmeshio import Discretization as FourCDiscretization
 from tqdm import tqdm
@@ -119,9 +120,21 @@ class FourCYamlReader(DiscretizationReader):
                 Element(node_ids=np.array(ele_node_ids), id=ele.id)
             )
 
+        surfaces = []
+
+        for surf in raw_dis.surfacenodesets:
+            surf_node_ids = []
+            for node in surf.nodes:
+                surf_node_ids.append(node.id)
+
+            surfaces.append(
+                Surface(node_ids=np.array(surf_node_ids), id=surf.id)
+            )
+
         dis = Discretization(
             nodes=Nodes(coords=np.array(nodes_coords), ids=np.array(node_ids)),
             elements=elements,
+            surfaces=surfaces,
         )
 
         return dis

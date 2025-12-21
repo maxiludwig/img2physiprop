@@ -63,6 +63,23 @@ class Element:
 
 
 @dataclass
+class Surface:
+    """Class for storing information about a surface in the Discretization.
+
+    This class represents a surface in the mesh Discretization, defined
+    by its node IDs, an surface ID, and associated data.
+
+    Attributes:
+        node_ids (np.ndarray): An array of node IDs that define the nodes of
+            the surface.
+        id (int): A unique identifier for the surface.
+    """
+
+    node_ids: np.ndarray
+    id: int
+
+
+@dataclass
 class Discretization:
     """Class for storing Discretization data.
 
@@ -77,12 +94,16 @@ class Discretization:
         elements (list[Element]): A list of elements, each representing a part
             of the Discretization, containing information such as node IDs,
             element ID, center coordinates, and element data.
+        surfaces (list[Surface]): A list of surfaces, each representing a part
+            of the Discretization, containing information such as node IDs
+            and surface ID.
         bounding_box (Optional[np.ndarray]): Boundary limits of the
             Discretization.
     """
 
     nodes: Nodes
     elements: list[Element]
+    surfaces: list[Surface]
     bounding_box: Optional[BoundingBox] = None
 
 

@@ -25,7 +25,7 @@ def test_compute_element_data():
     elements = [element1, element2]
 
     nodes = Nodes(coords=node_coords, ids=[0, 1, 2, 3])
-    dis = Discretization(nodes=nodes, elements=elements)
+    dis = Discretization(nodes=nodes, elements=elements, surfaces=[])
 
     pixel_data = np.random.randint(0, 256, size=(4, 4, 4, 3))
 
