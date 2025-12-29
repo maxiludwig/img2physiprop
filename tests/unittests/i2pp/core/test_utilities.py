@@ -3,6 +3,7 @@
 import numpy as np
 from i2pp.core.discretization_readers.discretization_reader import BoundingBox
 from i2pp.core.utilities import (
+    create_mesh_mask,
     find_mins_maxs,
     get_node_position_of_element,
     make_json_serializable,
@@ -88,7 +89,7 @@ def test_smoothing_dicom():
     )
     pixel_data = np.array([array_slice1, array_slice2, array_slice3])
 
-    pixel_data_smoothed = smooth_data(pixel_data, 3)
+    pixel_data_smoothed = smooth_data(pixel_data, 3, mask=None)
 
     assert pixel_data_smoothed[1][1][1] == 5
 
@@ -125,7 +126,7 @@ def test_smoothing_rgb():
 
     pixel_data = np.array([array_slice1, array_slice2, array_slice3])
 
-    pixel_data_smoothed = smooth_data(pixel_data, 3)
+    pixel_data_smoothed = smooth_data(pixel_data, 3, mask=None)
 
     assert np.array_equal(pixel_data_smoothed[1][1][1], np.array([3, 3, 2]))
 
@@ -173,3 +174,93 @@ def test_make_json_serializable_non_numpy():
     value = {"x": 1, "y": [2, 3]}
     result = make_json_serializable(value)
     assert result == value
+
+
+def test_create_mesh_mask_cube_covers_entire_grid():
+    """Create a cube mesh that spans the whole 3x3x3 grid and expect a full
+    True mask."""
+
+    # Dummy discretization: nodes are the 8 cube corners at coordinates 0 or 2
+    class DummyNodes:
+        """Dummy class representing nodes in a discretization."""
+
+        def __init__(self, ids, coords):
+            """Initialize DummyNodes.
+
+            Args:
+                ids (list): List of node IDs.
+                coords (list): List of node coordinates.
+            """
+            self.ids = np.array(ids)
+            self.coords = np.array(coords, dtype=float)
+
+    class DummyElement:
+        """Dummy class representing an element in a discretization."""
+
+        def __init__(self, node_ids):
+            """Initialize DummyElement.
+
+            Args:
+                node_ids (list): List of node IDs forming the element.
+            """
+            self.node_ids = np.array(node_ids)
+
+    class DummyDiscretization:
+        """Dummy class representing a discretization."""
+
+        def __init__(self, nodes, elements):
+            """Initialize DummyDiscretization.
+
+            Args:
+                nodes (DummyNodes): Nodes in the discretization.
+                elements (list): Elements in the discretization.
+            """
+            self.nodes = nodes
+            self.elements = elements
+
+    class DummyGridCoords:
+        """Dummy class representing grid coordinates."""
+
+        def __init__(self, coords):
+            """Initialize DummyGridCoords.
+
+            Args:
+                coords (list): List of grid coordinates.
+            """
+            self.slice = coords  # z
+            self.row = coords  # y
+            self.col = coords  # x
+
+    class DummyImage:
+        """Dummy class representing an image."""
+
+        def __init__(self):
+            """Initialize DummyImage."""
+            self.pixel_data = np.zeros((3, 3, 3), dtype=np.float32)
+            self.orientation = np.eye(3, dtype=float)
+            self.position = np.zeros(3, dtype=float)
+            coords = np.array([0.0, 1.0, 2.0], dtype=float)
+            self.grid_coords = DummyGridCoords(coords)
+
+    # Define cube corners
+    corners = [
+        [0, 0, 0],
+        [2, 0, 0],
+        [0, 2, 0],
+        [0, 0, 2],
+        [2, 2, 0],
+        [2, 0, 2],
+        [0, 2, 2],
+        [2, 2, 2],
+    ]
+    node_ids = list(range(1, 9))
+    nodes = DummyNodes(node_ids, corners)
+    # Single element with all 8 nodes (convex hull == cube)
+    elements = [DummyElement(node_ids)]
+    discretization = DummyDiscretization(nodes, elements)
+    image = DummyImage()
+
+    mask = create_mesh_mask(discretization, image)
+
+    assert mask.shape == (3, 3, 3)
+    assert np.all(mask)
