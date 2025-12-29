@@ -13,7 +13,7 @@ from i2pp.core.interpolate_element_data import (
     interpolate_image_to_discretization,
 )
 from i2pp.core.transform_data import transform_data
-from i2pp.core.utilities import smooth_data
+from i2pp.core.utilities import create_mesh_mask, smooth_data
 from i2pp.core.visualize_results import visualize_results, visualize_smoothing
 
 
@@ -54,6 +54,9 @@ def run_i2pp(config_i2pp):
         discretization.bounding_box,
     )
 
+    # Build exact mesh mask
+    image.mask = create_mesh_mask(discretization, image)
+
     # If smoothing is enabled, smooth the image data
     if config.processing.smoothing:
         # Create a copy of the image data for visualization purposes
@@ -61,7 +64,9 @@ def run_i2pp(config_i2pp):
             image_raw = copy.deepcopy(image)
 
         image.pixel_data = smooth_data(
-            image.pixel_data, config.processing.smoothing.smoothing_area
+            image.pixel_data,
+            config.processing.smoothing.smoothing_area,
+            mask=image.mask,
         )
 
         if config.processing.smoothing.visualize:
