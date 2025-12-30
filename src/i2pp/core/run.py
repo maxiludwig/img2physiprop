@@ -77,6 +77,7 @@ def run_i2pp(config_i2pp):
         discretization,
         image,
         interpolation_method=config.processing.interpolation_method,
+        filter_outliers=config.processing.filter_outliers,
     )
 
     # Transform the data using the user-defined python function

@@ -108,18 +108,35 @@ class Processing:
     interpolation_method: str
     smoothing: Optional[Smoothing]
     transformation: Transformation
+    filter_outliers: Optional[bool] = field(default=False)
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "Processing":
         """Creates a Processing instance from a dictionary."""
+        # support both top-level 'interpolation_method'
+        # and nested 'interpolation.method'
+        interp_method = d.get("interpolation_method")
+        if interp_method is None and "interpolation" in d:
+            interp_method = d["interpolation"].get("method")
+        if not isinstance(interp_method, str) or not interp_method:
+            raise KeyError("interpolation_method")
+
+        # support filter_outliers at top-level or nested
+        filter_out = d.get("filter_outliers")
+        if filter_out is None:
+            filter_out = d.get("interpolation", {}).get(
+                "filter_outliers", False
+            )
+
         return Processing(
-            interpolation_method=d["interpolation_method"],
+            interpolation_method=interp_method,
             smoothing=(
-                Smoothing.from_dict(d["smoothing"])
+                Smoothing.from_dict(d.get("smoothing"))
                 if d.get("smoothing") is not None
                 else None
             ),
             transformation=Transformation.from_dict(d["transformation"]),
+            filter_outliers=filter_out,
         )
 
 
