@@ -31,10 +31,13 @@ class Nodes:
         coords (np.ndarray): An (N, 3) array containing the (x, y, z)
             world coordinates of each node.
         ids (np.ndarray): An array of IDs for each node.
+        weights (Optional[np.ndarray]): Optional per-node weights,
+            e.g., low weights for surface nodes.
     """
 
     coords: np.ndarray
     ids: np.ndarray
+    weights: Optional[np.ndarray] = None
 
 
 @dataclass

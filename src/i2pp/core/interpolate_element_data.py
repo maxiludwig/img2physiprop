@@ -9,7 +9,11 @@ from i2pp.core.interpolators.interpolator_types import InterpolationType
 
 
 def interpolate_image_to_discretization(
-    dis: Discretization, image_data: ImageData, interpolation_method: str
+    dis: Discretization,
+    image_data: ImageData,
+    interpolation_method: str,
+    *,
+    filter_outliers: bool = False,
 ) -> list[Element]:
     """Performs interpolation of image data onto the FEM Discretization based
     on the specified interpolation method.
@@ -34,13 +38,17 @@ def interpolate_image_to_discretization(
             assigning pixel values to the elements. This should match one of
             the `InterpolationType` enum values (e.g., "nodes",
             "elementcenter", "allvoxels").
+        filter_outliers (bool, optional): Whether to filter outliers during
+            interpolation. Defaults to False.
 
     Returns:
         list[Element]: A list of FEM elements with interpolated pixel data.
     """
-
     enum_interpolation_method = InterpolationType(interpolation_method)
 
-    interpolator = enum_interpolation_method.get_interpolator()()
+    # Use factory to configure weighted vs unweighted and outlier filtering
+    interpolator = enum_interpolation_method.create_interpolator(
+        filter_outliers=filter_outliers
+    )
 
     return interpolator.compute_element_data(dis, image_data)

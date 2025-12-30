@@ -104,10 +104,12 @@ class FourCYamlReader(DiscretizationReader):
 
         nodes_coords = []
         node_ids = []
+        nodes_weights = []
 
         for node in raw_dis.nodes:
             nodes_coords.append(node.coords)
             node_ids.append(node.id)
+            nodes_weights.append(5.0)
 
         elements = []
 
@@ -126,13 +128,20 @@ class FourCYamlReader(DiscretizationReader):
             surf_node_ids = []
             for node in surf.nodes:
                 surf_node_ids.append(node.id)
+                # get position of node in node_ids list and set weight
+                position = node_ids.index(node.id)
+                nodes_weights[position] = 0.0
 
             surfaces.append(
                 Surface(node_ids=np.array(surf_node_ids), id=surf.id)
             )
 
         dis = Discretization(
-            nodes=Nodes(coords=np.array(nodes_coords), ids=np.array(node_ids)),
+            nodes=Nodes(
+                coords=np.array(nodes_coords),
+                ids=np.array(node_ids),
+                weights=np.array(nodes_weights),
+            ),
             elements=elements,
             surfaces=surfaces,
         )
