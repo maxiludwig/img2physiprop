@@ -38,7 +38,7 @@ def minimal_valid_config(tmp_path):
             },
         },
         "processing": {
-            "interpolation_method": "nodes",
+            "interpolation": {"method": "nodes"},
             "transformation": {
                 "user_script": str(script_path),
                 "user_function": "process_image_data",
@@ -147,7 +147,7 @@ def maximal_valid_config(tmp_path):
             },
         },
         "processing": {
-            "interpolation_method": "nodes",
+            "interpolation": {"method": "nodes"},
             "transformation": {
                 "user_script": str(script_path),
                 "user_function": "process_image_data",

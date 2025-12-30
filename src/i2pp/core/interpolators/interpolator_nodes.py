@@ -1,5 +1,7 @@
 """Interpolates pixel values from image-data to mesh-data."""
 
+from typing import cast
+
 import numpy as np
 from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
@@ -120,8 +122,13 @@ class InterpolatorNodes(Interpolator):
         w = weights_current[nan_mask]
 
         wsum = float(np.sum(w))
-        if wsum > 0:
-            w = w / wsum  # normalize to avoid scaling issues
+        if wsum == 0:
+            if num_values > 1:
+                return np.mean(vals, axis=0)
+            else:
+                return np.array([np.mean(vals)])
+
+        w = w / wsum  # Normalize weights
 
         if num_values == 1:
             val = np.average(vals.reshape(-1), weights=w)
@@ -173,8 +180,6 @@ class InterpolatorNodes(Interpolator):
             self._mode == "nodes_weighted"
             and getattr(dis.nodes, "weights", None) is not None
         ):
-            from typing import cast
-
             node_weights = cast(np.ndarray, dis.nodes.weights)
 
         for i, ele in tqdm(

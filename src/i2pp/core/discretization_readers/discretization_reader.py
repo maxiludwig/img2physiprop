@@ -126,7 +126,7 @@ class DiscretizationReader(ABC):
 
     @abstractmethod
     def load_discretization(
-        self, file_path: Path, options: dict
+        self, file_path: Path, options: dict, processing: dict
     ) -> Discretization:
         """Abstract method to load discretization data from a file path.
 

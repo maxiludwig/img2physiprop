@@ -45,6 +45,7 @@ def run_i2pp(config_i2pp):
     discretization = verify_and_load_discretization(
         config.import_.discretization.path,
         config.import_.discretization.options,
+        config.processing,
     )
 
     # Load the image data
@@ -65,7 +66,7 @@ def run_i2pp(config_i2pp):
 
         image.pixel_data = smooth_data(
             image.pixel_data,
-            config.processing.smoothing.smoothing_area,
+            config.processing.smoothing.area,
             mask=image.mask,
         )
 
@@ -76,8 +77,8 @@ def run_i2pp(config_i2pp):
     elements = interpolate_image_to_discretization(
         discretization,
         image,
-        interpolation_method=config.processing.interpolation_method,
-        filter_outliers=config.processing.filter_outliers,
+        interpolation_method=config.processing.interpolation.method,
+        filter_outliers=config.processing.interpolation.filter_outliers,
     )
 
     # Transform the data using the user-defined python function

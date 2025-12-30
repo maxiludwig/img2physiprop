@@ -71,7 +71,10 @@ class FourCYamlReader(DiscretizationReader):
         return dis
 
     def load_discretization(
-        self, file_path: Path, options: dict
+        self,
+        file_path: Path,
+        options: dict,
+        processing: "I2PPConfig.processing",
     ) -> Discretization:
         """Loads and processes a finite element discretization from a .4C.yaml
         file.
@@ -85,6 +88,7 @@ class FourCYamlReader(DiscretizationReader):
             options (dict): Options for loading the discretization.
                 Filtering for material ids can be enabled by specifying
                 `material_ids` in the options dictionary.
+            processing (I2PPConfig.processing): Processing configuration object.
 
         Returns:
             Discretization: The finite element discretization including nodes
@@ -102,6 +106,9 @@ class FourCYamlReader(DiscretizationReader):
                 raw_dis, np.array(options["material_ids"])
             )
 
+        interior_weight = processing.interpolation.interior_node_weight
+        surface_weight = processing.interpolation.surface_node_weight
+
         nodes_coords = []
         node_ids = []
         nodes_weights = []
@@ -109,7 +116,7 @@ class FourCYamlReader(DiscretizationReader):
         for node in raw_dis.nodes:
             nodes_coords.append(node.coords)
             node_ids.append(node.id)
-            nodes_weights.append(5.0)
+            nodes_weights.append(interior_weight)
 
         elements = []
 
@@ -128,9 +135,8 @@ class FourCYamlReader(DiscretizationReader):
             surf_node_ids = []
             for node in surf.nodes:
                 surf_node_ids.append(node.id)
-                # get position of node in node_ids list and set weight
                 position = node_ids.index(node.id)
-                nodes_weights[position] = 0.0
+                nodes_weights[position] = surface_weight
 
             surfaces.append(
                 Surface(node_ids=np.array(surf_node_ids), id=surf.id)

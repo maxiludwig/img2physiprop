@@ -84,9 +84,15 @@ def test_load_discretization_fourc_yaml_without_filter(tmp_path: Path) -> None:
         mock_dis.elements.structure = [ele1, ele2]
         mock_dis.nodes = [node1, node2, node3, node4]
 
-        test_config = {"material_ids": None}
+        # test_config
+        test_options = {"material_ids": None}
+        mock_processing = MagicMock()
+        mock_processing.interpolation.interior_node_weight = 1.0
+        mock_processing.interpolation.surface_node_weight = 0.0
 
-        dis_loaded = test_dis.load_discretization(Path(test_path), test_config)
+        dis_loaded = test_dis.load_discretization(
+            Path(test_path), test_options, mock_processing
+        )
 
         assert np.array_equal(
             dis_loaded.nodes.coords,

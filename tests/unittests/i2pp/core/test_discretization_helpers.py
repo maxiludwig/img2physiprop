@@ -73,6 +73,7 @@ def test_verify_and_load_discretization():
 
     absolut_path = Path.cwd() / "test_path.4C.yaml"
     options_dict = {}
+    processing_dict = {}
     mock_bounding = tuple([[0, 0, 0], [1, 1, 1]])
     nodes = Nodes([0, 0, 0], 0)
     mock_dis = Discretization(nodes, [], [])
@@ -89,14 +90,14 @@ def test_verify_and_load_discretization():
                 return_value=mock_bounding,
             ) as mock_find_mins_maxs:
                 dis = verify_and_load_discretization(
-                    absolut_path, options_dict
+                    absolut_path, options_dict, processing_dict
                 )
 
                 mock_determine_discretization_format.assert_called_once_with(
                     absolut_path
                 )
                 mock_load_discretization.assert_called_once_with(
-                    absolut_path, options_dict
+                    absolut_path, options_dict, processing_dict
                 )
                 mock_find_mins_maxs.assert_called_once_with(
                     points=[0, 0, 0], enlargement=2

@@ -42,6 +42,7 @@ def test_i2pp_integration_random_colors():
             image_folder=image_folder,
             user_function=user_function,
         )
+
         input_file_filled = os.path.join(tmpdir, "random_colors.yaml")
         with open(input_file_filled, "w") as file:
             file.write(rendered_content)

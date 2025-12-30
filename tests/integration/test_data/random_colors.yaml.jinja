@@ -14,9 +14,10 @@ import:
         image_position: [-0.25, -0.1, -0.5]
 processing:
   smoothing:
-    smoothing_area: 2
+    area: 2
     visualize: false
-  interpolation_method: nodes
+  interpolation:
+    method: nodes
   transformation:
     user_script: {{ user_function }}
     user_function: user_function

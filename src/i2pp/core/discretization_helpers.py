@@ -50,7 +50,9 @@ def determine_discretization_format(file_path: Path) -> DiscretizationFormat:
 
 
 def verify_and_load_discretization(
-    discretization_path: Path, options: dict
+    discretization_path: Path,
+    options: dict,
+    processing: dict,
 ) -> Discretization:
     """Loads and processes mesh data.
 
@@ -62,6 +64,7 @@ def verify_and_load_discretization(
         discretization_path (Path): Path to the discretization file.
         options (dict): Options for loading the discretization that are passed
             to the reader classes.
+        processing (dict): Processing options are passed to the reader classes.
 
     Returns:
         DiscretizationData: The loaded and processed mesh data.
@@ -70,7 +73,9 @@ def verify_and_load_discretization(
 
     dis_reader = dis_format.get_reader()()
 
-    dis = dis_reader.load_discretization(discretization_path, options)
+    dis = dis_reader.load_discretization(
+        discretization_path, options, processing
+    )
 
     bounding_box = find_mins_maxs(points=dis.nodes.coords, enlargement=2)
 
