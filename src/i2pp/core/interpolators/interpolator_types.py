@@ -41,11 +41,24 @@ class InterpolationType(Enum):
     def create_interpolator(
         self, *, filter_outliers: bool = False
     ) -> Interpolator:
-        """Factory that returns a configured interpolator instance.
+        """Creates and returns a configured interpolator instance based on the
+        selected interpolation method.
 
-        For ALLVOXELS/ALLVOXELS_WEIGHTED, this method configures the
-        unified InterpolatorAllVoxel with the appropriate mode and
-        optional outlier filtering.
+        This method returns a configured interpolator instance for assigning
+        pixel values to FEM elements, depending on the current interpolation
+        method. Supported methods include interpolation at element nodes,
+        element centers, or averaging all voxels within an element.
+
+        Args:
+            filter_outliers (bool): If True, outliers will be filtered during
+                interpolation. Defaults to False.
+
+        Returns:
+            Interpolator: An instance of the interpolator that matches the
+                specified interpolation method.
+
+        Raises:
+            ValueError: If the interpolation method is not supported.
         """
         if self == InterpolationType.ALLVOXELS:
             return InterpolatorAllVoxel(
@@ -55,8 +68,10 @@ class InterpolationType(Enum):
             return InterpolatorAllVoxel(
                 mode="allvoxels_weighted", filter_outliers=filter_outliers
             )
-        if self in (InterpolationType.NODES, InterpolationType.NODES_WEIGHTED):
-            return InterpolatorNodes()
+        if self == InterpolationType.NODES:
+            return InterpolatorNodes(mode="nodes")
+        if self == InterpolationType.NODES_WEIGHTED:
+            return InterpolatorNodes(mode="nodes_weighted")
         if self == InterpolationType.CENTER:
             return InterpolatorCenter()
         raise ValueError(f"Unsupported interpolation method: {self}")
