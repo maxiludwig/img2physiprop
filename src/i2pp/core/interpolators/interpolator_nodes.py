@@ -28,13 +28,13 @@ class InterpolatorNodes(Interpolator):
         self,
         *args,
         mode: str = "nodes",
-        surf_val: Optional[Union[float, np.ndarray]] = None,
+        surf_node_val: Optional[Union[float, np.ndarray]] = None,
         **kwargs,
     ):
         """Initializes the InterpolatorNodes."""
         super().__init__()
         self._mode = mode  # "nodes" or "nodes_weighted"
-        self.set_surf_node_value = surf_val
+        self.set_surf_node_value = surf_node_val
 
     # Helpers for readability and error handling
     def _compute_unweighted_mean(
@@ -167,12 +167,12 @@ class InterpolatorNodes(Interpolator):
             num_values (int): The number of pixel values per node.
         """
 
-        surf_val = np.asarray(surf_node_value)
+        surf_node_val = np.asarray(surf_node_value)
 
-        if surf_val.size != num_values:
+        if surf_node_val.size != num_values:
             raise ValueError(
                 f"set_surf_node_value must have {num_values} value(s), "
-                f"got {surf_val.size}"
+                f"got {surf_node_val.size}"
             )
 
         surface_node_ids = {

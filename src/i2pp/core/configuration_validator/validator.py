@@ -108,14 +108,21 @@ class Interpolation:
     method: str
     filter_outliers: Optional[bool] = field(default=False)
     set_node_value: Optional[float] = field(default=None)
+    set_ele_value: Optional[float] = field(default=None)
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "Interpolation":
         """Creates an Interpolation instance from a dictionary."""
+        # check if both set node and element values are provided, which is not allowed
+        if d.get("set_surface_node_value") is not None and d.get("set_surface_element_value") is not None:
+            raise ValueError(
+                "Both 'set_surface_node_value' and 'set_surface_element_value' cannot be set at the same time."
+            )
         return Interpolation(
             method=d["method"],
             filter_outliers=d.get("filter_outliers", False),
             set_node_value=d.get("set_surface_node_value", None),
+            set_ele_value=d.get("set_surface_element_value", None),
         )
 
 

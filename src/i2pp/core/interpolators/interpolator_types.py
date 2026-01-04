@@ -75,11 +75,11 @@ class InterpolationType(Enum):
             )
         if self == InterpolationType.NODES:
             return InterpolatorNodes(
-                mode="nodes", surf_val=set_surf_node_value
+                mode="nodes", surf_node_val=set_surf_node_value
             )
         if self == InterpolationType.NODES_WEIGHTED:
             return InterpolatorNodes(
-                mode="nodes_weighted", surf_val=set_surf_node_value
+                mode="nodes_weighted", surf_node_val=set_surf_node_value
             )
         if self == InterpolationType.CENTER:
             return InterpolatorCenter()
