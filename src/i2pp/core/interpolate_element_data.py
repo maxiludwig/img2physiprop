@@ -1,5 +1,8 @@
 """Interpolate image data to FEM-Elements."""
 
+import logging
+
+import numpy as np
 from i2pp.core.configuration_validator.validator import Interpolation
 from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
@@ -9,11 +12,41 @@ from i2pp.core.image_readers.image_reader import ImageData
 from i2pp.core.interpolators.interpolator_types import InterpolationType
 
 
+def _value_compatible(expected: object, value: float | list[float]) -> bool:
+    """Check if value has the same 'format' as expected element data.
+
+    - Scalars must remain scalars.
+    - Arrays/lists must match shape and dtype.
+    """
+    # Determine expected format
+    exp_arr = np.asarray(expected)
+    # expected scalar
+    if exp_arr.shape == ():
+        # value must be scalar-like
+        val_arr = np.asarray(value)
+        return val_arr.shape == ()
+    # expected vector/array
+    val_arr = np.asarray(value)
+    if val_arr.shape != exp_arr.shape:
+        return False
+    # dtype compatibility: allow safe casting
+    try:
+        np.asarray(value, dtype=exp_arr.dtype)
+        return True
+    except Exception:
+        return False
+
+
 def _set_surf_element_value(
     dis: Discretization, elements: list[Element], value: float | list[float]
 ) -> None:
     """Sets a specified value to all elements containing at least one surface
-    node."""
+    node.
+
+    Applies the provided scalar or vector value to all elements that
+    touch any surface, regardless of whether element.data was already
+    computed.
+    """
     surface_node_ids: set[int] = set()
     for surface in dis.surfaces:
         surface_node_ids.update(surface.node_ids)
@@ -21,9 +54,18 @@ def _set_surf_element_value(
     if not surface_node_ids:
         return
 
-    for ele in elements:
-        if not surface_node_ids.isdisjoint(ele.node_ids):
-            ele.data = value
+    # Coerce provided value: scalar -> float; array-like -> np.ndarray
+    val_arr = np.asarray(value)
+    if val_arr.shape == ():
+        coerced_scalar = float(val_arr)
+        for ele in elements:
+            if not surface_node_ids.isdisjoint(ele.node_ids):
+                ele.data = coerced_scalar
+    else:
+        coerced_vec = val_arr.astype(val_arr.dtype, copy=False)
+        for ele in elements:
+            if not surface_node_ids.isdisjoint(ele.node_ids):
+                ele.data = coerced_vec
 
 
 def interpolate_image_to_discretization(
@@ -56,11 +98,23 @@ def interpolate_image_to_discretization(
     Returns:
         A list of FEM elements with interpolated pixel data.
     """
+
+    if (
+        interpolation.set_ele_value is not None
+        and interpolation.set_node_value is not None
+    ):
+        logging.warning(
+            "Both 'set_surface_element_value' and "
+            "'set_surface_node_value' are configured; "
+            "'set_surface_node_value' will be ignored."
+        )
+        interpolation.set_node_value = None
+
     enum_interpolation_method = InterpolationType(interpolation.method)
 
     interpolator = enum_interpolation_method.create_interpolator(
         filter_outliers=interpolation.filter_outliers,
-        set_surf_node_value=interpolation.set_surface_node_value,
+        set_node_value=interpolation.set_node_value,
     )
 
     elements = interpolator.compute_element_data(dis, image_data)

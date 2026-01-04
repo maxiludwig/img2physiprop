@@ -573,3 +573,115 @@ def test_weighted_small_voxel_count_uses_simple_weighted_average():
 
     expected = np.average(values, weights=voxel_weights, axis=0)
     assert np.isclose(result, expected)
+
+
+def test_weighted_mode_no_filter_falls_back_when_weights_sum_zero():
+    """Weighted/no-filter path should fall back to unweighted mean when weights
+    sum to zero."""
+    # Simple 3x3x3 grid with deterministic values
+    pixel_data = np.arange(27, dtype=float).reshape((3, 3, 3))
+    grid_coords = GridCoords(
+        slice=np.arange(3), row=np.arange(3), col=np.arange(3)
+    )
+    image_data = ImageData(
+        pixel_data, grid_coords, np.eye(3), np.zeros(3), PixelValueType.CT
+    )
+
+    # Element spanning [0,1] cube corners
+    element_nodes = np.array(
+        [
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 1, 0],
+            [1, 1, 0],
+            [0, 0, 1],
+            [1, 0, 1],
+            [0, 1, 1],
+            [1, 1, 1],
+        ]
+    )
+
+    # Discretization: one element using these nodes;
+    # set all node weights to zero
+    dis = _make_simple_discretization(
+        node_coords=element_nodes,
+        elements_node_ids=[np.arange(8)],
+        node_weights=np.zeros(8, dtype=float),
+    )
+
+    # Compute with weighted mode, no outlier filtering
+    interp_weighted = InterpolatorAllVoxel(
+        mode="allvoxels_weighted", filter_outliers=False
+    )
+    elems = interp_weighted.compute_element_data(dis, image_data)
+    val_weighted = float(np.asarray(elems[0].data).mean())
+
+    # Compute unweighted reference
+    interp_unweighted = InterpolatorAllVoxel(
+        mode="allvoxels", filter_outliers=False
+    )
+    val_unweighted = float(
+        np.asarray(
+            interp_unweighted.compute_element_data(dis, image_data)[0].data
+        ).mean()
+    )
+
+    # Should match unweighted mean (fallback) and not raise ZeroDivisionError
+    assert np.isclose(val_weighted, val_unweighted)
+
+
+def test_weighted_mode_with_filter_falls_back_when_weights_sum_zero():
+    """Weighted/filtered path should fall back to unweighted mean when weights
+    sum to zero."""
+    # Grid with ones and an outlier to exercise filtering path
+    N = 5
+    pixel_data = np.ones((N, N, N), dtype=float)
+    pixel_data[2, 2, 2] = 1000.0
+    grid_coords = GridCoords(
+        slice=np.arange(N), row=np.arange(N), col=np.arange(N)
+    )
+    image_data = ImageData(
+        pixel_data, grid_coords, np.eye(3), np.zeros(3), PixelValueType.CT
+    )
+
+    # Element covering a cube [1,3] in each axis to include the outlier voxel
+    element_nodes = np.array(
+        [
+            [1, 1, 1],
+            [3, 1, 1],
+            [1, 3, 1],
+            [3, 3, 1],
+            [1, 1, 3],
+            [3, 1, 3],
+            [1, 3, 3],
+            [3, 3, 3],
+        ]
+    )
+
+    # Zero node weights to trigger zero-sum voxel weights
+    dis = _make_simple_discretization(
+        node_coords=element_nodes,
+        elements_node_ids=[np.arange(8)],
+        node_weights=np.zeros(8, dtype=float),
+    )
+
+    # Weighted with filtering; should not raise
+    # and should approximate unweighted filtered mean
+    interp_weighted_filter = InterpolatorAllVoxel(
+        mode="allvoxels_weighted", filter_outliers=True
+    )
+    elems_weighted = interp_weighted_filter.compute_element_data(
+        dis, image_data
+    )
+    val_weighted = float(np.asarray(elems_weighted[0].data).mean())
+
+    # Unweighted with filtering as reference
+    interp_unweighted_filter = InterpolatorAllVoxel(
+        mode="allvoxels", filter_outliers=True
+    )
+    elems_unweighted = interp_unweighted_filter.compute_element_data(
+        dis, image_data
+    )
+    val_unweighted = float(np.asarray(elems_unweighted[0].data).mean())
+
+    assert np.isclose(val_weighted, val_unweighted, rtol=1e-6)

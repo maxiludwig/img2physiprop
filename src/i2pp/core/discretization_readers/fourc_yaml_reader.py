@@ -106,8 +106,8 @@ class FourCYamlReader(DiscretizationReader):
                 raw_dis, np.array(options["material_ids"])
             )
 
-        interior_weight = processing.interpolation.interior_node_weight
-        surface_weight = processing.interpolation.surface_node_weight
+        interior_weight = processing.interpolation.node_weight.interior
+        surface_weight = processing.interpolation.node_weight.surface
 
         nodes_coords = []
         node_ids = []

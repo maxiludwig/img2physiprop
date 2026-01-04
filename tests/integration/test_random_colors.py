@@ -6,10 +6,8 @@ import subprocess
 import tempfile
 
 import jinja2
-import pytest
 
 
-@pytest.mark.integration
 def test_i2pp_integration_random_colors():
     """Test that i2pp generates the expected output for a sample image data set
     with random colors.

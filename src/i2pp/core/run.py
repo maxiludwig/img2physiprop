@@ -77,7 +77,7 @@ def run_i2pp(config_i2pp):
     elements = interpolate_image_to_discretization(
         discretization,
         image,
-        interpolation=config.processing.interpolation,
+        config.processing.interpolation,
     )
 
     # Transform the data using the user-defined python function

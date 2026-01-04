@@ -102,13 +102,32 @@ class Transformation:
 
 
 @dataclass
+class NodeWeight:
+    """Class representing node weight configuration for interpolation."""
+
+    surface: float
+    interior: float
+
+    @staticmethod
+    def from_dict(d: Optional[Dict[str, Any]]) -> Optional["node_weight"]:
+        """Creates a NodeWeight instance from a dictionary."""
+        if d is None:
+            return NodeWeight(surface = 1.0, interior = 1.0)
+        return NodeWeight(
+            surface=d.get("surface", 1.0),
+            interior=d.get("interior", 1.0),
+        )
+
+
+@dataclass
 class Interpolation:
     """Class representing the interpolation configuration."""
 
     method: str
     filter_outliers: Optional[bool] = field(default=False)
     set_node_value: Optional[float] = field(default=None)
-    set_ele_value: Optional[float] = field(default=None)
+    set_ele_value: Optional[float | list[float]] = field(default=None)
+    node_weight: Optional[NodeWeight] = field(default=None)
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "Interpolation":
@@ -121,8 +140,9 @@ class Interpolation:
         return Interpolation(
             method=d["method"],
             filter_outliers=d.get("filter_outliers", False),
-            set_node_value=d.get("set_surface_node_value", None),
-            set_ele_value=d.get("set_surface_element_value", None),
+            set_node_value=d.get("set_surface_node_value"),
+            set_ele_value=d.get("set_surface_element_value"),
+            node_weight=NodeWeight.from_dict(d.get("node_weight")),
         )
 
 

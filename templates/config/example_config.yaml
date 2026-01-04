@@ -16,9 +16,10 @@ import:
         image_position: [0, 0, 0]
 processing:
   smoothing:
-    smoothing_area: 5
+    area: 5
     visualize: true
-  interpolation_method: elements
+  interpolation:
+    method: elements
   transformation:
     user_script: tests/testdata/user_script.py
     user_function: process_image_data

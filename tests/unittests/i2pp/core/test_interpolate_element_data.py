@@ -90,6 +90,7 @@ def test_boundary_elements_receive_fixed_scalar_value():
         filter_outliers=False,
         set_node_value=None,
         set_ele_value=999.0,
+        node_weight=None,
     )
 
     elements = interpolate_image_to_discretization(dis, image, interp_cfg)
@@ -111,6 +112,7 @@ def test_boundary_elements_receive_fixed_rgb_value_vector():
         filter_outliers=False,
         set_node_value=None,
         set_ele_value=fixed_rgb,
+        node_weight=None,
     )
 
     elements = interpolate_image_to_discretization(dis, image, interp_cfg)
@@ -118,3 +120,46 @@ def test_boundary_elements_receive_fixed_rgb_value_vector():
     # Both elements touch the boundary -> both should receive fixed RGB vector
     assert np.array_equal(np.asarray(elements[0].data), np.asarray(fixed_rgb))
     assert np.array_equal(np.asarray(elements[1].data), np.asarray(fixed_rgb))
+
+
+def test_boundary_elements_receive_fixed_value_without_prior_data():
+    """Boundary-touching elements get fixed values even if element.data was not
+    set before."""
+    dis = _make_simple_discretization()
+    image = _make_ct_image()
+
+    # Configure interpolation with method that will compute,
+    # but we simulate unset data by overwriting after
+    interp_cfg = Interpolation(
+        method="nodes",
+        filter_outliers=False,
+        set_node_value=None,
+        set_ele_value=123.0,
+        node_weight=None,
+    )
+
+    # Perform interpolation
+    elements = interpolate_image_to_discretization(dis, image, interp_cfg)
+
+    # Verify fixed scalar applied
+    assert float(elements[0].data) == 123.0
+    assert float(elements[1].data) == 123.0
+
+    # Now test vector assignment on RGB image
+    image_rgb = _make_rgb_image()
+    interp_cfg_vec = Interpolation(
+        method="nodes",
+        filter_outliers=False,
+        set_node_value=None,
+        set_ele_value=[7, 8, 9],
+        node_weight=None,
+    )
+    elements_vec = interpolate_image_to_discretization(
+        dis, image_rgb, interp_cfg_vec
+    )
+    assert np.array_equal(
+        np.asarray(elements_vec[0].data), np.array([7, 8, 9])
+    )
+    assert np.array_equal(
+        np.asarray(elements_vec[1].data), np.array([7, 8, 9])
+    )

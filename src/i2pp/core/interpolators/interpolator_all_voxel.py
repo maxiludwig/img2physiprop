@@ -187,8 +187,15 @@ class InterpolatorAllVoxel(Interpolator):
                 filtered_values = values
                 filtered_weights = voxel_weights
 
+            # Guard against zero-sum weights
+            if np.sum(filtered_weights) <= 0:
+                return np.mean(filtered_values, axis=0)
+
         else:
             # No outlier filtering for small voxel counts
+            # Guard against zero-sum weights
+            if np.sum(voxel_weights) <= 0:
+                return np.mean(values, axis=0)
             return np.average(values, weights=voxel_weights, axis=0)
 
         # Compute weighted mean
@@ -294,21 +301,40 @@ class InterpolatorAllVoxel(Interpolator):
                             node_weights_current,
                         )
                         if self._filter_outliers_enabled
-                        else np.average(
-                            data,
-                            weights=np.sum(
-                                node_weights_current[:, np.newaxis]
-                                / np.maximum(
-                                    np.linalg.norm(
-                                        element_node_phys[:, np.newaxis, :]
-                                        - voxels_phys_np[np.newaxis, :, :],
-                                        axis=2,
+                        else (
+                            # Non-filtered weighted path with zero-sum guard
+                            (np.mean(data, axis=0))
+                            if np.sum(
+                                np.sum(
+                                    node_weights_current[:, np.newaxis]
+                                    / np.maximum(
+                                        np.linalg.norm(
+                                            element_node_phys[:, np.newaxis, :]
+                                            - voxels_phys_np[np.newaxis, :, :],
+                                            axis=2,
+                                        ),
+                                        1e-10,
                                     ),
-                                    1e-10,
+                                    axis=0,
+                                )
+                            )
+                            <= 0
+                            else np.average(
+                                data,
+                                weights=np.sum(
+                                    node_weights_current[:, np.newaxis]
+                                    / np.maximum(
+                                        np.linalg.norm(
+                                            element_node_phys[:, np.newaxis, :]
+                                            - voxels_phys_np[np.newaxis, :, :],
+                                            axis=2,
+                                        ),
+                                        1e-10,
+                                    ),
+                                    axis=0,
                                 ),
                                 axis=0,
-                            ),
-                            axis=0,
+                            )
                         )
                     )
 

@@ -34,7 +34,7 @@ class InterpolatorNodes(Interpolator):
         """Initializes the InterpolatorNodes."""
         super().__init__()
         self._mode = mode  # "nodes" or "nodes_weighted"
-        self.set_surf_node_value = surf_node_val
+        self.set_node_value = surf_node_val
 
     # Helpers for readability and error handling
     def _compute_unweighted_mean(
@@ -221,11 +221,11 @@ class InterpolatorNodes(Interpolator):
             node_grid_coords, image_data
         )
 
-        if self.set_surf_node_value is not None and dis.surfaces:
+        if self.set_node_value is not None and dis.surfaces:
             self._override_surface_nodes(
                 node_values=node_values,
                 dis=dis,
-                surf_node_value=self.set_surf_node_value,
+                surf_node_value=self.set_node_value,
                 num_values=image_data.pixel_type.num_values,
             )
 
