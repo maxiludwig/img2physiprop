@@ -24,6 +24,7 @@ The remaining parts of the README are structured as follows:
   - [Execute img2physiprop](#execute-img2physiprop)
   - [Run testing framework and create coverage report](#run-testing-framework-and-create-coverage-report)
   - [Create documentation](#create-documentation)
+  - [Interpolation and value settings](#interpolation-and-value-settings)
 - [Dependency Management](#dependency-management)
 - [Contributing](#contributing)
 - [License](#license)
@@ -75,7 +76,7 @@ To execute img2physiprop run
 
 ```
 i2pp --config path/to/config.yaml
-````
+```
 
 with your custom configuration file. A template configuration file containing all possible input configurations can be found in the folder `templates/config`.
 
@@ -94,6 +95,28 @@ To locally create the documentation from the provided docstrings simply run
 ```
 pdoc --html --output-dir docs src/i2pp
 ```
+
+### Interpolation and value settings
+
+- Interpolation methods (processing.interpolation.method):
+  - nodes: Interpolates values at the element’s nodes and assigns the element mean (ignoring NaN nodes). Fast and robust; respects node sampling.
+  - nodes_weighted: Like `nodes`, but computes a weighted mean using node-specific weights (`dis.nodes.weights`), which are set via `processing.interpolation.node_weight.surface` and `processing.interpolation.node_weight.interior`. This reduces the influence of low-weight nodes.
+  - elementcenter: Interpolates at each element centroid and assigns that value. Reliable fallback if no voxels lie inside the element.
+  - allvoxels: Collects all voxels whose grid coordinates lie inside the convex hull of the element nodes; assigns the mean value; optionally filters outliers.
+  - allvoxels_weighted: Computes a voxel-weighted mean where voxel weights derive from node weights and inverse node-to-voxel distances; optionally filters outliers.
+
+- Element and node value overrides:
+  - set_surface_node_value: If provided, all nodes that belong to any surface receive the fixed value (vector size must match the number of pixel channels); only relevant for `nodes`and `nodes_weighted` interpolation method.
+  - set_surface_element_value: If provided, all elements touching any surface node receive the fixed value (scalar or vector); applicable to all interpolation methods.
+  - When both are set, surface node override is ignored (element override wins).
+
+- Outlier filtering (processing.interpolation.filter_outliers):
+  - In `allvoxels` and `allvoxels_weighted`, if enabled and enough voxels are present (>5), outliers are removed using a modified Z-score (median/MAD-based, threshold=3.5) before averaging.
+
+- Fallbacks and warnings:
+  - If outlier filtering removes all voxels, the method falls back to the unfiltered mean.
+  - If an element contains no voxels (allvoxels modes), interpolation falls back to the element center.
+  - If interpolated points fall outside the image grid, element data is NaN and a warning summary is logged after processing.
 
 ## Dependency Management
 
