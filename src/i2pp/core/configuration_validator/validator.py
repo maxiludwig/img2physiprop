@@ -106,26 +106,16 @@ class Interpolation:
     """Class representing the interpolation configuration."""
 
     method: str
-    interior_node_weight: float = 1.0
-    surface_node_weight: float = 0.0
-    filter_outliers: bool = False
+    filter_outliers: Optional[bool] = field(default=False)
+    set_node_value: Optional[float] = field(default=None)
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "Interpolation":
         """Creates an Interpolation instance from a dictionary."""
-        method = d.get("method")
-        if not isinstance(method, str) or not method:
-            raise KeyError("interpolation.method")
-
-        node_weight_cfg = d.get("node_weight", {})
-        interior_weight = float(node_weight_cfg.get("interior", 1.0))
-        surface_weight = float(node_weight_cfg.get("surface", 0.0))
-
         return Interpolation(
-            method=method,
-            interior_node_weight=interior_weight,
-            surface_node_weight=surface_weight,
+            method=d["method"],
             filter_outliers=d.get("filter_outliers", False),
+            set_node_value=d.get("set_surface_node_value", None),
         )
 
 
@@ -133,17 +123,22 @@ class Interpolation:
 class Processing:
     """Class representing the processing configuration."""
 
-    interpolation: Interpolation
     smoothing: Optional[Smoothing]
     transformation: Transformation
+    interpolation: Interpolation
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "Processing":
         """Creates a Processing instance from a dictionary."""
+
         return Processing(
-            interpolation=Interpolation.from_dict(d["interpolation"]),
-            smoothing=Smoothing.from_dict(d.get("smoothing")),
+            smoothing=(
+                Smoothing.from_dict(d.get("smoothing"))
+                if d.get("smoothing") is not None
+                else None
+            ),
             transformation=Transformation.from_dict(d["transformation"]),
+            interpolation=Interpolation.from_dict(d["interpolation"]),
         )
 
 

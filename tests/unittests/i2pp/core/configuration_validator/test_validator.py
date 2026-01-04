@@ -28,7 +28,7 @@ def minimal_valid_config(tmp_path):
             "image": {"path": str(image_path), "type": "dicom"},
         },
         "processing": {
-            "interpolation":{
+            "interpolation": {
                 "method": "nodes",
             },
             "transformation": {
@@ -88,12 +88,9 @@ def large_valid_config(tmp_path):
             },
         },
         "processing": {
-            "smoothing": {
-                "area": 5, 
-                "visualize": True
-                },
+            "smoothing": {"smoothing_area": 5, "visualize": True},
             "interpolation": {
-                "method": "elements",
+                "method": "element",
             },
             "transformation": {
                 "user_script": str(script_path),

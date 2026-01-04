@@ -1,6 +1,6 @@
 """Interpolates pixel values from image-data to mesh-data."""
 
-from typing import Tuple
+from typing import Tuple, cast
 
 import numpy as np
 from i2pp.core.discretization_readers.discretization_reader import (
@@ -376,9 +376,6 @@ class InterpolatorAllVoxel(Interpolator):
             # Cast weights to ndarray when present to satisfy type checker
             node_weights_current = None
             if getattr(dis.nodes, "weights", None) is not None:
-                # mypy: explicitly cast Optional[Any] to np.ndarray
-                from typing import cast
-
                 weights_nd = cast(np.ndarray, dis.nodes.weights)
                 node_weights_current = weights_nd[node_positions[i]]
 

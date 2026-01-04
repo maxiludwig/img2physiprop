@@ -39,7 +39,10 @@ class InterpolationType(Enum):
     ALLVOXELS_WEIGHTED = "allvoxels_weighted"
 
     def create_interpolator(
-        self, *, filter_outliers: bool = False
+        self,
+        *,
+        filter_outliers: bool = False,
+        set_surf_node_value: float | None = None,
     ) -> Interpolator:
         """Creates and returns a configured interpolator instance based on the
         selected interpolation method.
@@ -52,6 +55,8 @@ class InterpolationType(Enum):
         Args:
             filter_outliers (bool): If True, outliers will be filtered during
                 interpolation. Defaults to False.
+            set_surf_node_value (float | None): Value to set for surface nodes.
+                Defaults to None.
 
         Returns:
             Interpolator: An instance of the interpolator that matches the
@@ -69,9 +74,13 @@ class InterpolationType(Enum):
                 mode="allvoxels_weighted", filter_outliers=filter_outliers
             )
         if self == InterpolationType.NODES:
-            return InterpolatorNodes(mode="nodes")
+            return InterpolatorNodes(
+                mode="nodes", surf_val=set_surf_node_value
+            )
         if self == InterpolationType.NODES_WEIGHTED:
-            return InterpolatorNodes(mode="nodes_weighted")
+            return InterpolatorNodes(
+                mode="nodes_weighted", surf_val=set_surf_node_value
+            )
         if self == InterpolationType.CENTER:
             return InterpolatorCenter()
         raise ValueError(f"Unsupported interpolation method: {self}")

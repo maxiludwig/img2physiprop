@@ -1,6 +1,6 @@
 """Interpolates pixel values from image-data to mesh-data."""
 
-from typing import cast
+from typing import Optional, Union, cast
 
 import numpy as np
 from i2pp.core.discretization_readers.discretization_reader import (
@@ -24,10 +24,17 @@ class InterpolatorNodes(Interpolator):
     """
 
     # Add mode to control whether to use node weights
-    def __init__(self, *args, mode: str = "nodes", **kwargs):
+    def __init__(
+        self,
+        *args,
+        mode: str = "nodes",
+        surf_val: Optional[Union[float, np.ndarray]] = None,
+        **kwargs,
+    ):
         """Initializes the InterpolatorNodes."""
         super().__init__()
         self._mode = mode  # "nodes" or "nodes_weighted"
+        self.set_surf_node_value = surf_val
 
     # Helpers for readability and error handling
     def _compute_unweighted_mean(
@@ -136,6 +143,53 @@ class InterpolatorNodes(Interpolator):
         else:
             return np.average(vals, weights=w, axis=0)
 
+    def _override_surface_nodes(
+        self,
+        *,
+        node_values: np.ndarray,
+        dis: Discretization,
+        surf_node_value: Union[np.ndarray, float],
+        num_values: int,
+    ) -> None:
+        """Overrides the pixel values at surface nodes with a specified value.
+
+        This method modifies the `node_values` array in place, setting the
+        values of nodes that belong to any surface in the discretization to
+        the provided `surf_node_value`.
+
+        Arguments:
+            node_values (np.ndarray): Array of pixel values at each node.
+            dis (Discretization): The FEM discretization containing surfaces
+                and node data.
+            surf_node_value (np.ndarray | float): The value to assign to
+                surface nodes. Can be a single float or an array matching
+                the number of pixel values.
+            num_values (int): The number of pixel values per node.
+        """
+
+        surf_val = np.asarray(surf_node_value)
+
+        if surf_val.size != num_values:
+            raise ValueError(
+                f"set_surf_node_value must have {num_values} value(s), "
+                f"got {surf_val.size}"
+            )
+
+        surface_node_ids = {
+            nid for surf in dis.surfaces for nid in surf.node_ids
+        }
+
+        node_id_to_index = {nid: i for i, nid in enumerate(dis.nodes.ids)}
+
+        surface_indices = [
+            node_id_to_index[nid]
+            for nid in surface_node_ids
+            if nid in node_id_to_index
+        ]
+
+        if surface_indices:
+            node_values[surface_indices] = surf_node_value
+
     def compute_element_data(
         self, dis: Discretization, image_data: ImageData
     ) -> list[Element]:
@@ -166,6 +220,14 @@ class InterpolatorNodes(Interpolator):
         node_values = self.interpolate_image_values_to_points(
             node_grid_coords, image_data
         )
+
+        if self.set_surf_node_value is not None and dis.surfaces:
+            self._override_surface_nodes(
+                node_values=node_values,
+                dis=dis,
+                surf_node_value=self.set_surf_node_value,
+                num_values=image_data.pixel_type.num_values,
+            )
 
         node_positions = np.array(
             [

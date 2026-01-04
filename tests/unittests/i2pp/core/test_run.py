@@ -38,7 +38,9 @@ def minimal_valid_config(tmp_path):
             },
         },
         "processing": {
-            "interpolation": {"method": "nodes"},
+            "interpolation": {
+                "method": "nodes",
+            },
             "transformation": {
                 "user_script": str(script_path),
                 "user_function": "process_image_data",
@@ -147,7 +149,12 @@ def maximal_valid_config(tmp_path):
             },
         },
         "processing": {
-            "interpolation": {"method": "nodes"},
+            "interpolation": {
+                "method": "nodes_weighted",
+                "node_weight": {"interior": 0.8, "surface": 0.2},
+                "filter_outliers": True,
+                "set_surface_node_value": 100.0,
+            },
             "transformation": {
                 "user_script": str(script_path),
                 "user_function": "process_image_data",
