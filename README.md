@@ -101,7 +101,7 @@ pdoc --html --output-dir docs src/i2pp
 - Interpolation methods (processing.interpolation.method):
   - nodes: Interpolates values at the element’s nodes and assigns the element mean (ignoring NaN nodes). Fast and robust; respects node sampling.
   - nodes_weighted: Like `nodes`, but computes a weighted mean using node-specific weights (`dis.nodes.weights`), which are set via `processing.interpolation.node_weight.surface` and `processing.interpolation.node_weight.interior`. This reduces the influence of low-weight nodes.
-  - elementcenter: Interpolates at each element centroid and assigns that value. Reliable fallback if no voxels lie inside the element.
+  - elementcenter: Interpolates at each element centroid and assigns that value.
   - allvoxels: Collects all voxels whose grid coordinates lie inside the convex hull of the element nodes; assigns the mean value; optionally filters outliers.
   - allvoxels_weighted: Computes a voxel-weighted mean where voxel weights derive from node weights and inverse node-to-voxel distances; optionally filters outliers.
 
