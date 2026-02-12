@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pyvista as pv
+from i2pp.core.configuration_validator.validator import Processing
 from i2pp.core.discretization_readers.discretization_format import (
     DiscretizationFormat,
 )
@@ -52,7 +53,7 @@ def determine_discretization_format(file_path: Path) -> DiscretizationFormat:
 def verify_and_load_discretization(
     discretization_path: Path,
     options: dict,
-    processing: dict,
+    processing: Processing,
 ) -> Discretization:
     """Loads and processes mesh data.
 
@@ -64,7 +65,6 @@ def verify_and_load_discretization(
         discretization_path (Path): Path to the discretization file.
         options (dict): Options for loading the discretization that are passed
             to the reader classes.
-        processing (dict): Processing options are passed to the reader classes.
 
     Returns:
         DiscretizationData: The loaded and processed mesh data.

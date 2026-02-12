@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 from i2pp.core.configuration_validator.validation_helpers import (
     resolve_and_validate_path,
 )
+from i2pp.core.interpolators.interpolator_types import InterpolationType
 
 
 @dataclass
@@ -75,6 +76,13 @@ class Smoothing:
         """Creates a Smoothing instance from a dictionary."""
         if d is None:
             return None
+        if d.get("area", 3) <= 0:
+            raise ValueError("Smoothing area must be a positive integer.")
+        if "smoothing_area" in d:
+            raise ValueError(
+                "The key 'smoothing_area' is deprecated. "
+                "Please use 'area' instead."
+            )
         return Smoothing(
             area=d.get("area", 3),
             visualize=d.get("visualize", False),
@@ -109,10 +117,10 @@ class NodeWeight:
     interior: float
 
     @staticmethod
-    def from_dict(d: Optional[Dict[str, Any]]) -> Optional["node_weight"]:
+    def from_dict(d: Optional[Dict[str, Any]]) -> "NodeWeight":
         """Creates a NodeWeight instance from a dictionary."""
         if d is None:
-            return NodeWeight(surface = 1.0, interior = 1.0)
+            return NodeWeight(surface=1.0, interior=1.0)
         return NodeWeight(
             surface=d.get("surface", 1.0),
             interior=d.get("interior", 1.0),
@@ -124,18 +132,32 @@ class Interpolation:
     """Class representing the interpolation configuration."""
 
     method: str
-    filter_outliers: Optional[bool] = field(default=False)
-    set_node_value: Optional[float] = field(default=None)
+    node_weight: NodeWeight
+    filter_outliers: bool = False
+    set_node_value: Optional[float | list[float]] = field(default=None)
     set_ele_value: Optional[float | list[float]] = field(default=None)
-    node_weight: Optional[NodeWeight] = field(default=None)
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "Interpolation":
         """Creates an Interpolation instance from a dictionary."""
-        # check if both set node and element values are provided, which is not allowed
-        if d.get("set_surface_node_value") is not None and d.get("set_surface_element_value") is not None:
+
+        method = d["method"]
+        try:
+            InterpolationType(method)
+        except ValueError as error:
+            allowed = ", ".join(t.value for t in InterpolationType)
             raise ValueError(
-                "Both 'set_surface_node_value' and 'set_surface_element_value' cannot be set at the same time."
+                f"Unsupported interpolation method '{method}'. "
+                f"Supported methods are: {allowed}."
+            ) from error
+        if (
+            d.get("set_surface_node_value") is not None
+            and d.get("set_surface_element_value") is not None
+        ):
+            raise ValueError(
+                "Both 'set_surface_node_value' "
+                "and 'set_surface_element_value' "
+                "cannot be set at the same time."
             )
         return Interpolation(
             method=d["method"],

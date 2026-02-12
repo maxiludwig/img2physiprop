@@ -104,8 +104,10 @@ def smooth_data(
     - Zero data outside mask → data_masked
     - Smooth the zeroed data → smoothed_data (artificially darkened at edges)
     - Smooth the mask → smoothed_mask (tells you the "weight" of valid data)
-    - Divide smoothed data by smoothed mask → This "undoes" the darkening by renormalizing
-    - Only update pixels that were originally inside the mask → Preserves original data outside
+    - Divide smoothed data by smoothed mask
+        → This "undoes" the darkening by renormalizing
+    - Only update pixels that were originally inside the mask
+        → Preserves original data outside
 
     Args:
         data (np.ndarray): A 3D array containing the pixel data to be smoothed.
@@ -134,7 +136,7 @@ def smooth_data(
 
     orig_dtype = data.dtype
     data_f = data.astype(np.float32, copy=False)
-    
+
     # Create a copy of the data where all values outside the mask are zero.
     data_masked = data_f.copy()
     data_masked[~mask, ...] = 0
@@ -151,7 +153,12 @@ def smooth_data(
         axes=(0, 1, 2),
     )
 
-    smoothed_mask_exp = smoothed_mask[..., None]
+    # Reshape smoothed_mask to match smoothed_data for broadcasting
+    target_shape = list(smoothed_mask.shape) + [1] * (
+        smoothed_data.ndim - smoothed_mask.ndim
+    )
+    smoothed_mask_exp = smoothed_mask.reshape(target_shape)
+
     valid_mask = (mask) & (smoothed_mask > 1e-8)
     result_f = data_f.copy()
 

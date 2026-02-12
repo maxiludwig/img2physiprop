@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 import trimesh
+from i2pp.core.configuration_validator.validator import Processing
 from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
     DiscretizationReader,
@@ -33,7 +34,10 @@ class MeshReader(DiscretizationReader):
         raise RuntimeError("This function is not implemented yet.")
 
     def load_discretization(
-        self, file_path: Path, options: dict
+        self,
+        file_path: Path,
+        options: dict,
+        processing: Processing,
     ) -> Discretization:
         """Loads and processes a finite element model from a .mesh file.
 
@@ -65,8 +69,7 @@ class MeshReader(DiscretizationReader):
         for i, face in enumerate(raw_dis.faces):
             elements.append(Element(node_ids=face, id=i))
 
-        # TODO: Add surfaces if needed in the future
-        # surfaces = []
+        # Add surfaces here if needed in the future
 
         dis = Discretization(nodes=nodes, elements=elements, surfaces=[])
 

@@ -55,14 +55,14 @@ def run_i2pp(config_i2pp):
         discretization.bounding_box,
     )
 
-    # Build exact mesh mask
-    image.mask = create_mesh_mask(discretization, image)
-
     # If smoothing is enabled, smooth the image data
     if config.processing.smoothing:
         # Create a copy of the image data for visualization purposes
         if config.processing.smoothing.visualize:
             image_raw = copy.deepcopy(image)
+
+        # Build exact mesh mask
+        image.mask = create_mesh_mask(discretization, image)
 
         image.pixel_data = smooth_data(
             image.pixel_data,

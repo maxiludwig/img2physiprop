@@ -1,7 +1,5 @@
 """Interpolate image data to FEM-Elements."""
 
-import logging
-
 import numpy as np
 from i2pp.core.configuration_validator.validator import Interpolation
 from i2pp.core.discretization_readers.discretization_reader import (
@@ -10,31 +8,6 @@ from i2pp.core.discretization_readers.discretization_reader import (
 )
 from i2pp.core.image_readers.image_reader import ImageData
 from i2pp.core.interpolators.interpolator_types import InterpolationType
-
-
-def _value_compatible(expected: object, value: float | list[float]) -> bool:
-    """Check if value has the same 'format' as expected element data.
-
-    - Scalars must remain scalars.
-    - Arrays/lists must match shape and dtype.
-    """
-    # Determine expected format
-    exp_arr = np.asarray(expected)
-    # expected scalar
-    if exp_arr.shape == ():
-        # value must be scalar-like
-        val_arr = np.asarray(value)
-        return val_arr.shape == ()
-    # expected vector/array
-    val_arr = np.asarray(value)
-    if val_arr.shape != exp_arr.shape:
-        return False
-    # dtype compatibility: allow safe casting
-    try:
-        np.asarray(value, dtype=exp_arr.dtype)
-        return True
-    except Exception:
-        return False
 
 
 def _set_surf_element_value(
@@ -98,17 +71,6 @@ def interpolate_image_to_discretization(
     Returns:
         A list of FEM elements with interpolated pixel data.
     """
-
-    if (
-        interpolation.set_ele_value is not None
-        and interpolation.set_node_value is not None
-    ):
-        logging.warning(
-            "Both 'set_surface_element_value' and "
-            "'set_surface_node_value' are configured; "
-            "'set_surface_node_value' will be ignored."
-        )
-        interpolation.set_node_value = None
 
     enum_interpolation_method = InterpolationType(interpolation.method)
 

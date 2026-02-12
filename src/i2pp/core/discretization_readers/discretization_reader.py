@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
+from i2pp.core.configuration_validator.validator import Processing
 
 
 @dataclass
@@ -70,7 +71,7 @@ class Surface:
     """Class for storing information about a surface in the Discretization.
 
     This class represents a surface in the mesh Discretization, defined
-    by its node IDs, an surface ID, and associated data.
+    by its node IDs, a surface ID, and associated data.
 
     Attributes:
         node_ids (np.ndarray): An array of node IDs that define the nodes of
@@ -126,7 +127,7 @@ class DiscretizationReader(ABC):
 
     @abstractmethod
     def load_discretization(
-        self, file_path: Path, options: dict, processing: dict
+        self, file_path: Path, options: dict, processing: Processing
     ) -> Discretization:
         """Abstract method to load discretization data from a file path.
 
@@ -140,6 +141,7 @@ class DiscretizationReader(ABC):
             file_path (Path): Path to the discretization file.
             options (dict): A dictionary containing options for loading the
                 discretization.
+            processing (Processing): Processing configuration object.
 
         Returns:
             Discretization: An instance of Discretization containing

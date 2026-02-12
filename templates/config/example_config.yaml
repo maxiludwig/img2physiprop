@@ -19,7 +19,7 @@ processing:
     area: 5
     visualize: true
   interpolation:
-    method: elements
+    method: elementcenter
   transformation:
     user_script: tests/testdata/user_script.py
     user_function: process_image_data

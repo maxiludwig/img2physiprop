@@ -100,7 +100,7 @@ def test_run_i2pp_with_minimal_valid_config(
     # Assertions to ensure key steps were called
     mock_verify_discretization.assert_called_once()
     mock_verify_image.assert_called_once()
-    mock_create_mesh_mask.assert_called_once()
+    mock_create_mesh_mask.assert_not_called()
     mock_smooth_data.assert_not_called()
     mock_visualize_smoothing.assert_not_called()
     mock_interpolate.assert_called_once()

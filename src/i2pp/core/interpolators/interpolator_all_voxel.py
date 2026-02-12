@@ -201,6 +201,26 @@ class InterpolatorAllVoxel(Interpolator):
         # Compute weighted mean
         return np.average(filtered_values, weights=filtered_weights, axis=0)
 
+    def _format_output_value(
+        self, value: float | np.ndarray, image_data: ImageData
+    ) -> np.ndarray:
+        """Formats the output value based on the pixel type.
+
+        If the pixel type has one value, it wraps the value in a NumPy array.
+        If it has multiple values, it creates a NumPy array filled with the
+        value.
+
+        Args:
+            value (float | np.ndarray): The value to format.
+            image_data (ImageData): Image data containing pixel type info.
+
+        Returns:
+            np.ndarray: The formatted output value.
+        """
+        if image_data.pixel_type.num_values == 1:
+            return np.array([value])
+        return np.full(image_data.pixel_type.num_values, value)
+
     def _get_data_of_element(
         self,
         element_node_grid_coords: np.ndarray,
@@ -282,75 +302,45 @@ class InterpolatorAllVoxel(Interpolator):
                     )
                 else:
                     mean_val = np.mean(data, axis=0)
-                return (
-                    np.array([mean_val])
-                    if image_data.pixel_type.num_values == 1
-                    else np.full(image_data.pixel_type.num_values, mean_val)
-                )
+                return self._format_output_value(mean_val, image_data)
 
             if self._mode == "allvoxels_weighted":
                 element_node_phys = element_node_grid_coords
                 if node_weights_current is None:
                     weighted = np.mean(data, axis=0)
                 else:
-                    weighted = (
-                        self._weighted_voxel_mean(
+                    if self._filter_outliers_enabled:
+                        weighted = self._weighted_voxel_mean(
                             voxels_phys_np,
                             data,
                             element_node_phys,
                             node_weights_current,
                         )
-                        if self._filter_outliers_enabled
-                        else (
-                            # Non-filtered weighted path with zero-sum guard
-                            (np.mean(data, axis=0))
-                            if np.sum(
-                                np.sum(
-                                    node_weights_current[:, np.newaxis]
-                                    / np.maximum(
-                                        np.linalg.norm(
-                                            element_node_phys[:, np.newaxis, :]
-                                            - voxels_phys_np[np.newaxis, :, :],
-                                            axis=2,
-                                        ),
-                                        1e-10,
-                                    ),
-                                    axis=0,
-                                )
-                            )
-                            <= 0
-                            else np.average(
-                                data,
-                                weights=np.sum(
-                                    node_weights_current[:, np.newaxis]
-                                    / np.maximum(
-                                        np.linalg.norm(
-                                            element_node_phys[:, np.newaxis, :]
-                                            - voxels_phys_np[np.newaxis, :, :],
-                                            axis=2,
-                                        ),
-                                        1e-10,
-                                    ),
-                                    axis=0,
-                                ),
-                                axis=0,
-                            )
+                    else:
+                        # Non-filtered weighted path with zero-sum guard
+                        distances = np.linalg.norm(
+                            element_node_phys[:, np.newaxis, :]
+                            - voxels_phys_np[np.newaxis, :, :],
+                            axis=2,
                         )
-                    )
+                        distances = np.maximum(distances, 1e-10)
+                        voxel_weights = np.sum(
+                            node_weights_current[:, np.newaxis] / distances,
+                            axis=0,
+                        )
 
-                return (
-                    np.array([weighted])
-                    if image_data.pixel_type.num_values == 1
-                    else np.full(image_data.pixel_type.num_values, weighted)
-                )
+                        if np.sum(voxel_weights) <= 0:
+                            weighted = np.mean(data, axis=0)
+                        else:
+                            weighted = np.average(
+                                data, weights=voxel_weights, axis=0
+                            )
+
+                return self._format_output_value(weighted, image_data)
 
             # Unknown mode fallback
             mean_val = np.mean(data, axis=0)
-            return (
-                np.array([mean_val])
-                if image_data.pixel_type.num_values == 1
-                else np.full(image_data.pixel_type.num_values, mean_val)
-            )
+            return self._format_output_value(mean_val, image_data)
 
         else:
             self.backup_interpolation += 1

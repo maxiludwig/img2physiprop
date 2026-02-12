@@ -88,9 +88,9 @@ def large_valid_config(tmp_path):
             },
         },
         "processing": {
-            "smoothing": {"smoothing_area": 5, "visualize": True},
+            "smoothing": {"area": 5, "visualize": True},
             "interpolation": {
-                "method": "element",
+                "method": "elementcenter",
             },
             "transformation": {
                 "user_script": str(script_path),

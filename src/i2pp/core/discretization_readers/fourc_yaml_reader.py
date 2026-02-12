@@ -5,6 +5,7 @@ from pathlib import Path
 
 import lnmmeshio
 import numpy as np
+from i2pp.core.configuration_validator.validator import Processing
 from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
     DiscretizationReader,
@@ -74,7 +75,7 @@ class FourCYamlReader(DiscretizationReader):
         self,
         file_path: Path,
         options: dict,
-        processing: "I2PPConfig.processing",
+        processing: Processing,
     ) -> Discretization:
         """Loads and processes a finite element discretization from a .4C.yaml
         file.
@@ -88,7 +89,8 @@ class FourCYamlReader(DiscretizationReader):
             options (dict): Options for loading the discretization.
                 Filtering for material ids can be enabled by specifying
                 `material_ids` in the options dictionary.
-            processing (I2PPConfig.processing): Processing configuration object.
+            processing (I2PPConfig.processing):
+                Processing configuration object.
 
         Returns:
             Discretization: The finite element discretization including nodes
@@ -131,11 +133,12 @@ class FourCYamlReader(DiscretizationReader):
 
         surfaces = []
 
+        node_id_to_idx = {nid: i for i, nid in enumerate(node_ids)}
         for surf in raw_dis.surfacenodesets:
             surf_node_ids = []
             for node in surf.nodes:
                 surf_node_ids.append(node.id)
-                position = node_ids.index(node.id)
+                position = node_id_to_idx[node.id]
                 nodes_weights[position] = surface_weight
 
             surfaces.append(

@@ -42,7 +42,7 @@ class InterpolationType(Enum):
         self,
         *,
         filter_outliers: bool = False,
-        set_node_value: float | None = None,
+        set_node_value: float | list[float] | None = None,
     ) -> Interpolator:
         """Creates and returns a configured interpolator instance based on the
         selected interpolation method.
