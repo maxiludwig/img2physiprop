@@ -87,8 +87,11 @@ def test_load_discretization_fourc_yaml_without_filter(tmp_path: Path) -> None:
         # test_config
         test_options = {"material_ids": None}
         mock_processing = MagicMock()
-        mock_processing.interpolation.interior_node_weight = 1.0
-        mock_processing.interpolation.surface_node_weight = 0.0
+        mock_scaling_factors = (
+            mock_processing.interpolation.node_scaling_factors
+        )
+        mock_scaling_factors.interior_node_scaling = 1.0
+        mock_scaling_factors.surface_node_scaling = 0.0
 
         dis_loaded = test_dis.load_discretization(
             Path(test_path), test_options, mock_processing

@@ -110,20 +110,24 @@ class Transformation:
 
 
 @dataclass
-class NodeWeight:
-    """Class representing node weight configuration for interpolation."""
+class NodeScaling:
+    """Class representing node scaling configuration for interpolation."""
 
-    surface: float
-    interior: float
+    surface_node_scaling: float = 1.0
+    interior_node_scaling: float = 1.0
 
     @staticmethod
-    def from_dict(d: Optional[Dict[str, Any]]) -> "NodeWeight":
-        """Creates a NodeWeight instance from a dictionary."""
+    def from_dict(
+        d: Optional[Dict[str, Any]],
+    ) -> "NodeScaling":
+        """Creates a NodeScaling instance from a dictionary."""
         if d is None:
-            return NodeWeight(surface=1.0, interior=1.0)
-        return NodeWeight(
-            surface=d.get("surface", 1.0),
-            interior=d.get("interior", 1.0),
+            return NodeScaling(
+                surface_node_scaling=1.0, interior_node_scaling=1.0
+            )
+        return NodeScaling(
+            surface_node_scaling=d.get("surface", 1.0),
+            interior_node_scaling=d.get("interior", 1.0),
         )
 
 
@@ -132,7 +136,7 @@ class Interpolation:
     """Class representing the interpolation configuration."""
 
     method: str
-    node_weight: NodeWeight
+    node_scaling_factors: NodeScaling
     filter_outliers: bool = False
     set_node_value: Optional[float | list[float]] = field(default=None)
     set_ele_value: Optional[float | list[float]] = field(default=None)
@@ -164,7 +168,9 @@ class Interpolation:
             filter_outliers=d.get("filter_outliers", False),
             set_node_value=d.get("set_surface_node_value"),
             set_ele_value=d.get("set_surface_element_value"),
-            node_weight=NodeWeight.from_dict(d.get("node_weight")),
+            node_scaling_factors=NodeScaling.from_dict(
+                d.get("node_scaling_factors")
+            ),
         )
 
 

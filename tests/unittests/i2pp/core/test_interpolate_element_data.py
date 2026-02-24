@@ -90,7 +90,7 @@ def test_boundary_elements_receive_fixed_scalar_value():
         filter_outliers=False,
         set_node_value=None,
         set_ele_value=999.0,
-        node_weight=None,
+        node_scaling_factors=None,
     )
 
     elements = interpolate_image_to_discretization(dis, image, interp_cfg)
@@ -112,7 +112,7 @@ def test_boundary_elements_receive_fixed_rgb_value_vector():
         filter_outliers=False,
         set_node_value=None,
         set_ele_value=fixed_rgb,
-        node_weight=None,
+        node_scaling_factors=None,
     )
 
     elements = interpolate_image_to_discretization(dis, image, interp_cfg)
@@ -135,7 +135,7 @@ def test_boundary_elements_receive_fixed_value_without_prior_data():
         filter_outliers=False,
         set_node_value=None,
         set_ele_value=123.0,
-        node_weight=None,
+        node_scaling_factors=None,
     )
 
     # Perform interpolation
@@ -152,7 +152,7 @@ def test_boundary_elements_receive_fixed_value_without_prior_data():
         filter_outliers=False,
         set_node_value=None,
         set_ele_value=[7, 8, 9],
-        node_weight=None,
+        node_scaling_factors=None,
     )
     elements_vec = interpolate_image_to_discretization(
         dis, image_rgb, interp_cfg_vec

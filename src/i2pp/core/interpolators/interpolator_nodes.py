@@ -23,7 +23,7 @@ class InterpolatorNodes(Interpolator):
     "nodes".
     """
 
-    # Add mode to control whether to use node weights
+    # Add mode to control whether to use node scaling factors
     def __init__(
         self,
         *args,
@@ -33,7 +33,7 @@ class InterpolatorNodes(Interpolator):
     ):
         """Initializes the InterpolatorNodes."""
         super().__init__()
-        self._mode = mode  # "nodes" or "nodes_weighted"
+        self._mode = mode  # "nodes" or "nodes_scaled"
         self.set_node_value = surf_node_val
 
     # Helpers for readability and error handling
@@ -77,43 +77,47 @@ class InterpolatorNodes(Interpolator):
     def _compute_weighted_mean(
         self,
         ele_nodes: np.ndarray,
-        weights_current: np.ndarray,
+        scaling_factors_current: np.ndarray,
         num_values: int,
     ) -> np.ndarray:
         """Computes the weighted mean of pixel values for an element's nodes.
 
         This method calculates the weighted average of pixel values from an
         element's nodes. It is used when a more nuanced contribution of each
-        node is desired, based on pre-assigned weights. Nodes with NaN values
-        are excluded from the calculation. The weights of the valid nodes are
-        normalized to sum to 1 before computing the average to prevent scaling
-        issues.
+        node is desired, based on pre-assigned scaling factor.
+        Nodes with NaN values are excluded from the calculation.
+        The factors of the valid nodes are normalized to sum to 1 (weighted)
+        before computing the average.
 
         Args:
             ele_nodes (np.ndarray): An array of interpolated pixel values for
                 the nodes of a single element. Shape can be (num_nodes,) for
                 single-channel data or (num_nodes, num_values) for multi-
                 channel data.
-            weights_current (np.ndarray): An array of weights corresponding to
+            scaling_factors_current (np.ndarray):
+            An array of scaling factors corresponding to
                 each node in `ele_nodes`. Shape is (num_nodes,).
             num_values (int): The number of values per pixel (e.g., 1 for
                 grayscale, 3 for RGB).
 
         Returns:
-            np.ndarray: An array containing the weighted mean pixel value(s)
+            np.ndarray: An array containing the scaled mean pixel value(s)
             for the element. The shape is (num_values,).
 
         Raises:
-            ValueError: If `weights_current` is None or if the shape of
-                `ele_nodes` and `weights_current` are incompatible.
+            ValueError: If `scaling_factors_current` is None or if the shape of
+                `ele_nodes` and `scaling_factors_current` are incompatible.
         """
-        if weights_current is None:
-            raise ValueError("Node weights are required for weighted mode.")
-        if ele_nodes.shape[0] != weights_current.shape[0]:
+        if scaling_factors_current is None:
+            raise ValueError(
+                "Node scaling factors are required for scaled mode."
+            )
+        if ele_nodes.shape[0] != scaling_factors_current.shape[0]:
             raise ValueError(
                 "Incompatible shapes:"
                 f" ele_nodes has {ele_nodes.shape[0]} nodes, "
-                f"weights_current has {weights_current.shape[0]}."
+                "scaling_factors_current has"
+                f"{scaling_factors_current.shape[0]}."
             )
 
         # Mask out nodes that contain any NaN across channels
@@ -126,16 +130,16 @@ class InterpolatorNodes(Interpolator):
             return np.full(num_values, np.nan)
 
         vals = ele_nodes[nan_mask]
-        w = weights_current[nan_mask]
+        sf = scaling_factors_current[nan_mask]
 
-        wsum = float(np.sum(w))
-        if wsum == 0:
+        sf_sum = float(np.sum(sf))
+        if sf_sum == 0:
             if num_values > 1:
                 return np.mean(vals, axis=0)
             else:
                 return np.array([np.mean(vals)])
 
-        w = w / wsum  # Normalize weights
+        w = sf / sf_sum  # Normalize scaling factors
 
         if num_values == 1:
             val = np.average(vals.reshape(-1), weights=w)
@@ -236,13 +240,13 @@ class InterpolatorNodes(Interpolator):
             ]
         )
 
-        # Only prepare node weights if we're in weighted mode
-        node_weights = None
+        # Only prepare node scaling factors if we're in scaled mode
+        node_scaling_factors = None
         if (
-            self._mode == "nodes_weighted"
-            and getattr(dis.nodes, "weights", None) is not None
+            self._mode == "nodes_scaled"
+            and getattr(dis.nodes, "scaling_factors", None) is not None
         ):
-            node_weights = cast(np.ndarray, dis.nodes.weights)
+            node_scaling_factors = cast(np.ndarray, dis.nodes.scaling_factors)
 
         for i, ele in tqdm(
             enumerate(dis.elements),
@@ -252,10 +256,12 @@ class InterpolatorNodes(Interpolator):
             ele_nodes = node_values[node_positions[i]]
             num_values = image_data.pixel_type.num_values
 
-            if node_weights is not None:
-                weights_current = node_weights[node_positions[i]]
+            if node_scaling_factors is not None:
+                scaling_factors_current = node_scaling_factors[
+                    node_positions[i]
+                ]
                 ele.data = self._compute_weighted_mean(
-                    ele_nodes, weights_current, num_values
+                    ele_nodes, scaling_factors_current, num_values
                 )
             else:
                 ele.data = self._compute_unweighted_mean(ele_nodes, num_values)

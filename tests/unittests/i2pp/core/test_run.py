@@ -150,8 +150,8 @@ def maximal_valid_config(tmp_path):
         },
         "processing": {
             "interpolation": {
-                "method": "nodes_weighted",
-                "node_weight": {"interior": 0.8, "surface": 0.2},
+                "method": "nodes_scaled",
+                "node_scaling_factors": {"interior": 0.8, "surface": 0.2},
                 "filter_outliers": True,
                 "set_surface_node_value": 100.0,
             },

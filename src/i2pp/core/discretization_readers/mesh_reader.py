@@ -1,16 +1,21 @@
 """Import Mesh data."""
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import trimesh
-from i2pp.core.configuration_validator.validator import Processing
 from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
     DiscretizationReader,
     Element,
     Nodes,
 )
+
+if TYPE_CHECKING:
+    from i2pp.core.configuration_validator.validator import Processing
 
 
 class MeshReader(DiscretizationReader):

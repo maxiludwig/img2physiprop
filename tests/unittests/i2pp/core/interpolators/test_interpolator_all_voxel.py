@@ -285,15 +285,15 @@ def test_get_data_of_element_element_low_resolution_image():
 
 
 def _make_simple_discretization(
-    node_coords, elements_node_ids, node_weights=None
+    node_coords, elements_node_ids, node_scaling_factors=None
 ):
     """Helper to create a minimal Discretization with nodes/elements and
-    weights."""
+    scaling factors."""
     node_ids = np.arange(len(node_coords))
     nodes = Nodes(ids=node_ids, coords=np.asarray(node_coords))
-    if node_weights is None:
-        node_weights = np.ones(len(node_coords), dtype=float)
-    setattr(nodes, "weights", np.asarray(node_weights))
+    if node_scaling_factors is None:
+        node_scaling_factors = np.ones(len(node_coords), dtype=float)
+    setattr(nodes, "scaling_factors", np.asarray(node_scaling_factors))
 
     # Create Elements with required 'id' field;
     # center_coords/data left as defaults
@@ -308,9 +308,9 @@ def _make_simple_discretization(
     return Discretization(nodes=nodes, elements=elements, surfaces=surfaces)
 
 
-def test_unweighted_vs_weighted_mode_mean_differs_when_weights_bias():
-    """Weighted mode should differ from unweighted mean when node weights bias
-    proximity."""
+def test_unscaled_vs_scaled_mode_mean_differs_when_scaling_factors_bias():
+    """Scaled mode should differ from unscaled mean when node scaling factors
+    bias proximity."""
     # Image: small grid 3x3x3 with deterministic values
     pixel_data = np.arange(27, dtype=float).reshape((3, 3, 3))
     grid_coords = GridCoords(
@@ -338,36 +338,35 @@ def test_unweighted_vs_weighted_mode_mean_differs_when_weights_bias():
     dis = _make_simple_discretization(
         node_coords=ele_nodes,
         elements_node_ids=[np.arange(8)],
-        node_weights=np.array(
+        node_scaling_factors=np.array(
             [10, 10, 10, 10, 1, 1, 1, 1], dtype=float
         ),  # bias towards lower z nodes
     )
 
-    # Unweighted
-    interpolator_unweighted = InterpolatorAllVoxel(
+    # Unscaled
+    interpolator_unscaled = InterpolatorAllVoxel(
         mode="allvoxels", filter_outliers=False
     )
-    elems_unweighted = interpolator_unweighted.compute_element_data(
+    elems_unscaled = interpolator_unscaled.compute_element_data(
         dis, image_data
     )
-    val_unweighted = elems_unweighted[0].data
+    val_unscaled = elems_unscaled[0].data
 
-    # Weighted
-    interpolator_weighted = InterpolatorAllVoxel(
-        mode="allvoxels_weighted", filter_outliers=False
+    # Scaled
+    interpolator_scaled = InterpolatorAllVoxel(
+        mode="allvoxels_scaled", filter_outliers=False
     )
-    elems_weighted = interpolator_weighted.compute_element_data(
-        dis, image_data
-    )
-    val_weighted = elems_weighted[0].data
+    elems_scaled = interpolator_scaled.compute_element_data(dis, image_data)
+    val_scaled = elems_scaled[0].data
 
-    assert np.isfinite(val_unweighted).all()
-    assert np.isfinite(val_weighted).all()
-    # Expect a difference due to weight bias toward voxels near lower-z nodes
-    assert not np.allclose(val_unweighted, val_weighted)
+    assert np.isfinite(val_unscaled).all()
+    assert np.isfinite(val_scaled).all()
+    # Expect a difference due to scaling factor
+    # bias toward voxels near lower-z nodes
+    assert not np.allclose(val_unscaled, val_scaled)
 
 
-def test_filter_outliers_reduces_extreme_values_in_unweighted_mode():
+def test_filter_outliers_reduces_extreme_values_in_unscaled_mode():
     """Outlier filtering should reduce influence of extreme voxel values."""
     # Construct image with an element that will include voxels;
     # insert an extreme outlier
@@ -412,8 +411,8 @@ def test_filter_outliers_reduces_extreme_values_in_unweighted_mode():
     assert np.isclose(val_filter, 1.0, rtol=1e-3)
 
 
-def test_filter_outliers_applies_in_weighted_mode():
-    """Outlier filtering should apply in weighted mode as well."""
+def test_filter_outliers_applies_in_scaled_mode():
+    """Outlier filtering should apply in scaled mode as well."""
     N = 5
     pixel_data = np.ones((N, N, N), dtype=float)
     pixel_data[2, 2, 2] = 1e6
@@ -437,22 +436,22 @@ def test_filter_outliers_applies_in_weighted_mode():
         ]
     )
 
-    # Node weights biased toward corners near
+    # Node scaling factors biased toward corners near
     # the outlier but filtering should mitigate
-    weights = np.array([5, 5, 5, 5, 5, 5, 5, 5], dtype=float)
+    scaling_factors = np.array([5, 5, 5, 5, 5, 5, 5, 5], dtype=float)
 
     interp_w_no_filter = InterpolatorAllVoxel(
-        mode="allvoxels_weighted", filter_outliers=False
+        mode="allvoxels_scaled", filter_outliers=False
     )
     val_w_no_filter = interp_w_no_filter._get_data_of_element(
-        element, image_data, node_weights_current=weights
+        element, image_data, node_scaling_factors_current=scaling_factors
     )
 
     interp_w_filter = InterpolatorAllVoxel(
-        mode="allvoxels_weighted", filter_outliers=True
+        mode="allvoxels_scaled", filter_outliers=True
     )
     val_w_filter = interp_w_filter._get_data_of_element(
-        element, image_data, node_weights_current=weights
+        element, image_data, node_scaling_factors_current=scaling_factors
     )
 
     # Unfiltered should be larger than ~1 due to outlier influence
@@ -463,8 +462,8 @@ def test_filter_outliers_applies_in_weighted_mode():
     assert np.all(val_w_filter < val_w_no_filter)
 
 
-def test_unknown_mode_defaults_to_unweighted_mean():
-    """Unknown mode should fall back to unweighted mean."""
+def test_unknown_mode_defaults_to_unscaled_mean():
+    """Unknown mode should fall back to unscaled mean."""
     element = np.array(
         [
             [0, 2, 1],
@@ -488,7 +487,7 @@ def test_unknown_mode_defaults_to_unweighted_mean():
         pixel_data, grid_coords, np.eye(3), np.zeros(3), PixelValueType.CT
     )
 
-    # Expected unweighted mean of voxels inside the element
+    # Expected unscaled mean of voxels inside the element
     data_inside = [11, 12, 16, 17, 36, 37, 41, 42]
     expected_mean = np.mean(data_inside)
 
@@ -501,9 +500,9 @@ def test_unknown_mode_defaults_to_unweighted_mean():
     assert np.isclose(result_val, expected_mean)
 
 
-def test_weighted_small_voxel_count_uses_simple_weighted_average():
+def test_scaled_small_voxel_count_uses_simple_scaled_average():
     """When voxel count is small (<=5), _weighted_voxel_mean should return
-    simple weighted average."""
+    simple scaled average."""
     # Grid 2x2x2
     grid_coords = GridCoords(
         slice=np.array([0.0, 1.0]),
@@ -528,24 +527,24 @@ def test_weighted_small_voxel_count_uses_simple_weighted_average():
             [0.0, 0.1, 0.5],
         ]
     )
-    # One element uses the 4 nodes, with explicit node weights
+    # One element uses the 4 nodes, with explicit node scaling factors
     node_ids = np.arange(len(element_nodes))
     nodes = Nodes(
         ids=node_ids,
         coords=element_nodes,
-        weights=np.array([2.0, 2.0, 1.0, 1.0]),
+        scaling_factors=np.array([2.0, 2.0, 1.0, 1.0]),
     )
     elements = [DisElement(node_ids=node_ids, id=0)]
     surfaces = [Surface(node_ids=np.array([], dtype=int), id=0)]
     dis = Discretization(nodes=nodes, elements=elements, surfaces=surfaces)
 
     interpolator = InterpolatorAllVoxel(
-        mode="allvoxels_weighted", filter_outliers=True
+        mode="allvoxels_scaled", filter_outliers=True
     )
     elems = interpolator.compute_element_data(dis, image_data)
     result = float(np.asarray(elems[0].data).mean())
 
-    # Manually compute included voxels and expected weighted average
+    # Manually compute included voxels and expected scaled average
     hull = ConvexHull(element_nodes)
     included_points = []
     included_vals = []
@@ -561,23 +560,25 @@ def test_weighted_small_voxel_count_uses_simple_weighted_average():
     voxels_phys = np.asarray(included_points)
     values = np.asarray(included_vals)
 
-    # Expect small voxel count (<=5) to use simple weighted average
+    # Expect small voxel count (<=5) to use simple scaled average
     assert len(values) <= 5
 
-    # Recompute voxel weights exactly as in implementation
+    # Recompute voxel scaling factors exactly as in implementation
     distances = np.linalg.norm(
         element_nodes[:, np.newaxis, :] - voxels_phys[np.newaxis, :, :], axis=2
     )
     distances = np.maximum(distances, 1e-10)
-    voxel_weights = np.sum(nodes.weights[:, np.newaxis] / distances, axis=0)
+    voxel_scaling_factors = np.sum(
+        nodes.scaling_factors[:, np.newaxis] / distances, axis=0
+    )
 
-    expected = np.average(values, weights=voxel_weights, axis=0)
+    expected = np.average(values, weights=voxel_scaling_factors, axis=0)
     assert np.isclose(result, expected)
 
 
-def test_weighted_mode_no_filter_falls_back_when_weights_sum_zero():
-    """Weighted/no-filter path should fall back to unweighted mean when weights
-    sum to zero."""
+def test_scaled_mode_no_filter_falls_back_when_scaling_factors_sum_zero():
+    """Scaled/no-filter path should fall back to unscaled mean when scaling
+    factors sum to zero."""
     # Simple 3x3x3 grid with deterministic values
     pixel_data = np.arange(27, dtype=float).reshape((3, 3, 3))
     grid_coords = GridCoords(
@@ -602,37 +603,37 @@ def test_weighted_mode_no_filter_falls_back_when_weights_sum_zero():
     )
 
     # Discretization: one element using these nodes;
-    # set all node weights to zero
+    # set all node scaling factors to zero
     dis = _make_simple_discretization(
         node_coords=element_nodes,
         elements_node_ids=[np.arange(8)],
-        node_weights=np.zeros(8, dtype=float),
+        node_scaling_factors=np.zeros(8, dtype=float),
     )
 
-    # Compute with weighted mode, no outlier filtering
-    interp_weighted = InterpolatorAllVoxel(
-        mode="allvoxels_weighted", filter_outliers=False
+    # Compute with scaled mode, no outlier filtering
+    interp_scaled = InterpolatorAllVoxel(
+        mode="allvoxels_scaled", filter_outliers=False
     )
-    elems = interp_weighted.compute_element_data(dis, image_data)
-    val_weighted = float(np.asarray(elems[0].data).mean())
+    elems = interp_scaled.compute_element_data(dis, image_data)
+    val_scaled = float(np.asarray(elems[0].data).mean())
 
-    # Compute unweighted reference
-    interp_unweighted = InterpolatorAllVoxel(
+    # Compute unscaled reference
+    interp_unscaled = InterpolatorAllVoxel(
         mode="allvoxels", filter_outliers=False
     )
-    val_unweighted = float(
+    val_unscaled = float(
         np.asarray(
-            interp_unweighted.compute_element_data(dis, image_data)[0].data
+            interp_unscaled.compute_element_data(dis, image_data)[0].data
         ).mean()
     )
 
-    # Should match unweighted mean (fallback) and not raise ZeroDivisionError
-    assert np.isclose(val_weighted, val_unweighted)
+    # Should match unscaled mean (fallback) and not raise ZeroDivisionError
+    assert np.isclose(val_scaled, val_unscaled)
 
 
-def test_weighted_mode_with_filter_falls_back_when_weights_sum_zero():
-    """Weighted/filtered path should fall back to unweighted mean when weights
-    sum to zero."""
+def test_scaled_mode_with_filter_falls_back_when_scaling_factors_sum_zero():
+    """Scaled/filtered path should fall back to unscaled mean when scaling
+    factors sum to zero."""
     # Grid with ones and an outlier to exercise filtering path
     N = 5
     pixel_data = np.ones((N, N, N), dtype=float)
@@ -658,30 +659,28 @@ def test_weighted_mode_with_filter_falls_back_when_weights_sum_zero():
         ]
     )
 
-    # Zero node weights to trigger zero-sum voxel weights
+    # Zero node scaling factors to trigger zero-sum voxel scaling factors
     dis = _make_simple_discretization(
         node_coords=element_nodes,
         elements_node_ids=[np.arange(8)],
-        node_weights=np.zeros(8, dtype=float),
+        node_scaling_factors=np.zeros(8, dtype=float),
     )
 
-    # Weighted with filtering; should not raise
-    # and should approximate unweighted filtered mean
-    interp_weighted_filter = InterpolatorAllVoxel(
-        mode="allvoxels_weighted", filter_outliers=True
+    # Scaled with filtering; should not raise
+    # and should approximate unscaled filtered mean
+    interp_scaled_filter = InterpolatorAllVoxel(
+        mode="allvoxels_scaled", filter_outliers=True
     )
-    elems_weighted = interp_weighted_filter.compute_element_data(
-        dis, image_data
-    )
-    val_weighted = float(np.asarray(elems_weighted[0].data).mean())
+    elems_scaled = interp_scaled_filter.compute_element_data(dis, image_data)
+    val_scaled = float(np.asarray(elems_scaled[0].data).mean())
 
-    # Unweighted with filtering as reference
-    interp_unweighted_filter = InterpolatorAllVoxel(
+    # Unscaled with filtering as reference
+    interp_unscaled_filter = InterpolatorAllVoxel(
         mode="allvoxels", filter_outliers=True
     )
-    elems_unweighted = interp_unweighted_filter.compute_element_data(
+    elems_unscaled = interp_unscaled_filter.compute_element_data(
         dis, image_data
     )
-    val_unweighted = float(np.asarray(elems_unweighted[0].data).mean())
+    val_unscaled = float(np.asarray(elems_unscaled[0].data).mean())
 
-    assert np.isclose(val_weighted, val_unweighted, rtol=1e-6)
+    assert np.isclose(val_scaled, val_unscaled, rtol=1e-6)

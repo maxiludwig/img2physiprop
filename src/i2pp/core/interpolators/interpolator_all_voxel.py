@@ -17,12 +17,12 @@ from tqdm import tqdm
 class InterpolatorAllVoxel(Interpolator):
     """Interpolator for mapping 3D image data to finite element mesh elements.
 
-    This class supports both unweighted and node-weighted voxel mean
+    This class supports both unscaled and node-scaled voxel mean
     calculations, controlled via the 'mode' parameter. It assigns pixel
     values from 3D image data to finite element mesh elements by computing
     the mean of all voxels within each element.
     This functionality is used when the `interpolation_method` is set to
-    "allvoxels" or "allvoxels_weighted".
+    "allvoxels" or "allvoxels_scaled".
     """
 
     def __init__(
@@ -34,7 +34,7 @@ class InterpolatorAllVoxel(Interpolator):
     ):
         super().__init__(*args, **kwargs)
         self._filter_outliers_enabled = filter_outliers
-        self._mode = mode  # "allvoxels" or "allvoxels_weighted"
+        self._mode = mode  # "allvoxels" or "allvoxels_scaled"
 
     def _search_bounding_box(
         self, grid_coords: GridCoords, element_grid_coords: np.ndarray
@@ -144,15 +144,15 @@ class InterpolatorAllVoxel(Interpolator):
         voxels_phys: np.ndarray,
         values: np.ndarray,
         element_node_phys: np.ndarray,
-        node_weights: np.ndarray,
+        node_scaling_factors: np.ndarray,
     ) -> float:
         """Calculate a node-weighted mean of voxel values, with optional
         outlier filtering.
 
         Computes the weighted mean of voxel values within an element,
         where the weight is determined based on the distances between the voxel
-        and the element's nodes, scaled by the node weights. Outliers can be
-        excluded using the Modified Z-Score method.
+        and the element's nodes, scaled by the node scaling factors.
+        Outliers can be excluded using the Modified Z-Score method.
 
         Args:
             voxels_phys (np.ndarray):
@@ -161,8 +161,8 @@ class InterpolatorAllVoxel(Interpolator):
                 Corresponding voxel values (N_voxels x ...).
             element_node_phys (np.ndarray):
                 Physical coordinates of the element's nodes (N_nodes x 3).
-            node_weights (np.ndarray):
-                Weights assigned to the nodes (N_nodes,).
+            node_scaling_factors (np.ndarray):
+                Scaling factors assigned to the nodes (N_nodes,).
 
         Returns:
             float: The weighted mean of the voxel values.
@@ -175,7 +175,9 @@ class InterpolatorAllVoxel(Interpolator):
         )
         distances = np.maximum(distances, 1e-10)
 
-        voxel_weights = np.sum(node_weights[:, np.newaxis] / distances, axis=0)
+        voxel_weights = np.sum(
+            node_scaling_factors[:, np.newaxis] / distances, axis=0
+        )
 
         if len(values) > 5:
             mask = self._filter_outliers_modified_zscore(values)
@@ -225,7 +227,7 @@ class InterpolatorAllVoxel(Interpolator):
         self,
         element_node_grid_coords: np.ndarray,
         image_data: ImageData,
-        node_weights_current: np.ndarray | None = None,
+        node_scaling_factors_current: np.ndarray | None = None,
     ) -> np.ndarray:
         """Computes the representative pixel value for a given element based on
         its nodes in grid coordinates.
@@ -244,8 +246,8 @@ class InterpolatorAllVoxel(Interpolator):
                 the element's nodes.
             image_data (ImageData): Image data containing voxel coordinates
                 and pixel values.
-            node_weights_current (np.ndarray | None):
-                Weights assigned to the nodes.
+            node_scaling_factors_current (np.ndarray | None):
+                Scaling factors assigned to the nodes.
 
         Returns:
             np.ndarray: The mean pixel value of all voxels inside the element.
@@ -304,9 +306,9 @@ class InterpolatorAllVoxel(Interpolator):
                     mean_val = np.mean(data, axis=0)
                 return self._format_output_value(mean_val, image_data)
 
-            if self._mode == "allvoxels_weighted":
+            if self._mode == "allvoxels_scaled":
                 element_node_phys = element_node_grid_coords
-                if node_weights_current is None:
+                if node_scaling_factors_current is None:
                     weighted = np.mean(data, axis=0)
                 else:
                     if self._filter_outliers_enabled:
@@ -314,7 +316,7 @@ class InterpolatorAllVoxel(Interpolator):
                             voxels_phys_np,
                             data,
                             element_node_phys,
-                            node_weights_current,
+                            node_scaling_factors_current,
                         )
                     else:
                         # Non-filtered weighted path with zero-sum guard
@@ -325,7 +327,8 @@ class InterpolatorAllVoxel(Interpolator):
                         )
                         distances = np.maximum(distances, 1e-10)
                         voxel_weights = np.sum(
-                            node_weights_current[:, np.newaxis] / distances,
+                            node_scaling_factors_current[:, np.newaxis]
+                            / distances,
                             axis=0,
                         )
 
@@ -389,16 +392,21 @@ class InterpolatorAllVoxel(Interpolator):
             desc="Element values",
         ):
             element_node_grid_coords = node_grid_coords[node_positions[i]]
-            # Cast weights to ndarray when present to satisfy type checker
-            node_weights_current = None
-            if getattr(dis.nodes, "weights", None) is not None:
-                weights_nd = cast(np.ndarray, dis.nodes.weights)
-                node_weights_current = weights_nd[node_positions[i]]
+            # Cast scaling factors to ndarray when present
+            # to satisfy type checker
+            node_scaling_factors_current = None
+            if getattr(dis.nodes, "scaling_factors", None) is not None:
+                scaling_factors_nd = cast(
+                    np.ndarray, dis.nodes.scaling_factors
+                )
+                node_scaling_factors_current = scaling_factors_nd[
+                    node_positions[i]
+                ]
 
             ele.data = self._get_data_of_element(
                 element_node_grid_coords,
                 image_data,
-                node_weights_current=node_weights_current,
+                node_scaling_factors_current=node_scaling_factors_current,
             )
 
             if np.all(np.isnan(ele.data)):

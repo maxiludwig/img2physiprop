@@ -11,10 +11,10 @@ from i2pp.core.interpolators.interpolator_types import InterpolationType
     "enum_value, expected_class",
     [
         (InterpolationType.NODES, InterpolatorNodes),
-        (InterpolationType.NODES_WEIGHTED, InterpolatorNodes),
+        (InterpolationType.NODES_SCALED, InterpolatorNodes),
         (InterpolationType.CENTER, InterpolatorCenter),
         (InterpolationType.ALLVOXELS, InterpolatorAllVoxel),
-        (InterpolationType.ALLVOXELS_WEIGHTED, InterpolatorAllVoxel),
+        (InterpolationType.ALLVOXELS_SCALED, InterpolatorAllVoxel),
     ],
 )
 def test_create_interpolator_returns_expected_class(
@@ -28,17 +28,17 @@ def test_create_interpolator_returns_expected_class(
 def test_enum_values():
     """Enum values are correctly defined."""
     assert InterpolationType.NODES.value == "nodes"
-    assert InterpolationType.NODES_WEIGHTED.value == "nodes_weighted"
+    assert InterpolationType.NODES_SCALED.value == "nodes_scaled"
     assert InterpolationType.CENTER.value == "elementcenter"
     assert InterpolationType.ALLVOXELS.value == "allvoxels"
-    assert InterpolationType.ALLVOXELS_WEIGHTED.value == "allvoxels_weighted"
+    assert InterpolationType.ALLVOXELS_SCALED.value == "allvoxels_scaled"
 
 
 @pytest.mark.parametrize(
     "enum_value, expected_mode",
     [
         (InterpolationType.ALLVOXELS, "allvoxels"),
-        (InterpolationType.ALLVOXELS_WEIGHTED, "allvoxels_weighted"),
+        (InterpolationType.ALLVOXELS_SCALED, "allvoxels_scaled"),
     ],
 )
 def test_create_interpolator_configures_mode(enum_value, expected_mode):

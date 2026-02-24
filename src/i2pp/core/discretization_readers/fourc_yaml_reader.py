@@ -1,11 +1,13 @@
 """Import 4C.yaml data."""
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import lnmmeshio
 import numpy as np
-from i2pp.core.configuration_validator.validator import Processing
 from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
     DiscretizationReader,
@@ -15,6 +17,9 @@ from i2pp.core.discretization_readers.discretization_reader import (
 )
 from lnmmeshio import Discretization as FourCDiscretization
 from tqdm import tqdm
+
+if TYPE_CHECKING:
+    from i2pp.core.configuration_validator.validator import Processing
 
 
 class FourCYamlReader(DiscretizationReader):
@@ -99,6 +104,12 @@ class FourCYamlReader(DiscretizationReader):
 
         logging.info("Importing discretization data")
 
+        if processing is None:
+            raise ValueError(
+                "Processing configuration is required"
+                "for loading the discretization."
+            )
+
         raw_dis = lnmmeshio.read(str(file_path))
 
         raw_dis.compute_ids(zero_based=True)
@@ -108,17 +119,19 @@ class FourCYamlReader(DiscretizationReader):
                 raw_dis, np.array(options["material_ids"])
             )
 
-        interior_weight = processing.interpolation.node_weight.interior
-        surface_weight = processing.interpolation.node_weight.surface
+        scaling_factors = processing.interpolation.node_scaling_factors
+
+        interior_node_scaling = scaling_factors.interior_node_scaling
+        surface_node_scaling = scaling_factors.surface_node_scaling
 
         nodes_coords = []
         node_ids = []
-        nodes_weights = []
+        nodes_scaling = []
 
         for node in raw_dis.nodes:
             nodes_coords.append(node.coords)
             node_ids.append(node.id)
-            nodes_weights.append(interior_weight)
+            nodes_scaling.append(interior_node_scaling)
 
         elements = []
 
@@ -139,7 +152,7 @@ class FourCYamlReader(DiscretizationReader):
             for node in surf.nodes:
                 surf_node_ids.append(node.id)
                 position = node_id_to_idx[node.id]
-                nodes_weights[position] = surface_weight
+                nodes_scaling[position] = surface_node_scaling
 
             surfaces.append(
                 Surface(node_ids=np.array(surf_node_ids), id=surf.id)
@@ -149,7 +162,7 @@ class FourCYamlReader(DiscretizationReader):
             nodes=Nodes(
                 coords=np.array(nodes_coords),
                 ids=np.array(node_ids),
-                weights=np.array(nodes_weights),
+                scaling_factors=np.array(nodes_scaling),
             ),
             elements=elements,
             surfaces=surfaces,

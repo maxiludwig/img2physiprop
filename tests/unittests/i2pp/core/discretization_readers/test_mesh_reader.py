@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from i2pp.core.configuration_validator.validator import (
     Interpolation,
-    NodeWeight,
+    NodeScaling,
     Processing,
     Transformation,
 )
@@ -25,7 +25,9 @@ def test_load_discretization_mesh(tmp_path: Path) -> None:
         interpolation=Interpolation(
             method="nodes",
             filter_outliers=False,
-            node_weight=NodeWeight(interior=0.5, surface=0.5),
+            node_scaling_factors=NodeScaling(
+                interior_node_scaling=0.5, surface_node_scaling=0.5
+            ),
         ),
         transformation=Transformation(
             user_script=Path(""),

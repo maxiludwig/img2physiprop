@@ -20,23 +20,23 @@ class InterpolationType(Enum):
     Attributes:
         NODES (str): Represents the interpolation method where the pixel value
             is averaged over the nodes of the element.
-        NODES_WEIGHTED (str): Represents the interpolation method where the
-            pixel value is weighted over the nodes of the element.
+        NODES_SCALED (str): Represents the interpolation method where the
+            pixel value is scaled over the nodes of the element.
         CENTER (str): Represents the interpolation method where the pixel value
             is based on the center of the element.
         ALLVOXELS (str): Represents the interpolation method where the pixel
             value is averaged over all voxels inside the element.
-        ALLVOXELS_WEIGHTED (str): Represents the interpolation method where the
-            pixel value is weighted over all voxels inside the element.
+        ALLVOXELS_SCALED (str): Represents the interpolation method where the
+            pixel value is scaled over all voxels inside the element.
 
     Use create_interpolator to obtain a configured interpolator instance.
     """
 
     NODES = "nodes"
-    NODES_WEIGHTED = "nodes_weighted"
+    NODES_SCALED = "nodes_scaled"
     CENTER = "elementcenter"
     ALLVOXELS = "allvoxels"
-    ALLVOXELS_WEIGHTED = "allvoxels_weighted"
+    ALLVOXELS_SCALED = "allvoxels_scaled"
 
     def create_interpolator(
         self,
@@ -69,17 +69,17 @@ class InterpolationType(Enum):
             return InterpolatorAllVoxel(
                 mode="allvoxels", filter_outliers=filter_outliers
             )
-        if self == InterpolationType.ALLVOXELS_WEIGHTED:
+        if self == InterpolationType.ALLVOXELS_SCALED:
             return InterpolatorAllVoxel(
-                mode="allvoxels_weighted", filter_outliers=filter_outliers
+                mode="allvoxels_scaled", filter_outliers=filter_outliers
             )
         if self == InterpolationType.NODES:
             return InterpolatorNodes(
                 mode="nodes", surf_node_val=set_node_value
             )
-        if self == InterpolationType.NODES_WEIGHTED:
+        if self == InterpolationType.NODES_SCALED:
             return InterpolatorNodes(
-                mode="nodes_weighted", surf_node_val=set_node_value
+                mode="nodes_scaled", surf_node_val=set_node_value
             )
         if self == InterpolationType.CENTER:
             return InterpolatorCenter()

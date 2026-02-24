@@ -1,12 +1,16 @@
 """Import Discretization."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
-from i2pp.core.configuration_validator.validator import Processing
+
+if TYPE_CHECKING:
+    from i2pp.core.configuration_validator.validator import Processing
 
 
 @dataclass
@@ -32,13 +36,15 @@ class Nodes:
         coords (np.ndarray): An (N, 3) array containing the (x, y, z)
             world coordinates of each node.
         ids (np.ndarray): An array of IDs for each node.
-        weights (Optional[np.ndarray]): Optional per-node weights,
-            e.g., low weights for surface nodes.
+        scaling_factors (Optional[np.ndarray]):
+            Optional per-node scaling_factors that can be used to
+            adjust the contribution of each node during interpolation,
+            e.g., low scaling factor for surface nodes.
     """
 
     coords: np.ndarray
     ids: np.ndarray
-    weights: Optional[np.ndarray] = None
+    scaling_factors: Optional[np.ndarray] = None
 
 
 @dataclass
@@ -127,7 +133,10 @@ class DiscretizationReader(ABC):
 
     @abstractmethod
     def load_discretization(
-        self, file_path: Path, options: dict, processing: Processing
+        self,
+        file_path: Path,
+        options: dict,
+        processing: Processing,
     ) -> Discretization:
         """Abstract method to load discretization data from a file path.
 

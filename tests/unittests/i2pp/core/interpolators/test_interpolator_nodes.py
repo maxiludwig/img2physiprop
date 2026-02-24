@@ -87,8 +87,8 @@ def _build_simple_setup_rgb():
     """Build simple discretization and image data for RGB tests."""
     node_coords = np.array([[0, 0, 0], [1, 0, 0]])
     nodes = Nodes(coords=node_coords, ids=[0, 1])
-    # Provide weights for nodes
-    nodes.weights = np.array([0.2, 0.8])
+    # Provide scaling factors for nodes
+    nodes.scaling_factors = np.array([0.2, 0.8])
 
     elements = [Element(node_ids=[0, 1], id=0)]
     dis = Discretization(nodes=nodes, elements=elements, surfaces=[])
@@ -105,8 +105,8 @@ def _build_simple_setup_rgb():
     return dis, image_data
 
 
-def test_nodes_unweighted_rgb_ignores_weights():
-    """Unweighted mode computes nanmean and ignores weights for RGB."""
+def test_nodes_unscaled_rgb_ignores_scaling_factors():
+    """Unscaled mode computes nanmean and ignores scaling factors for RGB."""
     dis, image_data = _build_simple_setup_rgb()
     interpolator = InterpolatorNodes(mode="nodes")
 
@@ -132,10 +132,10 @@ def test_nodes_unweighted_rgb_ignores_weights():
         assert np.allclose(result[0].data, expected)
 
 
-def test_nodes_weighted_rgb():
-    """Weighted mode uses node weights for vector-valued (RGB) data."""
+def test_nodes_scaled_rgb():
+    """Scaled mode uses node scaling factors for vector-valued (RGB) data."""
     dis, image_data = _build_simple_setup_rgb()
-    interpolator = InterpolatorNodes(mode="nodes_weighted")
+    interpolator = InterpolatorNodes(mode="nodes_scaled")
 
     node_values = np.array([[100, 150, 200], [200, 250, 300]])
     with (
@@ -159,10 +159,10 @@ def test_nodes_weighted_rgb():
         assert np.allclose(result[0].data, expected)
 
 
-def test_nodes_weighted_rgb_handles_nans():
-    """Weighted mode handles NaNs by masking them out for RGB."""
+def test_nodes_scaled_rgb_handles_nans():
+    """Scaled mode handles NaNs by masking them out for RGB."""
     dis, image_data = _build_simple_setup_rgb()
-    interpolator = InterpolatorNodes(mode="nodes_weighted")
+    interpolator = InterpolatorNodes(mode="nodes_scaled")
 
     node_values = np.array([[np.nan, np.nan, np.nan], [200, 250, 300]])
     with (
