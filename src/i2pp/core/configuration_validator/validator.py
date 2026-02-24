@@ -125,9 +125,17 @@ class NodeScaling:
             return NodeScaling(
                 surface_node_scaling=1.0, interior_node_scaling=1.0
             )
+        surface = d.get("surface", 1.0)
+        interior = d.get("interior", 1.0)
+
+        if surface < 0 or interior < 0:
+            raise ValueError(
+                "Node scaling factors (surface and interior) must be "
+                "non-negative."
+            )
         return NodeScaling(
-            surface_node_scaling=d.get("surface", 1.0),
-            interior_node_scaling=d.get("interior", 1.0),
+            surface_node_scaling=surface,
+            interior_node_scaling=interior,
         )
 
 
@@ -138,6 +146,7 @@ class Interpolation:
     method: str
     node_scaling_factors: NodeScaling
     filter_outliers: bool = False
+    idw_power: int = 2
     set_node_value: Optional[float | list[float]] = field(default=None)
     set_ele_value: Optional[float | list[float]] = field(default=None)
 
@@ -163,6 +172,10 @@ class Interpolation:
                 "and 'set_surface_element_value' "
                 "cannot be set at the same time."
             )
+        if d.get("inverse_distance_power", 2) <= 0:
+            raise ValueError(
+                "Inverse distance power must be a positive integer."
+            )
         return Interpolation(
             method=d["method"],
             filter_outliers=d.get("filter_outliers", False),
@@ -171,6 +184,7 @@ class Interpolation:
             node_scaling_factors=NodeScaling.from_dict(
                 d.get("node_scaling_factors")
             ),
+            idw_power=d.get("inverse_distance_power", 2),
         )
 
 

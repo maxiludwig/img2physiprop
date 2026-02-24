@@ -30,11 +30,15 @@ class InterpolatorAllVoxel(Interpolator):
         *args,
         filter_outliers: bool = False,
         mode: str = "allvoxels",
+        idw_power: int = 2,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self._filter_outliers_enabled = filter_outliers
         self._mode = mode  # "allvoxels" or "allvoxels_scaled"
+        self._idw_power = (
+            idw_power  # Power parameter for inverse distance weighting
+        )
 
     def _search_bounding_box(
         self, grid_coords: GridCoords, element_grid_coords: np.ndarray
@@ -115,29 +119,75 @@ class InterpolatorAllVoxel(Interpolator):
     ) -> np.ndarray:
         """Identify outliers using the Modified Z-Score method.
 
+        Supports multi-channel data (e.g., RGB) by evaluating outliers across
+        all components.
+
         Args:
             values (np.ndarray):
-                Array of voxel values (1D or 2D, axis=0 = voxels)
+                Array of voxel values (N_voxels x ...).
             threshold (float):
-                Cutoff for Modified Z-Score, default 3.5
+                Cutoff for Modified Z-Score, default 3.5.
 
         Returns:
-            mask (np.ndarray): Boolean array, True = value is not an outlier
+            mask (np.ndarray): 1D boolean array of shape (N_voxels,), where
+                True indicates the pixel is not an outlier and should be used.
         """
         values = np.asarray(values)
+        if values.ndim == 1:
+            values = values[:, np.newaxis]
+
+        # Calculate median and MAD per channel (axis=0)
         median = np.median(values, axis=0)
 
         # Median Absolute Deviation (MAD)
         mad = np.median(np.abs(values - median), axis=0)
         mad = np.maximum(mad, 1e-10)  # avoid division by zero
 
-        # Modified Z-Score
+        # Modified Z-Score for each component
         modified_z = 0.6745 * (values - median) / mad
 
-        # Mask: True = not an outlier
-        mask = np.abs(modified_z) <= threshold
+        # Mask: True if NOT an outlier across all components/channels
+        # A voxel is filtered out if any channel exceeds the threshold
+        mask = np.all(np.abs(modified_z) <= threshold, axis=1)
 
         return mask
+
+    def _compute_idw_voxel_weights(
+        self,
+        element_node_phys: np.ndarray,
+        voxels_phys: np.ndarray,
+        node_scaling_factors: np.ndarray,
+    ) -> np.ndarray:
+        """Computes inverse distance weighting (IDW) voxel weights.
+
+        Args:
+            element_node_phys (np.ndarray):
+                Physical coordinates of the element's nodes.
+            voxels_phys (np.ndarray):
+                Physical coordinates of voxels within the element.
+            node_scaling_factors (np.ndarray):
+                Scaling factors assigned to the nodes.
+
+        Returns:
+            np.ndarray: The computed weights for each voxel.
+        """
+
+        distances = np.linalg.norm(
+            element_node_phys[:, np.newaxis, :]
+            - voxels_phys[np.newaxis, :, :],
+            axis=2,
+        )
+
+        # Avoid division by zero by setting a minimum distance threshold
+        eps = 1e-9
+        distances = np.maximum(distances, eps)
+
+        inv_distances = 1.0 / distances**self._idw_power
+        voxel_weights = np.sum(
+            node_scaling_factors[:, np.newaxis] * inv_distances, axis=0
+        ) / np.sum(inv_distances, axis=0)
+
+        return voxel_weights
 
     def _weighted_voxel_mean(
         self,
@@ -145,7 +195,7 @@ class InterpolatorAllVoxel(Interpolator):
         values: np.ndarray,
         element_node_phys: np.ndarray,
         node_scaling_factors: np.ndarray,
-    ) -> float:
+    ) -> float | np.ndarray:
         """Calculate a node-weighted mean of voxel values, with optional
         outlier filtering.
 
@@ -168,18 +218,19 @@ class InterpolatorAllVoxel(Interpolator):
             float: The weighted mean of the voxel values.
         """
 
-        distances = np.linalg.norm(
-            element_node_phys[:, np.newaxis, :]
-            - voxels_phys[np.newaxis, :, :],
-            axis=2,
-        )
-        distances = np.maximum(distances, 1e-10)
+        # if node_scaling factors are the same for all nodes,
+        # this reduces to a standard IDW weighted mean
+        if np.all(node_scaling_factors == node_scaling_factors[0]):
+            voxel_weights = (
+                np.ones(voxels_phys.shape[0]) * node_scaling_factors[0]
+            )
 
-        voxel_weights = np.sum(
-            node_scaling_factors[:, np.newaxis] / distances, axis=0
-        )
+        else:
+            voxel_weights = self._compute_idw_voxel_weights(
+                element_node_phys, voxels_phys, node_scaling_factors
+            )
 
-        if len(values) > 5:
+        if self._filter_outliers_enabled and len(values) > 5:
             mask = self._filter_outliers_modified_zscore(values)
             filtered_values = values[mask]
             filtered_weights = voxel_weights[mask]
@@ -208,9 +259,10 @@ class InterpolatorAllVoxel(Interpolator):
     ) -> np.ndarray:
         """Formats the output value based on the pixel type.
 
-        If the pixel type has one value, it wraps the value in a NumPy array.
-        If it has multiple values, it creates a NumPy array filled with the
-        value.
+        If the value is already a vector matching the pixel type components, it
+        is returned. Otherwise, if the pixel type has one value, it wraps the
+        value in a NumPy array. If it has multiple values and input is scalar,
+        it creates a NumPy array filled with the value.
 
         Args:
             value (float | np.ndarray): The value to format.
@@ -219,6 +271,10 @@ class InterpolatorAllVoxel(Interpolator):
         Returns:
             np.ndarray: The formatted output value.
         """
+        val_arr = np.atleast_1d(value)
+        if val_arr.size == image_data.pixel_type.num_values:
+            return val_arr
+
         if image_data.pixel_type.num_values == 1:
             return np.array([value])
         return np.full(image_data.pixel_type.num_values, value)
@@ -311,33 +367,12 @@ class InterpolatorAllVoxel(Interpolator):
                 if node_scaling_factors_current is None:
                     weighted = np.mean(data, axis=0)
                 else:
-                    if self._filter_outliers_enabled:
-                        weighted = self._weighted_voxel_mean(
-                            voxels_phys_np,
-                            data,
-                            element_node_phys,
-                            node_scaling_factors_current,
-                        )
-                    else:
-                        # Non-filtered weighted path with zero-sum guard
-                        distances = np.linalg.norm(
-                            element_node_phys[:, np.newaxis, :]
-                            - voxels_phys_np[np.newaxis, :, :],
-                            axis=2,
-                        )
-                        distances = np.maximum(distances, 1e-10)
-                        voxel_weights = np.sum(
-                            node_scaling_factors_current[:, np.newaxis]
-                            / distances,
-                            axis=0,
-                        )
-
-                        if np.sum(voxel_weights) <= 0:
-                            weighted = np.mean(data, axis=0)
-                        else:
-                            weighted = np.average(
-                                data, weights=voxel_weights, axis=0
-                            )
+                    weighted = self._weighted_voxel_mean(
+                        voxels_phys_np,
+                        data,
+                        element_node_phys,
+                        node_scaling_factors_current,
+                    )
 
                 return self._format_output_value(weighted, image_data)
 

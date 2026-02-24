@@ -43,6 +43,7 @@ class InterpolationType(Enum):
         *,
         filter_outliers: bool = False,
         set_node_value: float | list[float] | None = None,
+        idw_power: int = 2,
     ) -> Interpolator:
         """Creates and returns a configured interpolator instance based on the
         selected interpolation method.
@@ -57,6 +58,8 @@ class InterpolationType(Enum):
                 interpolation. Defaults to False.
             set_node_value (float | None): Value to set for surface nodes.
                 Defaults to None.
+            idw_power (int): Power parameter for inverse distance weighting.
+                Only applicable for ALLVOXELS_SCALED method. Defaults to 2.
 
         Returns:
             Interpolator: An instance of the interpolator that matches the
@@ -71,7 +74,9 @@ class InterpolationType(Enum):
             )
         if self == InterpolationType.ALLVOXELS_SCALED:
             return InterpolatorAllVoxel(
-                mode="allvoxels_scaled", filter_outliers=filter_outliers
+                mode="allvoxels_scaled",
+                filter_outliers=filter_outliers,
+                idw_power=idw_power,
             )
         if self == InterpolationType.NODES:
             return InterpolatorNodes(

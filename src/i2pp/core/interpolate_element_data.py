@@ -77,6 +77,7 @@ def interpolate_image_to_discretization(
     interpolator = enum_interpolation_method.create_interpolator(
         filter_outliers=interpolation.filter_outliers,
         set_node_value=interpolation.set_node_value,
+        idw_power=interpolation.idw_power,
     )
 
     elements = interpolator.compute_element_data(dis, image_data)

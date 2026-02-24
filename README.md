@@ -98,19 +98,18 @@ pdoc --html --output-dir docs src/i2pp
 
 ### Interpolation and value settings
 
-- Interpolation methods (processing.interpolation.method):
-  - nodes: Interpolates values at the element’s nodes and assigns the element mean (ignoring NaN nodes). Fast and robust; respects node sampling.
-  - nodes_scaled: Like `nodes`, but computes a scaled mean using node-specific scaling factors (`dis.nodes.scaling_factors`), which are set via `processing.interpolation.node_scaling_factors.surface` and `processing.interpolation.node_scaling_factors.interior`. This adjusts the influence of specific nodes.
-  - elementcenter: Interpolates at each element centroid and assigns that value.
-  - allvoxels: Collects all voxels whose grid coordinates lie inside the convex hull of the element nodes; assigns the mean value; optionally filters outliers.
-  - allvoxels_scaled: Computes a voxel-weighted mean where voxel weights derive from node scaling factors and inverse node-to-voxel distances; optionally filters outliers.
+- Interpolation methods (`processing.interpolation.method`):
+  - `nodes`: Interpolates values at the element’s nodes and assigns the element mean (ignoring NaN nodes). Fast and robust; respects node sampling.
+  - `nodes_scaled`: Like `nodes`, but computes a scaled mean using node-specific scaling factors (`dis.nodes.scaling_factors`), which are set via `processing.interpolation.node_scaling_factors.surface` and `processing.interpolation.node_scaling_factors.interior`. This adjusts the influence of specific nodes.
+  - `elementcenter`: Interpolates at each element centroid and assigns that value.
+  - `allvoxels`: Collects all voxels whose grid coordinates lie inside the convex hull of the element nodes; assigns the mean value; optionally filters outliers.
+  - `allvoxels_scaled`: Computes a voxel-weighted mean where voxel weights derive from node scaling factors and inverse node-to-voxel distances. The influence of the distance (decay) is controlled by `processing.interpolation.inverse_distance_power` p (p=1 linear, p=2 quadratic (default), p>=3 increasingly like step function); Optionally filters outliers.
 
 - Element and node value overrides:
-  - set_surface_node_value: If provided, all nodes that belong to any surface receive the fixed value (vector size must match the number of pixel channels); only relevant for `nodes` and `nodes_scaled` interpolation methods.
-  - set_surface_element_value: If provided, all elements touching any surface node receive the fixed value (scalar or vector); applicable to all interpolation methods.
-  - When both are set, surface node override is ignored (element override wins).
+  - `processing.interpolation.set_surface_node_value`: If provided, all nodes that belong to any surface receive the fixed value (vector size must match the number of pixel channels); only relevant for `nodes` and `nodes_scaled` interpolation methods.
+  - `processing.interpolation.set_surface_element_value`: If provided, all elements touching any surface node receive the fixed value (scalar or vector); applicable to all interpolation methods.
 
-- Outlier filtering (processing.interpolation.filter_outliers):
+- Outlier filtering (`processing.interpolation.filter_outliers`):
   - In `allvoxels` and `allvoxels_scaled`, if enabled and enough voxels are present (>5), outliers are removed using a modified Z-score (median/MAD-based, threshold=3.5) before averaging.
 
 - Fallbacks and warnings:

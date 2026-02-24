@@ -150,8 +150,9 @@ def maximal_valid_config(tmp_path):
         },
         "processing": {
             "interpolation": {
-                "method": "nodes_scaled",
+                "method": "allvoxels_scaled",
                 "node_scaling_factors": {"interior": 0.8, "surface": 0.2},
+                "inverse_distance_power": 3,
                 "filter_outliers": True,
                 "set_surface_node_value": 100.0,
             },

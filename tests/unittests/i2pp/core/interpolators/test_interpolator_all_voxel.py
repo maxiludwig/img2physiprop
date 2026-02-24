@@ -684,3 +684,287 @@ def test_scaled_mode_with_filter_falls_back_when_scaling_factors_sum_zero():
     val_unscaled = float(np.asarray(elems_unscaled[0].data).mean())
 
     assert np.isclose(val_scaled, val_unscaled, rtol=1e-6)
+
+
+def test_different_idw_power_setups():
+    """Test that changing idw_power affects the interpolated values."""
+    # Image: 12x12x12 grid, values depend on x-coordinate
+    pixel_data = np.zeros((12, 12, 12), dtype=float)
+    # make pixel data random but reproducible
+    # and deterministic based on x-coordinate
+    for z in range(12):
+        for y in range(12):
+            for x in range(12):
+                pixel_data[z, y, x] = x + 0.1 * (z + y)
+
+    grid_coords = GridCoords(
+        slice=np.arange(12), row=np.arange(12), col=np.arange(12)
+    )
+    image_data = ImageData(
+        pixel_data, grid_coords, np.eye(3), np.zeros(3), PixelValueType.CT
+    )
+
+    # Element: cube corners spanning [0, 10] in each axis
+    ele_nodes = np.array(
+        [
+            [0, 0, 0],
+            [10, 0, 0],
+            [0, 10, 0],
+            [10, 10, 0],
+            [0, 0, 10],
+            [10, 0, 10],
+            [0, 10, 10],
+            [10, 10, 10],
+        ],
+        dtype=float,
+    )
+
+    # Node scaling factors: heavily weight the nodes at x=0
+    scaling_factors = np.array(
+        [10.0, 1.0, 10.0, 1.0, 10.0, 1.0, 10.0, 1.0], dtype=float
+    )
+
+    dis = _make_simple_discretization(
+        node_coords=ele_nodes,
+        elements_node_ids=[np.arange(8)],
+        node_scaling_factors=scaling_factors,
+    )
+
+    # Test with idw_power = 1
+    interp_p1 = InterpolatorAllVoxel(
+        mode="allvoxels_scaled", idw_power=1, filter_outliers=False
+    )
+    val_p1 = float(
+        np.asarray(
+            interp_p1.compute_element_data(dis, image_data)[0].data
+        ).mean()
+    )
+
+    # Test with idw_power = 2
+    interp_p2 = InterpolatorAllVoxel(
+        mode="allvoxels_scaled", idw_power=2, filter_outliers=False
+    )
+    val_p2 = float(
+        np.asarray(
+            interp_p2.compute_element_data(dis, image_data)[0].data
+        ).mean()
+    )
+
+    # Test with idw_power = 3
+    interp_p3 = InterpolatorAllVoxel(
+        mode="allvoxels_scaled", idw_power=3, filter_outliers=False
+    )
+    val_p3 = float(
+        np.asarray(
+            interp_p3.compute_element_data(dis, image_data)[0].data
+        ).mean()
+    )
+
+    # Ensure they are all finite
+    assert np.isfinite(val_p1)
+    assert np.isfinite(val_p2)
+    assert np.isfinite(val_p3)
+
+    # Ensure they are different due to different distance weighting
+    assert not np.isclose(val_p1, val_p2)
+    assert not np.isclose(val_p2, val_p3)
+    assert not np.isclose(val_p1, val_p3)
+
+
+def test_large_element_many_voxels():
+    """Test interpolation for a large element containing many voxels."""
+    # Grid 20x20x20
+    grid_coords = GridCoords(
+        slice=np.arange(20), row=np.arange(20), col=np.arange(20)
+    )
+
+    # Pixel data varies linearly along the x-axis (col)
+    # pixel_data[z, y, x] = x
+    pixel_data = np.broadcast_to(np.arange(20), (20, 20, 20)).astype(float)
+    image_data = ImageData(
+        pixel_data, grid_coords, np.eye(3), np.zeros(3), PixelValueType.CT
+    )
+
+    # Element: large cube from coordinates 2 to 17
+    # This will enclose 16x16x16 = 4096 voxels
+    ele_nodes = np.array(
+        [
+            [2, 2, 2],
+            [17, 2, 2],
+            [2, 17, 2],
+            [17, 17, 2],
+            [2, 2, 17],
+            [17, 2, 17],
+            [2, 17, 17],
+            [17, 17, 17],
+        ],
+        dtype=float,
+    )
+
+    dis = _make_simple_discretization(
+        node_coords=ele_nodes,
+        elements_node_ids=[np.arange(8)],
+        node_scaling_factors=np.ones(8, dtype=float),
+    )
+
+    # Unscaled mode
+    interp_unscaled = InterpolatorAllVoxel(
+        mode="allvoxels", filter_outliers=False
+    )
+    val_unscaled = float(
+        np.asarray(
+            interp_unscaled.compute_element_data(dis, image_data)[0].data
+        ).mean()
+    )
+
+    # Scaled mode, uniformly scaled
+    interp_uni_scaled = InterpolatorAllVoxel(
+        mode="allvoxels_scaled", filter_outliers=False
+    )
+    val_uni_scaled = float(
+        np.asarray(
+            interp_uni_scaled.compute_element_data(dis, image_data)[0].data
+        ).mean()
+    )
+
+    # Scaled mode, different node scaling factors
+    dis.nodes.scaling_factors = np.array([0, 0, 1, 0, 1, 0, 1, 0], dtype=float)
+    interp_diff_scaled = InterpolatorAllVoxel(
+        mode="allvoxels_scaled", filter_outliers=False
+    )
+    val_diff_scaled = float(
+        np.asarray(
+            interp_diff_scaled.compute_element_data(dis, image_data)[0].data
+        ).mean()
+    )
+
+    # The x-coordinates inside the inclusive range [2, 17] are 2, 3, ..., 17.
+    # The mean of this sequence is (2 + 17) / 2 = 9.5.
+    expected_mean = 9.5
+
+    assert np.isclose(val_unscaled, expected_mean)
+
+    # With uniform scaling factors and a symmetric element/data distribution,
+    # the scaled mean should also match the expected mean.
+    assert np.isclose(val_uni_scaled, expected_mean)
+
+    # With different node scaling factors, the mean should differ.
+    assert not np.isclose(val_diff_scaled, expected_mean)
+
+
+def test__compute_idw_voxel_weights_different_scaling_factors():
+    """Test that different node scaling factors produce different voxel
+    weights."""
+    interpolator = InterpolatorAllVoxel(mode="allvoxels_scaled", idw_power=2)
+
+    # 4 nodes (e.g., a tetrahedron)
+    element_node_phys = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+
+    # 2 voxels
+    voxels_phys = np.array(
+        [
+            [0.1, 0.1, 0.1],  # Closer to node 0
+            [0.8, 0.1, 0.1],  # Closer to node 1
+        ]
+    )
+
+    # Uniform scaling factors
+    scaling_uniform = np.array([1.0, 1.0, 1.0, 1.0])
+    weights_uniform = interpolator._compute_idw_voxel_weights(
+        element_node_phys, voxels_phys, scaling_uniform
+    )
+
+    # Biased towards node 0
+    scaling_biased_0 = np.array([10.0, 1.0, 1.0, 1.0])
+    weights_biased_0 = interpolator._compute_idw_voxel_weights(
+        element_node_phys, voxels_phys, scaling_biased_0
+    )
+
+    # Biased towards node 1
+    scaling_biased_1 = np.array([1.0, 10.0, 1.0, 1.0])
+    weights_biased_1 = interpolator._compute_idw_voxel_weights(
+        element_node_phys, voxels_phys, scaling_biased_1
+    )
+
+    assert weights_uniform.shape == (2,)
+    assert weights_biased_0.shape == (2,)
+    assert weights_biased_1.shape == (2,)
+
+    # Uniform scaling factors should result in uniform weights (all 1.0)
+    assert np.allclose(weights_uniform, 1.0)
+
+    # Biased weights should differ from uniform
+    assert not np.allclose(weights_uniform, weights_biased_0)
+    assert not np.allclose(weights_uniform, weights_biased_1)
+
+    # Biased weights should differ from each other
+    assert not np.allclose(weights_biased_0, weights_biased_1)
+
+    # Voxel 0 is closer to Node 0, so its weight should be
+    # higher when Node 0 is biased
+    assert weights_biased_0[0] > weights_biased_0[1]
+
+    # Voxel 1 is closer to Node 1, so its weight should be
+    # higher when Node 1 is biased
+    assert weights_biased_1[1] > weights_biased_1[0]
+
+
+def test__compute_idw_voxel_weights_different_idw_powers():
+    """Test that different idw_power values produce different voxel weights."""
+    # 4 nodes (e.g., a tetrahedron)
+    element_node_phys = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+
+    # 2 voxels
+    voxels_phys = np.array(
+        [
+            [0.1, 0.1, 0.1],  # Closer to node 0
+            [0.8, 0.1, 0.1],  # Closer to node 1
+        ]
+    )
+
+    # Must use non-uniform scaling factors, otherwise weights are always 1.0
+    scaling_factors = np.array([10.0, 1.0, 1.0, 1.0])
+
+    interpolator_p1 = InterpolatorAllVoxel(
+        mode="allvoxels_scaled", idw_power=1
+    )
+    weights_p1 = interpolator_p1._compute_idw_voxel_weights(
+        element_node_phys, voxels_phys, scaling_factors
+    )
+
+    interpolator_p2 = InterpolatorAllVoxel(
+        mode="allvoxels_scaled", idw_power=2
+    )
+    weights_p2 = interpolator_p2._compute_idw_voxel_weights(
+        element_node_phys, voxels_phys, scaling_factors
+    )
+
+    interpolator_p3 = InterpolatorAllVoxel(
+        mode="allvoxels_scaled", idw_power=3
+    )
+    weights_p3 = interpolator_p3._compute_idw_voxel_weights(
+        element_node_phys, voxels_phys, scaling_factors
+    )
+
+    assert weights_p1.shape == (2,)
+    assert weights_p2.shape == (2,)
+    assert weights_p3.shape == (2,)
+
+    # Ensure the weights differ due to different distance weighting powers
+    assert not np.allclose(weights_p1, weights_p2)
+    assert not np.allclose(weights_p2, weights_p3)
+    assert not np.allclose(weights_p1, weights_p3)
