@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 import pytest
 from i2pp.core.run import run_i2pp
 
@@ -37,7 +38,9 @@ def minimal_valid_config(tmp_path):
             },
         },
         "processing": {
-            "interpolation_method": "nodes",
+            "interpolation": {
+                "method": "nodes",
+            },
             "transformation": {
                 "user_script": str(script_path),
                 "user_function": "process_image_data",
@@ -62,7 +65,9 @@ def minimal_valid_config(tmp_path):
 @patch("i2pp.core.run.export_data")
 @patch("i2pp.core.run.visualize_smoothing")
 @patch("i2pp.core.run.visualize_results")
+@patch("i2pp.core.run.create_mesh_mask")
 def test_run_i2pp_with_minimal_valid_config(
+    mock_create_mesh_mask,
     mock_visualize_results,
     mock_visualize_smoothing,
     mock_export_data,
@@ -95,6 +100,7 @@ def test_run_i2pp_with_minimal_valid_config(
     # Assertions to ensure key steps were called
     mock_verify_discretization.assert_called_once()
     mock_verify_image.assert_called_once()
+    mock_create_mesh_mask.assert_not_called()
     mock_smooth_data.assert_not_called()
     mock_visualize_smoothing.assert_not_called()
     mock_interpolate.assert_called_once()
@@ -143,7 +149,13 @@ def maximal_valid_config(tmp_path):
             },
         },
         "processing": {
-            "interpolation_method": "nodes",
+            "interpolation": {
+                "method": "allvoxels_scaled",
+                "node_scaling_factors": {"interior": 0.8, "surface": 0.2},
+                "inverse_distance_power": 3,
+                "filter_outliers": True,
+                "set_surface_node_value": 100.0,
+            },
             "transformation": {
                 "user_script": str(script_path),
                 "user_function": "process_image_data",
@@ -172,7 +184,9 @@ def maximal_valid_config(tmp_path):
 @patch("i2pp.core.run.export_data")
 @patch("i2pp.core.run.visualize_smoothing")
 @patch("i2pp.core.run.visualize_results")
+@patch("i2pp.core.run.create_mesh_mask")
 def test_run_i2pp_with_maximal_valid_config(
+    mock_create_mesh_mask,
     mock_visualize_results,
     mock_visualize_smoothing,
     mock_export_data,
@@ -189,12 +203,12 @@ def test_run_i2pp_with_maximal_valid_config(
     mock_verify_discretization.return_value = mock_discretization
 
     mock_image_data = MagicMock()
-    mock_image_data.pixel_data = [[0]]
+    mock_image_data.pixel_data = np.array([[0, 1], [2, 3]])
     mock_image_data.pixel_range = (0, 255)
     mock_image_data.pixel_type = "uint8"
     mock_verify_image.return_value = mock_image_data
 
-    mock_smooth_data.side_effect = lambda pixel_data, area: pixel_data
+    mock_smooth_data.side_effect = lambda *args, **kwargs: args[0]
 
     mock_interpolate.return_value = "interpolated_elements"
     mock_transform_data.return_value = "transformed_data"
@@ -205,6 +219,7 @@ def test_run_i2pp_with_maximal_valid_config(
     # Assertions to ensure key steps were called
     mock_verify_discretization.assert_called_once()
     mock_verify_image.assert_called_once()
+    mock_create_mesh_mask.assert_called_once()
     mock_smooth_data.assert_called_once()
     mock_visualize_smoothing.assert_called_once()
     mock_interpolate.assert_called_once()

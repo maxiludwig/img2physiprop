@@ -54,8 +54,8 @@ def visualize_results(
             assigned values.
         image_data (ImageData): Image data containing pixel values and grid
             coordinates.
-        dis (Discretization): The discretization object containing nodes
-            and elements.
+        dis (Discretization): The discretization object containing nodes,
+            elements and surfaces.
     Returns:
         None
     """

@@ -77,12 +77,25 @@ def test_load_discretization_fourc_yaml_without_filter(tmp_path: Path) -> None:
         ele1 = MagicMock(nodes=[node3, node1])
         ele2 = MagicMock(nodes=[node2, node4])
 
+        surface1 = MagicMock(nodes=[node1, node2])
+        surface2 = MagicMock(nodes=[node3, node4])
+
+        mock_dis.surfacenodesets = [surface1, surface2]
         mock_dis.elements.structure = [ele1, ele2]
         mock_dis.nodes = [node1, node2, node3, node4]
 
-        test_config = {"material_ids": None}
+        # test_config
+        test_options = {"material_ids": None}
+        mock_processing = MagicMock()
+        mock_scaling_factors = (
+            mock_processing.interpolation.node_scaling_factors
+        )
+        mock_scaling_factors.interior_node_scaling = 1.0
+        mock_scaling_factors.surface_node_scaling = 0.0
 
-        dis_loaded = test_dis.load_discretization(Path(test_path), test_config)
+        dis_loaded = test_dis.load_discretization(
+            Path(test_path), test_options, mock_processing
+        )
 
         assert np.array_equal(
             dis_loaded.nodes.coords,
@@ -95,4 +108,12 @@ def test_load_discretization_fourc_yaml_without_filter(tmp_path: Path) -> None:
 
         assert np.array_equal(
             dis_loaded.elements[1].node_ids, np.array([2, 4])
+        )
+
+        assert np.array_equal(
+            dis_loaded.surfaces[0].node_ids, np.array([1, 2])
+        )
+
+        assert np.array_equal(
+            dis_loaded.surfaces[1].node_ids, np.array([3, 4])
         )

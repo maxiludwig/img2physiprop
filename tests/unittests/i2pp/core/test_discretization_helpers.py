@@ -73,9 +73,10 @@ def test_verify_and_load_discretization():
 
     absolut_path = Path.cwd() / "test_path.4C.yaml"
     options_dict = {}
+    processing_dict = {}
     mock_bounding = tuple([[0, 0, 0], [1, 1, 1]])
     nodes = Nodes([0, 0, 0], 0)
-    mock_dis = Discretization(nodes, [])
+    mock_dis = Discretization(nodes, [], [])
 
     with patch(
         "i2pp.core.discretization_helpers.determine_discretization_format",
@@ -89,14 +90,14 @@ def test_verify_and_load_discretization():
                 return_value=mock_bounding,
             ) as mock_find_mins_maxs:
                 dis = verify_and_load_discretization(
-                    absolut_path, options_dict
+                    absolut_path, options_dict, processing_dict
                 )
 
                 mock_determine_discretization_format.assert_called_once_with(
                     absolut_path
                 )
                 mock_load_discretization.assert_called_once_with(
-                    absolut_path, options_dict
+                    absolut_path, options_dict, processing_dict
                 )
                 mock_find_mins_maxs.assert_called_once_with(
                     points=[0, 0, 0], enlargement=2
@@ -122,6 +123,7 @@ def test_initialize_unstructured_grid(node_ids, expected_cell_type):
         elements=[
             Element(id=1, node_ids=node_ids),
         ],
+        surfaces=[],
     )
     mock_elements_with_values = [
         Element(node_ids=node_ids, id=1, data=np.array([255, 0, 0])),
@@ -195,6 +197,7 @@ def test_get_elementwise_image_values_rgb():
             Element(id=2, node_ids=[1, 2]),
             Element(id=3, node_ids=[1, 2]),
         ],
+        surfaces=[],
     )
     pixel_type = PixelValueType.RGB
     values, ele_has_value = get_elementwise_image_values(
@@ -222,6 +225,7 @@ def test_get_elementwise_image_values_mrt():
             Element(id=2, node_ids=[1, 2]),
             Element(id=3, node_ids=[1, 2]),
         ],
+        surfaces=[],
     )
     pixel_type = PixelValueType.MRT
     values, ele_has_value = get_elementwise_image_values(

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pyvista as pv
+from i2pp.core.configuration_validator.validator import Processing
 from i2pp.core.discretization_readers.discretization_format import (
     DiscretizationFormat,
 )
@@ -50,7 +51,9 @@ def determine_discretization_format(file_path: Path) -> DiscretizationFormat:
 
 
 def verify_and_load_discretization(
-    discretization_path: Path, options: dict
+    discretization_path: Path,
+    options: dict,
+    processing: Processing,
 ) -> Discretization:
     """Loads and processes mesh data.
 
@@ -70,7 +73,9 @@ def verify_and_load_discretization(
 
     dis_reader = dis_format.get_reader()()
 
-    dis = dis_reader.load_discretization(discretization_path, options)
+    dis = dis_reader.load_discretization(
+        discretization_path, options, processing
+    )
 
     bounding_box = find_mins_maxs(points=dis.nodes.coords, enlargement=2)
 
@@ -94,8 +99,8 @@ def initialize_unstructured_grid(
             values.
         pixel_type (PixelValueType): The type of pixel values (e.g., RGB,
             MRT, CT).
-        dis (Discretization): The discretization object containing nodes and
-            elements.
+        dis (Discretization): The discretization object containing nodes,
+            elements and surfaces.
     Returns:
         tuple[pv.UnstructuredGrid, np.ndarray]: A tuple containing the
             PyVista `UnstructuredGrid` and a boolean array indicating which
@@ -150,8 +155,8 @@ def get_elementwise_image_values(
     Arguments:
         elements_with_values (list[Element]): List of elements with assigned
             values.
-        dis (Discretization): The discretization object containing nodes and
-            elements.
+        dis (Discretization): The discretization object containing nodes,
+            elements and surfaces.
         pixel_type (PixelValueType): The type of pixel values (e.g., RGB,
             MRT, CT).
     Returns:

@@ -25,7 +25,7 @@ def test_compute_element_data():
     elements = [element1, element2]
 
     nodes = Nodes(coords=node_coords, ids=[0, 1, 2, 3])
-    dis = Discretization(nodes=nodes, elements=elements)
+    dis = Discretization(nodes=nodes, elements=elements, surfaces=[])
 
     pixel_data = np.random.randint(0, 256, size=(4, 4, 4, 3))
 
@@ -80,3 +80,107 @@ def test_compute_element_data():
                     return_grid_coords, image_data
                 )
                 mock_get_node_position_of_element.call_count == 2
+
+
+# Helper
+def _build_simple_setup_rgb():
+    """Build simple discretization and image data for RGB tests."""
+    node_coords = np.array([[0, 0, 0], [1, 0, 0]])
+    nodes = Nodes(coords=node_coords, ids=[0, 1])
+    # Provide scaling factors for nodes
+    nodes.scaling_factors = np.array([0.2, 0.8])
+
+    elements = [Element(node_ids=[0, 1], id=0)]
+    dis = Discretization(nodes=nodes, elements=elements, surfaces=[])
+
+    pixel_data = np.zeros((2, 2, 2, 3))
+    grid_coords = GridCoords(np.arange(2), np.arange(2), np.arange(2))
+    image_data = ImageData(
+        pixel_data=pixel_data,
+        grid_coords=grid_coords,
+        orientation=np.eye(3),
+        position=np.array([0, 0, 0]),
+        pixel_type=PixelValueType.RGB,
+    )
+    return dis, image_data
+
+
+def test_nodes_unscaled_rgb_ignores_scaling_factors():
+    """Unscaled mode computes nanmean and ignores scaling factors for RGB."""
+    dis, image_data = _build_simple_setup_rgb()
+    interpolator = InterpolatorNodes(mode="nodes")
+
+    node_values = np.array([[100, 150, 200], [200, 250, 300]])
+    with (
+        patch.object(
+            InterpolatorNodes,
+            "world_to_grid_coords",
+            return_value=np.array([[0.5, 0.5, 0.5], [1.5, 1.5, 1.5]]),
+        ),
+        patch.object(
+            InterpolatorNodes,
+            "interpolate_image_values_to_points",
+            return_value=node_values,
+        ),
+        patch(
+            "i2pp.core.utilities.get_node_position_of_element",
+            return_value=np.array([0, 1]),
+        ),
+    ):
+        result = interpolator.compute_element_data(dis, image_data)
+        expected = np.mean(node_values, axis=0)
+        assert np.allclose(result[0].data, expected)
+
+
+def test_nodes_scaled_rgb():
+    """Scaled mode uses node scaling factors for vector-valued (RGB) data."""
+    dis, image_data = _build_simple_setup_rgb()
+    interpolator = InterpolatorNodes(mode="nodes_scaled")
+
+    node_values = np.array([[100, 150, 200], [200, 250, 300]])
+    with (
+        patch.object(
+            InterpolatorNodes,
+            "world_to_grid_coords",
+            return_value=np.array([[0.5, 0.5, 0.5], [1.5, 1.5, 1.5]]),
+        ),
+        patch.object(
+            InterpolatorNodes,
+            "interpolate_image_values_to_points",
+            return_value=node_values,
+        ),
+        patch(
+            "i2pp.core.utilities.get_node_position_of_element",
+            return_value=np.array([0, 1]),
+        ),
+    ):
+        result = interpolator.compute_element_data(dis, image_data)
+        expected = 0.2 * node_values[0] + 0.8 * node_values[1]
+        assert np.allclose(result[0].data, expected)
+
+
+def test_nodes_scaled_rgb_handles_nans():
+    """Scaled mode handles NaNs by masking them out for RGB."""
+    dis, image_data = _build_simple_setup_rgb()
+    interpolator = InterpolatorNodes(mode="nodes_scaled")
+
+    node_values = np.array([[np.nan, np.nan, np.nan], [200, 250, 300]])
+    with (
+        patch.object(
+            InterpolatorNodes,
+            "world_to_grid_coords",
+            return_value=np.array([[0.5, 0.5, 0.5], [1.5, 1.5, 1.5]]),
+        ),
+        patch.object(
+            InterpolatorNodes,
+            "interpolate_image_values_to_points",
+            return_value=node_values,
+        ),
+        patch(
+            "i2pp.core.utilities.get_node_position_of_element",
+            return_value=np.array([0, 1]),
+        ),
+    ):
+        result = interpolator.compute_element_data(dis, image_data)
+        # Only the non-NaN node should contribute
+        assert np.allclose(result[0].data, np.array([200, 250, 300]))

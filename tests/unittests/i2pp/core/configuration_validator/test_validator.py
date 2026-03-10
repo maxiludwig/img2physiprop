@@ -28,7 +28,9 @@ def minimal_valid_config(tmp_path):
             "image": {"path": str(image_path), "type": "dicom"},
         },
         "processing": {
-            "interpolation_method": "nodes",
+            "interpolation": {
+                "method": "nodes",
+            },
             "transformation": {
                 "user_script": str(script_path),
                 "user_function": "process_image_data",
@@ -86,8 +88,10 @@ def large_valid_config(tmp_path):
             },
         },
         "processing": {
-            "smoothing": {"smoothing_area": 5, "visualize": True},
-            "interpolation_method": "elements",
+            "smoothing": {"area": 5, "visualize": True},
+            "interpolation": {
+                "method": "elementcenter",
+            },
             "transformation": {
                 "user_script": str(script_path),
                 "user_function": "process_image_data",
@@ -152,6 +156,22 @@ def test_config_validation_non_existing_path(tmp_path):
 
     with pytest.raises(
         FileNotFoundError,
-        match=f"Path does not exist: {str(tmp_path / "non_existing.mesh")}",
+        match=f"Path does not exist: {str(tmp_path / 'non_existing.mesh')}",
+    ):
+        _ = I2PPConfig.from_dict(invalid_config)
+
+
+def test_config_validation_both_surface_values_set(minimal_valid_config):
+    """Test that an error is raised if both surface node and element values are
+    set."""
+    invalid_config = minimal_valid_config.copy()
+    invalid_int_config = invalid_config["processing"]["interpolation"]
+    invalid_int_config["set_surface_node_value"] = 1.0
+    invalid_int_config["set_surface_element_value"] = 2.0
+
+    with pytest.raises(
+        ValueError,
+        match="Both 'set_surface_node_value' and 'set_surface_element_value' "
+        "cannot be set at the same time.",
     ):
         _ = I2PPConfig.from_dict(invalid_config)

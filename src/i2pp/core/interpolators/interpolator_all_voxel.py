@@ -1,6 +1,6 @@
 """Interpolates pixel values from image-data to mesh-data."""
 
-from typing import Tuple
+from typing import Tuple, cast
 
 import numpy as np
 from i2pp.core.discretization_readers.discretization_reader import (
@@ -15,14 +15,30 @@ from tqdm import tqdm
 
 
 class InterpolatorAllVoxel(Interpolator):
-    """Subclass of Interpolator for mapping 3D image data to finite element
-    mesh elements.
+    """Interpolator for mapping 3D image data to finite element mesh elements.
 
-    This class extends Interpolator and specializes in assigning pixel values
-    from 3D image data to finite element mesh elements by computing the mean
-    of all voxels contained within each element. This approach is used when
-    `interpolation_method` is set to "allvoxels".
+    This class supports both unscaled and node-scaled voxel mean
+    calculations, controlled via the 'mode' parameter. It assigns pixel
+    values from 3D image data to finite element mesh elements by computing
+    the mean of all voxels within each element.
+    This functionality is used when the `interpolation_method` is set to
+    "allvoxels" or "allvoxels_scaled".
     """
+
+    def __init__(
+        self,
+        *args,
+        filter_outliers: bool = False,
+        mode: str = "allvoxels",
+        idw_power: int = 2,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self._filter_outliers_enabled = filter_outliers
+        self._mode = mode  # "allvoxels" or "allvoxels_scaled"
+        self._idw_power = (
+            idw_power  # Power parameter for inverse distance weighting
+        )
 
     def _search_bounding_box(
         self, grid_coords: GridCoords, element_grid_coords: np.ndarray
@@ -98,8 +114,176 @@ class InterpolatorAllVoxel(Interpolator):
 
         return np.all(A @ point + b <= 0)
 
+    def _filter_outliers_modified_zscore(
+        self, values: np.ndarray, threshold: float = 3.5
+    ) -> np.ndarray:
+        """Identify outliers using the Modified Z-Score method.
+
+        Supports multi-channel data (e.g., RGB) by evaluating outliers across
+        all components.
+
+        Args:
+            values (np.ndarray):
+                Array of voxel values (N_voxels x ...).
+            threshold (float):
+                Cutoff for Modified Z-Score, default 3.5.
+
+        Returns:
+            mask (np.ndarray): 1D boolean array of shape (N_voxels,), where
+                True indicates the pixel is not an outlier and should be used.
+        """
+        values = np.asarray(values)
+        if values.ndim == 1:
+            values = values[:, np.newaxis]
+
+        # Calculate median and MAD per channel (axis=0)
+        median = np.median(values, axis=0)
+
+        # Median Absolute Deviation (MAD)
+        mad = np.median(np.abs(values - median), axis=0)
+        mad = np.maximum(mad, 1e-10)  # avoid division by zero
+
+        # Modified Z-Score for each component
+        modified_z = 0.6745 * (values - median) / mad
+
+        # Mask: True if NOT an outlier across all components/channels
+        # A voxel is filtered out if any channel exceeds the threshold
+        mask = np.all(np.abs(modified_z) <= threshold, axis=1)
+
+        return mask
+
+    def _compute_idw_voxel_weights(
+        self,
+        element_node_phys: np.ndarray,
+        voxels_phys: np.ndarray,
+        node_scaling_factors: np.ndarray,
+    ) -> np.ndarray:
+        """Computes inverse distance weighting (IDW) voxel weights.
+
+        Args:
+            element_node_phys (np.ndarray):
+                Physical coordinates of the element's nodes.
+            voxels_phys (np.ndarray):
+                Physical coordinates of voxels within the element.
+            node_scaling_factors (np.ndarray):
+                Scaling factors assigned to the nodes.
+
+        Returns:
+            np.ndarray: The computed weights for each voxel.
+        """
+
+        distances = np.linalg.norm(
+            element_node_phys[:, np.newaxis, :]
+            - voxels_phys[np.newaxis, :, :],
+            axis=2,
+        )
+
+        # Avoid division by zero by setting a minimum distance threshold
+        eps = 1e-9
+        distances = np.maximum(distances, eps)
+
+        inv_distances = 1.0 / distances**self._idw_power
+        voxel_weights = np.sum(
+            node_scaling_factors[:, np.newaxis] * inv_distances, axis=0
+        ) / np.sum(inv_distances, axis=0)
+
+        return voxel_weights
+
+    def _weighted_voxel_mean(
+        self,
+        voxels_phys: np.ndarray,
+        values: np.ndarray,
+        element_node_phys: np.ndarray,
+        node_scaling_factors: np.ndarray,
+    ) -> float | np.ndarray:
+        """Calculate a node-weighted mean of voxel values, with optional
+        outlier filtering.
+
+        Computes the weighted mean of voxel values within an element,
+        where the weight is determined based on the distances between the voxel
+        and the element's nodes, scaled by the node scaling factors.
+        Outliers can be excluded using the Modified Z-Score method.
+
+        Args:
+            voxels_phys (np.ndarray):
+                Physical coordinate of voxels within the element (N_voxel x 3)
+            values (np.ndarray):
+                Corresponding voxel values (N_voxels x ...).
+            element_node_phys (np.ndarray):
+                Physical coordinates of the element's nodes (N_nodes x 3).
+            node_scaling_factors (np.ndarray):
+                Scaling factors assigned to the nodes (N_nodes,).
+
+        Returns:
+            float: The weighted mean of the voxel values.
+        """
+
+        # if node_scaling factors are the same for all nodes,
+        # this reduces to a standard IDW weighted mean
+        if np.all(node_scaling_factors == node_scaling_factors[0]):
+            voxel_weights = (
+                np.ones(voxels_phys.shape[0]) * node_scaling_factors[0]
+            )
+
+        else:
+            voxel_weights = self._compute_idw_voxel_weights(
+                element_node_phys, voxels_phys, node_scaling_factors
+            )
+
+        if self._filter_outliers_enabled and len(values) > 5:
+            mask = self._filter_outliers_modified_zscore(values)
+            filtered_values = values[mask]
+            filtered_weights = voxel_weights[mask]
+
+            # Fallback if all voxels are filtered out
+            if len(filtered_values) == 0:
+                filtered_values = values
+                filtered_weights = voxel_weights
+
+            # Guard against zero-sum weights
+            if np.sum(filtered_weights) <= 0:
+                return np.mean(filtered_values, axis=0)
+
+        else:
+            # No outlier filtering for small voxel counts
+            # Guard against zero-sum weights
+            if np.sum(voxel_weights) <= 0:
+                return np.mean(values, axis=0)
+            return np.average(values, weights=voxel_weights, axis=0)
+
+        # Compute weighted mean
+        return np.average(filtered_values, weights=filtered_weights, axis=0)
+
+    def _format_output_value(
+        self, value: float | np.ndarray, image_data: ImageData
+    ) -> np.ndarray:
+        """Formats the output value based on the pixel type.
+
+        If the value is already a vector matching the pixel type components, it
+        is returned. Otherwise, if the pixel type has one value, it wraps the
+        value in a NumPy array. If it has multiple values and input is scalar,
+        it creates a NumPy array filled with the value.
+
+        Args:
+            value (float | np.ndarray): The value to format.
+            image_data (ImageData): Image data containing pixel type info.
+
+        Returns:
+            np.ndarray: The formatted output value.
+        """
+        val_arr = np.atleast_1d(value)
+        if val_arr.size == image_data.pixel_type.num_values:
+            return val_arr
+
+        if image_data.pixel_type.num_values == 1:
+            return np.array([value])
+        return np.full(image_data.pixel_type.num_values, value)
+
     def _get_data_of_element(
-        self, element_node_grid_coords: np.ndarray, image_data: ImageData
+        self,
+        element_node_grid_coords: np.ndarray,
+        image_data: ImageData,
+        node_scaling_factors_current: np.ndarray | None = None,
     ) -> np.ndarray:
         """Computes the representative pixel value for a given element based on
         its nodes in grid coordinates.
@@ -118,6 +302,8 @@ class InterpolatorAllVoxel(Interpolator):
                 the element's nodes.
             image_data (ImageData): Image data containing voxel coordinates
                 and pixel values.
+            node_scaling_factors_current (np.ndarray | None):
+                Scaling factors assigned to the nodes.
 
         Returns:
             np.ndarray: The mean pixel value of all voxels inside the element.
@@ -126,12 +312,13 @@ class InterpolatorAllVoxel(Interpolator):
                 If all nodes are outside the grid, returns `np.nan`.
         """
 
-        data = []
+        # Lists for collection (typed for mypy)
+        voxels_phys: list[np.ndarray] = []
+        data_list: list[np.ndarray] = []
 
         slice_indices, row_indices, col_indices = self._search_bounding_box(
             image_data.grid_coords, element_node_grid_coords
         )
-
         hull = ConvexHull(element_node_grid_coords)
 
         for i in slice_indices:
@@ -144,18 +331,58 @@ class InterpolatorAllVoxel(Interpolator):
                             image_data.grid_coords.col[k],
                         ]
                     )
-
                     if self._is_inside_element(grid_coord, hull):
+                        voxels_phys.append(
+                            np.array(
+                                [
+                                    image_data.grid_coords.slice[i],
+                                    image_data.grid_coords.row[j],
+                                    image_data.grid_coords.col[k],
+                                ]
+                            )
+                        )
+                        data_list.append(image_data.pixel_data[i, j, k])
 
-                        data.append(image_data.pixel_data[i, j, k])
+        if len(voxels_phys) > 0:
+            voxels_phys_np = np.asarray(voxels_phys)
+            data = np.asarray(
+                data_list
+            )  # ensure ndarray for boolean masks and vector ops
 
-        if data:
-            return np.mean(data, axis=0)
+            if self._mode == "allvoxels":
+                if self._filter_outliers_enabled and len(data) > 5:
+                    mask = self._filter_outliers_modified_zscore(data)
+                    filtered = data[mask]
+                    mean_val = (
+                        np.mean(filtered, axis=0)
+                        if len(filtered) > 0
+                        else np.mean(data, axis=0)
+                    )
+                else:
+                    mean_val = np.mean(data, axis=0)
+                return self._format_output_value(mean_val, image_data)
+
+            if self._mode == "allvoxels_scaled":
+                element_node_phys = element_node_grid_coords
+                if node_scaling_factors_current is None:
+                    weighted = np.mean(data, axis=0)
+                else:
+                    weighted = self._weighted_voxel_mean(
+                        voxels_phys_np,
+                        data,
+                        element_node_phys,
+                        node_scaling_factors_current,
+                    )
+
+                return self._format_output_value(weighted, image_data)
+
+            # Unknown mode fallback
+            mean_val = np.mean(data, axis=0)
+            return self._format_output_value(mean_val, image_data)
+
         else:
             self.backup_interpolation += 1
-
             element_center = np.mean(element_node_grid_coords, axis=0)
-
             return self.interpolate_image_values_to_points(
                 element_center, image_data
             )[0]
@@ -174,7 +401,7 @@ class InterpolatorAllVoxel(Interpolator):
 
         Arguments:
             dis (Discretization): The Discretization object containing FEM
-                elements and node coordinates.
+                surfaces, elements and node coordinates.
             image_data (ImageData): A structured representation containing 3D
                 pixel data, grid coordinates, orientation, and metadata.
 
@@ -199,16 +426,26 @@ class InterpolatorAllVoxel(Interpolator):
             total=len(dis.elements),
             desc="Element values",
         ):
-
             element_node_grid_coords = node_grid_coords[node_positions[i]]
+            # Cast scaling factors to ndarray when present
+            # to satisfy type checker
+            node_scaling_factors_current = None
+            if getattr(dis.nodes, "scaling_factors", None) is not None:
+                scaling_factors_nd = cast(
+                    np.ndarray, dis.nodes.scaling_factors
+                )
+                node_scaling_factors_current = scaling_factors_nd[
+                    node_positions[i]
+                ]
 
             ele.data = self._get_data_of_element(
-                element_node_grid_coords, image_data
+                element_node_grid_coords,
+                image_data,
+                node_scaling_factors_current=node_scaling_factors_current,
             )
 
             if np.all(np.isnan(ele.data)):
                 self.nan_elements += 1
 
         self._log_interpolation_warnings()
-
         return dis.elements

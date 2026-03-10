@@ -1,11 +1,16 @@
 """Import Discretization."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from i2pp.core.configuration_validator.validator import Processing
 
 
 @dataclass
@@ -31,10 +36,15 @@ class Nodes:
         coords (np.ndarray): An (N, 3) array containing the (x, y, z)
             world coordinates of each node.
         ids (np.ndarray): An array of IDs for each node.
+        scaling_factors (Optional[np.ndarray]):
+            Optional per-node scaling_factors that can be used to
+            adjust the contribution of each node during interpolation,
+            e.g., low scaling factor for surface nodes.
     """
 
     coords: np.ndarray
     ids: np.ndarray
+    scaling_factors: Optional[np.ndarray] = None
 
 
 @dataclass
@@ -63,6 +73,23 @@ class Element:
 
 
 @dataclass
+class Surface:
+    """Class for storing information about a surface in the Discretization.
+
+    This class represents a surface in the mesh Discretization, defined
+    by its node IDs, a surface ID, and associated data.
+
+    Attributes:
+        node_ids (np.ndarray): An array of node IDs that define the nodes of
+            the surface.
+        id (int): A unique identifier for the surface.
+    """
+
+    node_ids: np.ndarray
+    id: int
+
+
+@dataclass
 class Discretization:
     """Class for storing Discretization data.
 
@@ -77,12 +104,16 @@ class Discretization:
         elements (list[Element]): A list of elements, each representing a part
             of the Discretization, containing information such as node IDs,
             element ID, center coordinates, and element data.
+        surfaces (list[Surface]): A list of surfaces, each representing a part
+            of the Discretization, containing information such as node IDs
+            and surface ID.
         bounding_box (Optional[np.ndarray]): Boundary limits of the
             Discretization.
     """
 
     nodes: Nodes
     elements: list[Element]
+    surfaces: list[Surface]
     bounding_box: Optional[BoundingBox] = None
 
 
@@ -102,7 +133,10 @@ class DiscretizationReader(ABC):
 
     @abstractmethod
     def load_discretization(
-        self, file_path: Path, options: dict
+        self,
+        file_path: Path,
+        options: dict,
+        processing: Processing,
     ) -> Discretization:
         """Abstract method to load discretization data from a file path.
 
@@ -116,6 +150,7 @@ class DiscretizationReader(ABC):
             file_path (Path): Path to the discretization file.
             options (dict): A dictionary containing options for loading the
                 discretization.
+            processing (Processing): Processing configuration object.
 
         Returns:
             Discretization: An instance of Discretization containing

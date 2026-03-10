@@ -5,6 +5,7 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 from scipy.ndimage import uniform_filter
+from scipy.spatial import ConvexHull
 
 
 def find_mins_maxs(
@@ -90,6 +91,7 @@ def get_node_position_of_element(
 def smooth_data(
     data: np.ndarray,
     smoothing_window: int,
+    mask: np.ndarray,
 ) -> np.ndarray:
     """Applies a smoothing filter to 3D image data by averaging pixel values.
 
@@ -98,23 +100,80 @@ def smooth_data(
     within a neighborhood defined by the `smoothing_window` parameter, which
     helps to smooth out irregularities in the data.
 
+    If a mask is provided, performs masked smoothing by:
+    - Zero data outside mask → data_masked
+    - Smooth the zeroed data → smoothed_data (artificially darkened at edges)
+    - Smooth the mask → smoothed_mask (tells you the "weight" of valid data)
+    - Divide smoothed data by smoothed mask
+        → This "undoes" the darkening by renormalizing
+    - Only update pixels that were originally inside the mask
+        → Preserves original data outside
+
     Args:
         data (np.ndarray): A 3D array containing the pixel data to be smoothed.
         smoothing_window (int): The size of the neighborhood (in points) used
             to compute the average. Larger values result in smoother data,
             but may reduce fine details.
+        mask (np.ndarray): A boolean mask array of the same shape as `data`.
+            If provided, smoothing is only applied within the
+            masked region.
 
     Returns:
         np.ndarray: The smoothed image data as a 3D array, where each pixel's
         value has been replaced by the average of its neighbors within the
         defined smoothing window.
     """
-
     logging.info("Smooth data!")
 
-    return uniform_filter(
-        data, size=smoothing_window, mode="nearest", axes=(0, 1, 2)
+    if mask is None or not np.any(mask):
+        logging.warning(
+            "No mask provided for smoothing. "
+            "Smoothing will be applied to entire data."
+        )
+        return uniform_filter(
+            data, size=smoothing_window, mode="nearest", axes=(0, 1, 2)
+        )
+
+    orig_dtype = data.dtype
+    data_f = data.astype(np.float32, copy=False)
+
+    # Create a copy of the data where all values outside the mask are zero.
+    data_masked = data_f.copy()
+    data_masked[~mask, ...] = 0
+
+    # Apply a uniform filter to data_masked, which darkens values near edges.
+    smoothed_data = uniform_filter(
+        data_masked, size=smoothing_window, mode="nearest", axes=(0, 1, 2)
     )
+    # Apply the same filter to the mask to find the proportion of valid data.
+    smoothed_mask = uniform_filter(
+        mask.astype(np.float32),
+        size=smoothing_window,
+        mode="nearest",
+        axes=(0, 1, 2),
+    )
+
+    # Reshape smoothed_mask to match smoothed_data for broadcasting
+    target_shape = list(smoothed_mask.shape) + [1] * (
+        smoothed_data.ndim - smoothed_mask.ndim
+    )
+    smoothed_mask_exp = smoothed_mask.reshape(target_shape)
+
+    valid_mask = (mask) & (smoothed_mask > 1e-8)
+    result_f = data_f.copy()
+
+    normalized = np.zeros_like(smoothed_data, dtype=np.float32)
+    # Normalize smoothed data to correct darkening at the edges.
+    np.divide(
+        smoothed_data,
+        smoothed_mask_exp,
+        out=normalized,
+        where=smoothed_mask_exp > 1e-8,
+    )
+    # Update pixels inside the original mask with the smoothed values.
+    result_f[valid_mask, ...] = normalized[valid_mask, ...]
+
+    return result_f.astype(orig_dtype, copy=False)
 
 
 def make_json_serializable(obj: Any) -> Any:
@@ -148,3 +207,152 @@ def make_json_serializable(obj: Any) -> Any:
     elif isinstance(obj, (np.float64, np.float32, np.float16)):
         return float(obj)
     return obj
+
+
+def world_to_grid_coords(
+    points_world: np.ndarray, orientation: np.ndarray, position: np.ndarray
+) -> np.ndarray:
+    """Convert world coordinates to image grid coordinates using image
+    orientation and origin.
+
+    Args:
+        points_world (np.ndarray): A NumPy array of shape (N, 3) representing
+            N points in world coordinates.
+        orientation (np.ndarray): A 3x3 matrix representing the orientation
+            of the image grid in world space.
+        position (np.ndarray): A 1D array of shape (3,) representing the origin
+            of the image grid in world space.
+
+    Returns:
+        np.ndarray: A NumPy array of shape (N, 3) representing the points in
+            image grid coordinates.
+    """
+    return np.linalg.solve(orientation, (points_world - position).T).T
+
+
+def _grid_bbox_indices_for_points(
+    grid_points: np.ndarray, grid_coords
+) -> Tuple[int, int, int, int, int, int]:
+    """Compute axis-aligned grid bounding box indices for given grid points.
+
+    Args:
+        grid_points (np.ndarray): A NumPy array of shape (N, 3)
+            representing N points in grid coordinates.
+        grid_coords: An object containing the grid's coordinate
+            arrays (slice, row, col).
+
+    Returns:
+    Tuple[int, int, int, int, int, int]: A tuple of six integers representing
+        the bounding box indices (z0, z1, y0, y1, x0, x1), where
+        - z0, z1: Start and end indices along the Z-axis.
+        - y0, y1: Start and end indices along the Y-axis.
+        - x0, x1: Start and end indices along the X-axis.
+    """
+    mins = np.min(grid_points, axis=0)
+    maxs = np.max(grid_points, axis=0)
+
+    # Use np.clip to avoid redundant max/min calls
+    z0 = np.clip(
+        np.searchsorted(grid_coords.slice, mins[0], side="left"),
+        0,
+        len(grid_coords.slice),
+    )
+    z1 = np.clip(
+        np.searchsorted(grid_coords.slice, maxs[0], side="right"),
+        0,
+        len(grid_coords.slice),
+    )
+    y0 = np.clip(
+        np.searchsorted(grid_coords.row, mins[1], side="left"),
+        0,
+        len(grid_coords.row),
+    )
+    y1 = np.clip(
+        np.searchsorted(grid_coords.row, maxs[1], side="right"),
+        0,
+        len(grid_coords.row),
+    )
+    x0 = np.clip(
+        np.searchsorted(grid_coords.col, mins[2], side="left"),
+        0,
+        len(grid_coords.col),
+    )
+    x1 = np.clip(
+        np.searchsorted(grid_coords.col, maxs[2], side="right"),
+        0,
+        len(grid_coords.col),
+    )
+
+    return z0, z1, y0, y1, x0, x1
+
+
+def create_mesh_mask(discretization, image) -> np.ndarray:
+    """Create a voxel-based mask of the discretization in the image's grid
+    space.
+
+    This function generates a 3D boolean mask that represents a discretized
+    mesh within the grid space of a given image.
+    The mask is computed by determining which voxels in the image grid are
+    enclosed by the convex hulls of the mesh elements.
+
+    Args:
+        discretization: A discretized mesh object containing nodes, elements
+            and surfaces.
+        image: An image object that provides the grid space and pixel data.
+
+    Returns:
+        np.ndarray: A 3D boolean array where `True` indicates that the
+        corresponding voxel is part of the mesh mask, and `False` otherwise.
+
+    Notes:
+        - The function uses convex hulls to approximate the spatial extent of
+          each mesh element in the image grid space.
+        - The convex hull computation requires at least three points. Elements
+          with fewer than three nodes are skipped.
+        - The mask is constructed iteratively by updating the relevant voxels
+          for each mesh element.
+    """
+    logging.info("Create mesh mask in image grid space")
+
+    mask = np.zeros(image.pixel_data.shape[:3], dtype=bool)
+
+    node_id_to_idx = {nid: i for i, nid in enumerate(discretization.nodes.ids)}
+    nodes_grid = world_to_grid_coords(
+        discretization.nodes.coords, image.orientation, image.position
+    )
+
+    for ele in discretization.elements:
+        node_idxs = np.fromiter(
+            (node_id_to_idx[nid] for nid in ele.node_ids),
+            dtype=int,
+            count=len(ele.node_ids),
+        )
+        ele_node_grid = nodes_grid[node_idxs]
+
+        if ele_node_grid.shape[0] < 3:
+            continue
+
+        try:
+            hull = ConvexHull(ele_node_grid)
+        except Exception:
+            continue
+
+        z0, z1, y0, y1, x0, x1 = _grid_bbox_indices_for_points(
+            ele_node_grid, image.grid_coords
+        )
+
+        zz, yy, xx = np.meshgrid(
+            image.grid_coords.slice[z0:z1],
+            image.grid_coords.row[y0:y1],
+            image.grid_coords.col[x0:x1],
+            indexing="ij",
+        )
+        grid_points = np.stack((zz.ravel(), yy.ravel(), xx.ravel()), axis=-1)
+
+        A, b = hull.equations[:, :-1], hull.equations[:, -1]
+        inside_mask = np.all(A @ grid_points.T + b[:, None] <= 0, axis=0)
+
+        inside_mask = inside_mask.reshape(zz.shape)
+        mask[z0:z1, y0:y1, x0:x1] |= inside_mask
+
+    return mask
