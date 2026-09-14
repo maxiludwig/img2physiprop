@@ -220,6 +220,7 @@ def test_load_discretization_vtu_line2_with_element_filter(
 
     assert [ele.source_id for ele in dis.elements] == [1, 2]
     assert [ele.id for ele in dis.elements] == [0, 1]
+    assert [ele.fields["block_id"] for ele in dis.elements] == [2, 2]
     assert all(len(ele.node_ids) == 2 for ele in dis.elements)
     np.testing.assert_array_equal(dis.nodes.coords, points[1:])
 

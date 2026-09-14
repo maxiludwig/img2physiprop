@@ -1,8 +1,13 @@
 """Tests for the Interpolator types module."""
 
+from pathlib import Path
+
 import pytest
 from i2pp.core.interpolators.interpolator_all_voxel import InterpolatorAllVoxel
 from i2pp.core.interpolators.interpolator_center import InterpolatorCenter
+from i2pp.core.interpolators.interpolator_label_map import (
+    InterpolatorLabelMap,
+)
 from i2pp.core.interpolators.interpolator_nodes import InterpolatorNodes
 from i2pp.core.interpolators.interpolator_types import InterpolationType
 
@@ -32,6 +37,18 @@ def test_enum_values():
     assert InterpolationType.CENTER.value == "elementcenter"
     assert InterpolationType.ALLVOXELS.value == "allvoxels"
     assert InterpolationType.ALLVOXELS_SCALED.value == "allvoxels_scaled"
+    assert InterpolationType.LABELMAP.value == "labelmap"
+
+
+def test_create_interpolator_labelmap():
+    """The labelmap interpolator requires a label map and a label field."""
+    inst = InterpolationType.LABELMAP.create_interpolator(
+        label_map_path=Path("labels.nii.gz"), label_field="tu_label"
+    )
+    assert isinstance(inst, InterpolatorLabelMap)
+
+    with pytest.raises(ValueError, match="requires a label map path"):
+        InterpolationType.LABELMAP.create_interpolator()
 
 
 @pytest.mark.parametrize(

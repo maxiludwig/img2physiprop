@@ -104,6 +104,7 @@ pdoc --html --output-dir docs src/i2pp
   - `elementcenter`: Interpolates at each element centroid and assigns that value.
   - `allvoxels`: Collects all voxels whose grid coordinates lie inside the convex hull of the element nodes; assigns the mean value; optionally filters outliers.
   - `allvoxels_scaled`: Computes a voxel-weighted mean where voxel weights derive from node scaling factors and inverse node-to-voxel distances. The influence of the distance (decay) is controlled by `processing.interpolation.inverse_distance_power` p (p=1 linear, p=2 quadratic (default), p>=3 increasingly like step function); Optionally filters outliers.
+  - `labelmap`: Averages all voxels within the region of each element in an integer NIfTI label map (`processing.interpolation.labelmap.path`), e.g. the terminal unit regions exported by the tree generation. The label of each element is read from its element field `processing.interpolation.labelmap.label_field` (default `tu_label`). Each image voxel gets the label of the nearest label map voxel, so the label map may have a different resolution than the image, as long as both share the same world coordinate system. Optionally filters outliers. Labels without voxels fall back to the element center.
 
 - Element and node value overrides:
   - `processing.interpolation.set_surface_node_value`: If provided, all nodes that belong to any surface receive the fixed value (vector size must match the number of pixel channels); only relevant for `nodes` and `nodes_scaled` interpolation methods.

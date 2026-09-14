@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -67,6 +67,8 @@ class Element:
         source_id (Optional[int]): Zero-based index of the element in the
             input file before any filtering. Used to write results back into
             the complete input mesh.
+        fields (dict): Data fields of the element from the input file, e.g.
+            VTU cell data such as `block_id` or `tu_label`.
     """
 
     node_ids: np.ndarray
@@ -74,6 +76,7 @@ class Element:
     center_coords: Optional[np.ndarray] = None
     data: Optional[np.ndarray] = None
     source_id: Optional[int] = None
+    fields: dict = field(default_factory=dict)
 
 
 @dataclass

@@ -13,6 +13,9 @@ from i2pp.core.import_image import verify_and_load_imagedata
 from i2pp.core.interpolate_element_data import (
     interpolate_image_to_discretization,
 )
+from i2pp.core.interpolators.interpolator_label_map import (
+    enlarge_bounding_box_to_labels,
+)
 from i2pp.core.transform_data import transform_data
 from i2pp.core.utilities import create_mesh_mask, smooth_data
 from i2pp.core.visualize_results import visualize_results, visualize_smoothing
@@ -48,6 +51,14 @@ def run_i2pp(config_i2pp):
         config.import_.discretization.options,
         config.processing,
     )
+
+    # Labelled regions reach beyond the element nodes, so the image data has
+    # to cover them
+    labelmap = config.processing.interpolation.labelmap
+    if labelmap is not None:
+        enlarge_bounding_box_to_labels(
+            discretization, labelmap.path, labelmap.label_field
+        )
 
     # Load the image data
     image = verify_and_load_imagedata(

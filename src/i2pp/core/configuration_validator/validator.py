@@ -192,6 +192,35 @@ class NodeScaling:
 
 
 @dataclass
+class LabelMap:
+    """Class representing the label map of the labelmap interpolation."""
+
+    path: Path
+    label_field: str = "tu_label"
+
+    @staticmethod
+    def from_dict(d: Optional[Dict[str, Any]]) -> "LabelMap":
+        """Creates a LabelMap instance from a dictionary."""
+        if not d or "path" not in d:
+            raise ValueError(
+                "The interpolation method 'labelmap' requires the label map "
+                "'labelmap: {path: ..., label_field: ...}'."
+            )
+
+        label_field = d.get("label_field", "tu_label")
+        if not isinstance(label_field, str):
+            raise ValueError(
+                "'labelmap.label_field' must be the name of the element "
+                "field holding the label."
+            )
+
+        return LabelMap(
+            path=resolve_and_validate_path(d["path"]),
+            label_field=label_field,
+        )
+
+
+@dataclass
 class Interpolation:
     """Class representing the interpolation configuration."""
 
@@ -201,6 +230,7 @@ class Interpolation:
     idw_power: int = 2
     set_node_value: Optional[float | list[float]] = field(default=None)
     set_ele_value: Optional[float | list[float]] = field(default=None)
+    labelmap: Optional[LabelMap] = None
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "Interpolation":
@@ -237,6 +267,11 @@ class Interpolation:
                 d.get("node_scaling_factors")
             ),
             idw_power=d.get("inverse_distance_power", 2),
+            labelmap=(
+                LabelMap.from_dict(d.get("labelmap"))
+                if method == InterpolationType.LABELMAP.value
+                else None
+            ),
         )
 
 

@@ -198,6 +198,7 @@ class FourCYamlReader(DiscretizationReader):
                     node_ids=np.array(ele_node_ids),
                     id=ele.id,
                     source_id=source_ids[ele],
+                    fields=dict(ele.data),
                 )
             )
 

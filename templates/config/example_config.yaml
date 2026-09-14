@@ -27,6 +27,11 @@ processing:
     visualize: true
   interpolation:
     method: elementcenter
+    # only for method "labelmap": mean of all voxels within the region of
+    # each element in a NIfTI label map
+    # labelmap:
+    #   path: path/to/terminal_units.nii.gz
+    #   label_field: tu_label
   transformation:
     user_script: tests/testdata/user_script.py
     user_function: process_image_data
