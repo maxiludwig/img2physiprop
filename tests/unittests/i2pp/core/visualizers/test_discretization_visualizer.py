@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pyvista as pv
 from i2pp.core.discretization_readers.discretization_reader import Element
 from i2pp.core.image_readers.image_reader import PixelValueType
 from i2pp.core.visualizers.discretization_visualizer import (
@@ -40,3 +41,26 @@ def test_create_vtk_from_unfiltered_discretization():
             is mock_unstructured_grid.extract_cells.return_value
         )
         assert visualizer.grid_visible is mock_unstructured_grid
+        assert visualizer.mesh_kwargs == {}
+
+
+def test_compute_grid_renders_line_elements_as_tubes():
+    """Test that line elements are rendered as thick tubes."""
+    line_grid = pv.UnstructuredGrid(
+        np.array([2, 0, 1]),
+        np.array([pv.CellType.LINE], dtype=np.uint8),
+        np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+    )
+    visualizer = DiscretizationVisualizer(PixelValueType.CT, [])
+
+    with patch(
+        "i2pp.core.visualizers.discretization_visualizer."
+        "initialize_unstructured_grid",
+        return_value=(line_grid, np.array([True])),
+    ):
+        visualizer.compute_grid([Element([0, 1], 0, data=10)], MagicMock())
+
+    assert visualizer.mesh_kwargs == {
+        "line_width": 5,
+        "render_lines_as_tubes": True,
+    }

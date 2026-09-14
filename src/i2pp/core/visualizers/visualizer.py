@@ -42,6 +42,8 @@ class Visualizer(ABC):
         self.grid_visible = pv.UnstructuredGrid()
         self.current_actor = None
         self.show_edges = False
+        # additional keyword arguments for `add_mesh`, e.g. line width
+        self.mesh_kwargs: dict = {}
 
     @abstractmethod
     def compute_grid(self, *args, **kwargs) -> None:
@@ -75,7 +77,9 @@ class Visualizer(ABC):
 
         if self.current_actor is not None:
             self.plotter.remove_actor(self.current_actor)
-        self.current_actor = self.plotter.add_mesh(grid, **kwargs)
+        self.current_actor = self.plotter.add_mesh(
+            grid, **{**self.mesh_kwargs, **kwargs}
+        )
 
     def _toggle_slicer(self) -> None:
         """Toggles between 3D model visualization and 2D slice visualization.

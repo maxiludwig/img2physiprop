@@ -68,6 +68,18 @@ def test_determine_discretization_format_mesh(tmp_path: Path) -> None:
         )
 
 
+def test_determine_discretization_format_vtu(tmp_path: Path) -> None:
+    """Test determine_discretization_format if file is vtu."""
+
+    test_path = tmp_path / "lung_tree.vtu"
+
+    with patch("pathlib.Path.is_file", returnValue=True):
+        assert (
+            determine_discretization_format(Path(test_path))
+            == DiscretizationFormat.VTU
+        )
+
+
 def test_verify_and_load_discretization():
     """Test verify_and_load_discretization."""
 
@@ -110,6 +122,8 @@ def test_verify_and_load_discretization():
 @pytest.mark.parametrize(
     "node_ids, expected_cell_type",
     [
+        ([1, 2], pv.CellType.LINE),
+        ([1, 2, 3], pv.CellType.TRIANGLE),
         ([1, 2, 3, 4], pv.CellType.TETRA),
         ([1, 2, 3, 4, 5, 6, 7, 8], pv.CellType.HEXAHEDRON),
         ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], pv.CellType.QUADRATIC_TETRA),

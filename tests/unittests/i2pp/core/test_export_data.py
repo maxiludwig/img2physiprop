@@ -139,3 +139,51 @@ def test_export_data(exporter_mocks, tmp_path):
     expected_data = np.array([[0.0, 0.1], [1.0, 0.2]])
 
     np.testing.assert_array_equal(actual_data, expected_data)
+
+
+def test_export_data_into_discretization(tmp_path):
+    """Test that the discretization export format writes via the
+    DiscretizationExporter and writes no additional VTK file."""
+    discretization = MagicMock()
+    data = np.array([(1, 0.5)], dtype=[("index", "i4"), ("E", "f8")])
+    output_file = tmp_path / "output.vtu"
+
+    with (
+        patch("i2pp.core.export_data.DiscretizationExporter") as mock_exporter,
+        patch("i2pp.core.export_data.export_vtk") as mock_export_vtk,
+    ):
+        mock_exporter.return_value.export_format = "vtu"
+        export_data(
+            transformed_data=data,
+            elements=[],
+            discretization=discretization,
+            export_format="discretization",
+            property_output_file=output_file,
+            name_of_output_property="E",
+            vtk_output_file=output_file,
+            pixel_type=PixelValueType.CT,
+            discretization_path=tmp_path / "tree.vtu",
+        )
+
+    mock_exporter.assert_called_once_with(
+        tmp_path / "tree.vtu", discretization
+    )
+    mock_exporter.return_value.write_data.assert_called_once_with(
+        data, output_file, "E"
+    )
+    mock_export_vtk.assert_not_called()
+
+
+def test_export_data_into_discretization_requires_path(tmp_path):
+    """Test that the discretization export needs the input path."""
+    with pytest.raises(ValueError, match="requires the path"):
+        export_data(
+            transformed_data=None,
+            elements=[],
+            discretization=MagicMock(),
+            export_format="discretization",
+            property_output_file=tmp_path / "output.vtu",
+            name_of_output_property="E",
+            vtk_output_file=tmp_path / "output.vtu",
+            pixel_type=PixelValueType.CT,
+        )

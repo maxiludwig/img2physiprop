@@ -1,6 +1,9 @@
 """Test cases for export format detection class in i2pp.core.exporters."""
 
 import pytest
+from i2pp.core.exporters.discretization_exporter import (
+    DiscretizationExporter,
+)
 from i2pp.core.exporters.export_format import ExportFormat
 from i2pp.core.exporters.json_exporter import JsonExporter
 from i2pp.core.exporters.txt_exporter import TxtExporter
@@ -10,6 +13,7 @@ def test_export_format_enum():
     """Test ExportFormat Enum."""
     assert ExportFormat("json") == ExportFormat.JSON
     assert ExportFormat("txt") == ExportFormat.TXT
+    assert ExportFormat("discretization") == ExportFormat.DISCRETIZATION
 
     with pytest.raises(ValueError):
         ExportFormat("xml")
@@ -23,6 +27,12 @@ def test_get_exporter_json():
 def test_get_exporter_txt():
     """Test that the correct exporter is returned for TXT format."""
     assert ExportFormat.TXT.get_exporter() is TxtExporter
+
+
+def test_get_exporter_discretization():
+    """Test that the correct exporter is returned for the discretization
+    format."""
+    assert ExportFormat.DISCRETIZATION.get_exporter() is DiscretizationExporter
 
 
 def test_get_exporter_invalid(monkeypatch):

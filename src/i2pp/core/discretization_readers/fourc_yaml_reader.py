@@ -32,20 +32,65 @@ class FourCYamlReader(DiscretizationReader):
     structure the data into a `Discretization` object.
     """
 
+    def _is_selected(self, ele, element_filter: dict) -> bool:
+        """Checks whether an element passes the element filter.
+
+        The filter field is looked up in the element data (e.g. VTU cell data
+        such as `block_id`) and then in the element options (e.g. the
+        material `MAT`).
+
+        Arguments:
+            ele: The lnmmeshio element.
+            element_filter (dict): Dictionary with the keys `field` (name of
+                the element data field or option) and `values` (list of
+                values to keep).
+
+        Returns:
+            bool: True if the value of the field is one of the filter values.
+
+        Raises:
+            ValueError: If the element has no data field or option with the
+                given name.
+        """
+        field = element_filter["field"]
+        if field in ele.data:
+            value = ele.data[field]
+        elif field in ele.options:
+            value = ele.options[field]
+        else:
+            available = ", ".join([*ele.data, *ele.options])
+            raise ValueError(
+                f"Element filter field '{field}' not found in the element "
+                f"data or options. Available fields: {available}."
+            )
+
+        # options such as the material may be stored as strings
+        if isinstance(value, str):
+            try:
+                value = int(value)
+            except ValueError:
+                pass
+
+        return value in element_filter["values"]
+
     def _filter_discretization(
-        self, dis: FourCDiscretization, mat_ids: np.ndarray
+        self,
+        dis: FourCDiscretization,
+        element_filter: dict,
     ) -> FourCDiscretization:
-        """Filters the discretization to include only elements with specified
-        material IDs.
+        """Filters the discretization to include only elements whose filter
+        field has one of the specified values.
 
         This function iterates through the elements in the discretization
-        and selects only those whose material ID matches one of the specified
-        `mat_ids`. The corresponding nodes of these elements are also
-        retained. After filtering, the nodes are sorted based on their IDs.
+        and selects only those whose element data field or option (e.g.
+        `block_id` or `MAT`) matches one of the values of `element_filter`.
+        The corresponding nodes of these elements are also retained. After
+        filtering, the nodes are sorted based on their IDs.
 
         Arguments:
             dis (FourCDiscretization): The discretization.
-            mat_ids (np.ndarray): Array of material IDs to filter.
+            element_filter (dict): Dictionary with the keys `field` and
+                `values` to filter elements by.
 
         Returns:
             FourCDiscretization: The filtered discretization containing only
@@ -55,23 +100,17 @@ class FourCYamlReader(DiscretizationReader):
         dis.compute_ids(zero_based=True)
 
         filtered_nodes = set()
-        filtered_elements = set()
+        filtered_elements = []
 
-        for mat_id in mat_ids:
-
-            for ele in tqdm(
-                dis.elements.structure, desc=f"Filtering elements MAT {mat_id}"
-            ):
-                if int(ele.options["MAT"]) == mat_id:
-                    for n in ele.nodes:
-                        filtered_nodes.add(n)
-                    filtered_elements.add(ele)
-                else:
-                    continue
+        for ele in tqdm(dis.elements.structure, desc="Filtering elements"):
+            if self._is_selected(ele, element_filter):
+                for n in ele.nodes:
+                    filtered_nodes.add(n)
+                filtered_elements.append(ele)
 
         sorted_nodes = sorted(filtered_nodes, key=lambda x: x.id)
 
-        dis.elements.structure = list(filtered_elements)
+        dis.elements.structure = filtered_elements
         dis.nodes = list(sorted_nodes)
         dis.compute_ids(zero_based=True)
         return dis
@@ -86,14 +125,15 @@ class FourCYamlReader(DiscretizationReader):
         file.
 
         This function imports nodes and elements from a .4C.yaml file using
-        `lnmmeshio`, applies optional material ID filtering, and organizes
+        `lnmmeshio`, applies optional element filtering, and organizes
         the data into a `Discretization` object.
 
         Arguments:
             file_path (Path): Path to the .4C.yaml file.
             options (dict): Options for loading the discretization.
-                Filtering for material ids can be enabled by specifying
-                `material_ids` in the options dictionary.
+                Filtering of elements (e.g. by the VTU cell data `block_id`
+                or the material `MAT`) can be enabled by specifying
+                `element_filter` with the keys `field` and `values`.
             processing (I2PPConfig.processing):
                 Processing configuration object.
 
@@ -114,10 +154,23 @@ class FourCYamlReader(DiscretizationReader):
 
         raw_dis.compute_ids(zero_based=True)
 
-        if options.get("material_ids") and options is not None:
-            raw_dis = self._filter_discretization(
-                raw_dis, np.array(options["material_ids"])
-            )
+        # remember the position of each element in the input file, since
+        # filtering renumbers the element ids
+        source_ids = {ele: ele.id for ele in raw_dis.elements.structure}
+
+        element_filter = (options or {}).get("element_filter")
+
+        if element_filter is not None:
+            if "field" not in element_filter or "values" not in element_filter:
+                raise ValueError(
+                    "The discretization option 'element_filter' requires the "
+                    "keys 'field' and 'values'."
+                )
+            raw_dis = self._filter_discretization(raw_dis, element_filter)
+            if not raw_dis.elements.structure:
+                raise RuntimeError(
+                    "No elements left in the discretization after filtering."
+                )
 
         scaling_factors = processing.interpolation.node_scaling_factors
 
@@ -141,7 +194,11 @@ class FourCYamlReader(DiscretizationReader):
                 ele_node_ids.append(node.id)
 
             elements.append(
-                Element(node_ids=np.array(ele_node_ids), id=ele.id)
+                Element(
+                    node_ids=np.array(ele_node_ids),
+                    id=ele.id,
+                    source_id=source_ids[ele],
+                )
             )
 
         surfaces = []

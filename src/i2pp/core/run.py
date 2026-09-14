@@ -8,6 +8,7 @@ from pathlib import Path
 from i2pp.core.configuration_validator.validator import I2PPConfig
 from i2pp.core.discretization_helpers import verify_and_load_discretization
 from i2pp.core.export_data import export_data
+from i2pp.core.exporters.export_format import ExportFormat
 from i2pp.core.import_image import verify_and_load_imagedata
 from i2pp.core.interpolate_element_data import (
     interpolate_image_to_discretization,
@@ -93,10 +94,16 @@ def run_i2pp(config_i2pp):
     if config.processing.transformation.visualize:
         visualize_results(elements, image, discretization)
 
-    # Retrieve export options from the configuration
+    # Retrieve export options from the configuration. The discretization
+    # export is written in the format of the input discretization.
+    discretization_path: Path = config.import_.discretization.path
+    export_suffix = (
+        discretization_path.suffix
+        if config.export.type == ExportFormat.DISCRETIZATION.value
+        else f".{config.export.type}"
+    )
     property_output_path: Path = (
-        config.export.folder_path
-        / f"{config.export.file_name}.{config.export.type}"
+        config.export.folder_path / f"{config.export.file_name}{export_suffix}"
     )
     vtk_output_path: Path = (
         config.export.folder_path / f"{config.export.file_name}.vtu"
@@ -112,6 +119,7 @@ def run_i2pp(config_i2pp):
         name_of_output_property=config.export.output_parameter_name,
         vtk_output_file=vtk_output_path,
         pixel_type=image.pixel_type,
+        discretization_path=discretization_path,
     )
 
     # Log the execution time

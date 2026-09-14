@@ -2,13 +2,16 @@
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 from i2pp.core.discretization_helpers import initialize_unstructured_grid
 from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
     Element,
+)
+from i2pp.core.exporters.discretization_exporter import (
+    DiscretizationExporter,
 )
 from i2pp.core.exporters.export_format import ExportFormat
 from i2pp.core.exporters.exporter import Exporter
@@ -70,6 +73,7 @@ def export_data(
     name_of_output_property: str,
     vtk_output_file: Path,
     pixel_type: PixelValueType,
+    discretization_path: Optional[Path] = None,
 ) -> None:
     """Exports already-transformed data.
 
@@ -85,18 +89,34 @@ def export_data(
         dis (Discretization): The discretization object containing nodes,
             elements and surfaces.
         export_format (str): The format in which the data will be
-            exported (e.g., "json", "txt").
+            exported (e.g., "json", "txt", "discretization").
         property_output_file (Path): Path to the output file where the
             exported data will be written.
         name_of_output_property (str): Name of the property to be exported.
         vtk_output_file (Path): Path to the output file for VTK export.
         pixel_type (PixelValueType): Type of pixel values.
+        discretization_path (Optional[Path]): Path to the input
+            discretization. Required for the discretization export format.
+
+    Raises:
+        ValueError: If the discretization export format is used without a
+            discretization path.
     """
     logging.info("Exporting file.")
 
     # export data
     export_format_enum = ExportFormat(export_format)
-    exporter: Exporter = export_format_enum.get_exporter()()
+    exporter: Exporter
+    if export_format_enum == ExportFormat.DISCRETIZATION:
+        if discretization_path is None:
+            raise ValueError(
+                "The discretization export format requires the path of the "
+                "input discretization."
+            )
+        exporter = DiscretizationExporter(discretization_path, discretization)
+    else:
+        exporter = export_format_enum.get_exporter()()
+
     exported_data = exporter.write_data(
         transformed_data, property_output_file, name_of_output_property
     )

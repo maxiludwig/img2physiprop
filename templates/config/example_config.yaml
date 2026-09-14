@@ -3,7 +3,11 @@ import:
     path: tests/testdata/discretization_large.mesh
     type: mesh
     options:
-      material_ids: [1, 2, 3]
+      # optional: only process elements whose field has one of the values,
+      # e.g. the material (MAT) or VTU cell data such as block_id
+      element_filter:
+        field: MAT
+        values: [1, 2, 3]
   image:
     path: tests/testdata/image_large.dcm
     type: dicom
@@ -28,5 +32,7 @@ processing:
 export:
   folder_path: your/tmp/path
   file_name: output_name
+  # json, txt or discretization
   type: json
+  # only for json: key of the exported data
   output_parameter_name: STIFFNESS

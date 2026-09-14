@@ -64,12 +64,16 @@ class Element:
             (x, y, z) world coordinates of the center of the element.
         data (Optional[np.ndarray]): An array representing the data associated
             with the element, such as RGB colors or grayscale intensities
+        source_id (Optional[int]): Zero-based index of the element in the
+            input file before any filtering. Used to write results back into
+            the complete input mesh.
     """
 
     node_ids: np.ndarray
     id: int
     center_coords: Optional[np.ndarray] = None
     data: Optional[np.ndarray] = None
+    source_id: Optional[int] = None
 
 
 @dataclass

@@ -17,10 +17,13 @@ class DiscretizationFormat(Enum):
     Attributes:
         MESH: Represents the discretization data in '.mesh' format
         YAML: Represents the discretization data in the '.4C.yaml' format
+        VTU: Represents the discretization data in the '.vtu' format, read
+            via lnmmeshio (e.g. line2 meshes of airway trees)
     """
 
     MESH = ".mesh"
     YAML = ".yaml"
+    VTU = ".vtu"
 
     def get_reader(self) -> Type[DiscretizationReader]:
         """Returns the appropriate discretization reader class based on the
@@ -33,4 +36,5 @@ class DiscretizationFormat(Enum):
         return {
             DiscretizationFormat.MESH: MeshReader,
             DiscretizationFormat.YAML: FourCYamlReader,
+            DiscretizationFormat.VTU: FourCYamlReader,
         }[self]

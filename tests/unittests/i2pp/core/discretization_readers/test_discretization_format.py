@@ -19,10 +19,16 @@ def test_get_reader_for_mesh():
     assert DiscretizationFormat.MESH.get_reader() == MeshReader
 
 
+def test_get_reader_for_vtu():
+    """Test that the lnmmeshio based reader is returned for the VTU format."""
+    assert DiscretizationFormat.VTU.get_reader() == FourCYamlReader
+
+
 def test_enum_values_are_correct():
     """Test that the enum values are correctly defined."""
     assert DiscretizationFormat.YAML.value == ".yaml"
     assert DiscretizationFormat.MESH.value == ".mesh"
+    assert DiscretizationFormat.VTU.value == ".vtu"
 
 
 def test_invalid_format_access():
