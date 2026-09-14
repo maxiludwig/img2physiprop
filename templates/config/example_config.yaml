@@ -9,9 +9,12 @@ import:
         field: MAT
         values: [1, 2, 3]
   image:
+    # folder of DICOM/PNG slices or a single NIfTI file (.nii/.nii.gz)
     path: tests/testdata/image_large.dcm
     type: dicom
     options:
+      # only for NIfTI images: imaging modality, CT (default) or MR
+      # pixel_type: CT
       metadata:
         pixel_spacing: [0.5, 0.5, 1.0]
         row_direction: [0, -1, 0]

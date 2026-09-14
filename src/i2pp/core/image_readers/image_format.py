@@ -7,6 +7,7 @@ from typing import Type
 import pydicom
 from i2pp.core.image_readers.dicom_reader import DicomReader
 from i2pp.core.image_readers.image_reader import ImageReader
+from i2pp.core.image_readers.nifti_reader import NiftiReader
 from i2pp.core.image_readers.png_reader import PngReader
 from PIL import Image
 
@@ -19,6 +20,8 @@ class ImageFormat(Enum):
             imaging.
         PNG: Represents the PNG (Portable Network Graphics) image format,
             typically used for color images.
+        NIFTI: Represents the NIfTI image format (.nii or .nii.gz). In
+            contrast to DICOM and PNG, a NIfTI image is a single file.
 
     This enum is used to define the format of the input data and helps
     in determining how the image data should be processed based on its format
@@ -27,6 +30,7 @@ class ImageFormat(Enum):
 
     DICOM = ".dcm"
     PNG = ".png"
+    NIFTI = ".nii.gz"
 
     def get_reader(self) -> Type[ImageReader]:
         """Returns the appropriate image reader class based on the image
@@ -34,7 +38,7 @@ class ImageFormat(Enum):
 
         Returns:
             Type[ImageReader]: A class that is a subclass of `ImageReader`,
-                either `DicomReader` or `PngReader`.
+                either `DicomReader`, `PngReader` or `NiftiReader`.
 
         Raises:
             ValueError: If the image format is not supported.
@@ -42,6 +46,7 @@ class ImageFormat(Enum):
         readers = {
             ImageFormat.DICOM: DicomReader,
             ImageFormat.PNG: PngReader,
+            ImageFormat.NIFTI: NiftiReader,
         }
 
         if self not in readers:
@@ -70,6 +75,9 @@ class ImageFormat(Enum):
                 with Image.open(path) as img:
                     img.verify()
                 return True
+
+            elif self == ImageFormat.NIFTI:
+                return path.name.endswith((".nii", ".nii.gz"))
 
         except Exception:
             return False

@@ -117,6 +117,12 @@ pdoc --html --output-dir docs src/i2pp
   - If an element contains no voxels (allvoxels modes), interpolation falls back to the element center.
   - If interpolated points fall outside the image grid, element data is NaN and a warning summary is logged after processing.
 
+### Image formats
+
+- `import.image.path` is either a folder of DICOM or PNG slices, or a single NIfTI file (`.nii` / `.nii.gz`).
+- NIfTI images are converted from RAS to the LPS coordinate system of DICOM, and only the voxels within the bounding box of the discretization are loaded. Since NIfTI files do not store the imaging modality, set it via `import.image.options.pixel_type` (`CT` (default) or `MR`).
+- Note: DICOM files without file suffix are renamed in place to `*.dcm`.
+
 ### Discretization formats and element filtering
 
 - Supported discretization formats: `.4C.yaml`, `.mesh` and `.vtu`. `.vtu` files are read via `lnmmeshio`, which also supports meshes consisting of line2 elements (e.g. airway trees). For line2 elements, `nodes` averages the two node values and `elementcenter` samples at the midpoint of the line.

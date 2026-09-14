@@ -62,8 +62,11 @@ def determine_image_format(folder_path: Path) -> ImageFormat:
             f"Path {folder_path} to the image data cannot be found!"
         )
 
+    # NIfTI images are single files, so they are not detected in folders
+    folder_formats = [fmt for fmt in ImageFormat if fmt != ImageFormat.NIFTI]
+
     supported_formats = {
-        fmt: any(folder_path.glob(f"*{fmt.value}")) for fmt in ImageFormat
+        fmt: any(folder_path.glob(f"*{fmt.value}")) for fmt in folder_formats
     }
 
     detected_formats = {
@@ -74,10 +77,18 @@ def determine_image_format(folder_path: Path) -> ImageFormat:
         return detected_formats.pop()
 
     if not detected_formats:
+        if any(
+            ImageFormat.NIFTI.is_file_of_format(file)
+            for file in folder_path.iterdir()
+        ):
+            raise RuntimeError(
+                "Image data folder contains NIfTI files. For NIfTI images, "
+                "pass the path of the NIfTI file itself as image path."
+            )
         raise RuntimeError(
             "Image data folder is empty or has no readable data! "
             "Please make sure the input file has the correct format "
-            f"({', '.join(fmt.value for fmt in ImageFormat)})."
+            f"({', '.join(fmt.value for fmt in folder_formats)})."
         )
 
     raise RuntimeError(
@@ -93,9 +104,10 @@ def verify_and_load_imagedata(
 
     This function checks the specified input folder for valid image files,
     determines the format (DICOM or PNG), and loads the data using the
-    appropriate image reader. The image is then converted into a structured
-    format containing pixel data and metadata. Additionally, the function sets
-    the pixel intensity range based on the pixel type.
+    appropriate image reader. Alternatively, the path of a single NIfTI
+    file (.nii or .nii.gz) can be given. The image is then converted into a
+    structured format containing pixel data and metadata. Additionally, the
+    function sets the pixel intensity range based on the pixel type.
 
     Arguments:
         folder_path (Path): Path to the image-data folder.
@@ -112,9 +124,11 @@ def verify_and_load_imagedata(
         RuntimeError: If the input data folder is invalid or contains
             unsupported data formats.
     """
-    _detect_and_append_suffixes(folder_path)
-
-    image_format = determine_image_format(folder_path)
+    if ImageFormat.NIFTI.is_file_of_format(folder_path):
+        image_format = ImageFormat.NIFTI
+    else:
+        _detect_and_append_suffixes(folder_path)
+        image_format = determine_image_format(folder_path)
 
     image_reader = image_format.get_reader()(options, bounding_box)
 
