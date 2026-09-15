@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 import pyvista as pv
-from i2pp.core.discretization_readers.fourc_yaml_reader import FourCYamlReader
+from i2pp.core.discretization_readers.lnmmeshio_reader import LnmmeshioReader
 
 
 def test___filter_discretization_one_filter():
@@ -24,7 +24,7 @@ def test___filter_discretization_one_filter():
 
     mock_dis.elements.structure = [ele1, ele2, ele3, ele4]
     mock_dis.nodes = [node1, node2, node3, node4]
-    test_dis = FourCYamlReader()
+    test_dis = LnmmeshioReader()
     dis_filtered = test_dis._filter_discretization(
         mock_dis, {"field": "MAT", "values": [2]}
     )
@@ -50,7 +50,7 @@ def test__filter_discretization_multiple_filters():
 
     mock_dis.elements.structure = [ele1, ele2, ele3, ele4]
     mock_dis.nodes = [node1, node2, node3, node4]
-    test_dis = FourCYamlReader()
+    test_dis = LnmmeshioReader()
     dis_filtered = test_dis._filter_discretization(
         mock_dis, {"field": "MAT", "values": [1, 3]}
     )
@@ -67,7 +67,7 @@ def test_load_discretization_fourc_yaml_without_filter(tmp_path: Path) -> None:
     """Test load_discretization if input is 4C.yaml."""
 
     test_path = tmp_path / "test_mesh.4C.yaml"
-    test_dis = FourCYamlReader()
+    test_dis = LnmmeshioReader()
     with patch("lnmmeshio.read") as mock_lnmread:
 
         mock_dis = MagicMock()
@@ -156,7 +156,7 @@ def test__filter_discretization_element_filter():
     mock_dis = _mock_line_dis()
     selected = mock_dis.elements.structure[1:]
 
-    dis_filtered = FourCYamlReader()._filter_discretization(
+    dis_filtered = LnmmeshioReader()._filter_discretization(
         mock_dis, element_filter={"field": "block_id", "values": [2]}
     )
 
@@ -171,7 +171,7 @@ def test__filter_discretization_material_from_options():
     mock_dis.elements.structure[0].options = {"MAT": "2"}
     selected = [mock_dis.elements.structure[0], mock_dis.elements.structure[2]]
 
-    dis_filtered = FourCYamlReader()._filter_discretization(
+    dis_filtered = LnmmeshioReader()._filter_discretization(
         mock_dis, element_filter={"field": "MAT", "values": [2]}
     )
 
@@ -181,7 +181,7 @@ def test__filter_discretization_material_from_options():
 def test__filter_discretization_element_filter_missing_field():
     """Test _filter_discretization raises if the filter field is unknown."""
     with pytest.raises(ValueError, match="'generation' not found"):
-        FourCYamlReader()._filter_discretization(
+        LnmmeshioReader()._filter_discretization(
             _mock_line_dis(),
             element_filter={"field": "generation", "values": [2]},
         )
@@ -212,7 +212,7 @@ def test_load_discretization_vtu_line2_with_element_filter(
     vtu_path = tmp_path / "tree.vtu"
     grid.save(vtu_path)
 
-    dis = FourCYamlReader().load_discretization(
+    dis = LnmmeshioReader().load_discretization(
         vtu_path,
         {"element_filter": {"field": "block_id", "values": [2]}},
         _mock_processing(),
@@ -229,7 +229,7 @@ def test_load_discretization_invalid_element_filter(tmp_path: Path) -> None:
     """Test load_discretization raises for an incomplete element filter."""
     with patch("lnmmeshio.read", return_value=_mock_line_dis()):
         with pytest.raises(ValueError, match="requires the keys"):
-            FourCYamlReader().load_discretization(
+            LnmmeshioReader().load_discretization(
                 tmp_path / "tree.vtu",
                 {"element_filter": {"field": "block_id"}},
                 _mock_processing(),
@@ -242,7 +242,7 @@ def test_load_discretization_filter_removes_all_elements(
     """Test load_discretization raises if no element passes the filter."""
     with patch("lnmmeshio.read", return_value=_mock_line_dis()):
         with pytest.raises(RuntimeError, match="No elements left"):
-            FourCYamlReader().load_discretization(
+            LnmmeshioReader().load_discretization(
                 tmp_path / "tree.vtu",
                 {"element_filter": {"field": "block_id", "values": [7]}},
                 _mock_processing(),

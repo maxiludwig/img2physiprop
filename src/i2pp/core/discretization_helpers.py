@@ -57,8 +57,8 @@ def verify_and_load_discretization(
 ) -> Discretization:
     """Loads and processes mesh data.
 
-    This function selects the appropriate reader (MeshReader or
-    FourCYamlReader), and loads the discretization data.
+    This function selects the appropriate reader (TrimeshReader or
+    LnmmeshioReader), and loads the discretization data.
     Finally, it determines the discretization's bounding box.
 
     Arguments:

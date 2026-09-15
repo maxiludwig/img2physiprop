@@ -19,7 +19,7 @@ from i2pp.core.discretization_readers.discretization_reader import (
     Element,
     Nodes,
 )
-from i2pp.core.discretization_readers.fourc_yaml_reader import FourCYamlReader
+from i2pp.core.discretization_readers.lnmmeshio_reader import LnmmeshioReader
 from i2pp.core.image_readers.image_reader import PixelValueType
 
 
@@ -95,7 +95,7 @@ def test_verify_and_load_discretization():
         return_value=DiscretizationFormat.YAML,
     ) as mock_determine_discretization_format:
         with patch.object(
-            FourCYamlReader, "load_discretization", return_value=mock_dis
+            LnmmeshioReader, "load_discretization", return_value=mock_dis
         ) as mock_load_discretization:
             with patch(
                 "i2pp.core.discretization_helpers.find_mins_maxs",

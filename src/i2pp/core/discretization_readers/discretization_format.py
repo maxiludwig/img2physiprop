@@ -6,8 +6,8 @@ from typing import Type
 from i2pp.core.discretization_readers.discretization_reader import (
     DiscretizationReader,
 )
-from i2pp.core.discretization_readers.fourc_yaml_reader import FourCYamlReader
-from i2pp.core.discretization_readers.mesh_reader import MeshReader
+from i2pp.core.discretization_readers.lnmmeshio_reader import LnmmeshioReader
+from i2pp.core.discretization_readers.trimesh_reader import TrimeshReader
 
 
 class DiscretizationFormat(Enum):
@@ -31,10 +31,10 @@ class DiscretizationFormat(Enum):
 
         Returns:
             Type[DiscretizationReader]: A class that is a subclass of
-        `DiscretizationReader`, either `MeshReader` or `FourCYamlReader`.
+        `DiscretizationReader`, either `TrimeshReader` or `LnmmeshioReader`.
         """
         return {
-            DiscretizationFormat.MESH: MeshReader,
-            DiscretizationFormat.YAML: FourCYamlReader,
-            DiscretizationFormat.VTU: FourCYamlReader,
+            DiscretizationFormat.MESH: TrimeshReader,
+            DiscretizationFormat.YAML: LnmmeshioReader,
+            DiscretizationFormat.VTU: LnmmeshioReader,
         }[self]

@@ -1,4 +1,4 @@
-"""Import Mesh data."""
+"""Import discretizations readable by trimesh (.mesh)."""
 
 from __future__ import annotations
 
@@ -18,11 +18,12 @@ if TYPE_CHECKING:
     from i2pp.core.configuration_validator.validator import Processing
 
 
-class MeshReader(DiscretizationReader):
-    """Class for reading and processing finite element models from .mesh files.
+class TrimeshReader(DiscretizationReader):
+    """Class for reading and processing finite element models with trimesh.
 
-    This class extends `DiscretizationReader` to handle `.mesh` files, which
-    store discretized finite element models. It provides functionality to
+    This class extends `DiscretizationReader` to handle `.mesh` files via
+    `trimesh`, which store discretized finite element models. It provides
+    functionality to
     import the mesh, filter elements with an element filter, and structure the
     data into a `Discretization` object.
     """

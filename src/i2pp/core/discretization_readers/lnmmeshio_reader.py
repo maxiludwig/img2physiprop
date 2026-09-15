@@ -1,4 +1,4 @@
-"""Import 4C.yaml data."""
+"""Import discretizations readable by lnmmeshio (e.g. .4C.yaml, .vtu)."""
 
 from __future__ import annotations
 
@@ -15,21 +15,21 @@ from i2pp.core.discretization_readers.discretization_reader import (
     Nodes,
     Surface,
 )
-from lnmmeshio import Discretization as FourCDiscretization
+from lnmmeshio import Discretization as LnmmeshioDiscretization
 from tqdm import tqdm
 
 if TYPE_CHECKING:
     from i2pp.core.configuration_validator.validator import Processing
 
 
-class FourCYamlReader(DiscretizationReader):
-    """Class for reading and processing finite element models from .4C.yaml
-    files.
+class LnmmeshioReader(DiscretizationReader):
+    """Class for reading and processing finite element models with lnmmeshio.
 
-    This class extends `DiscretizationReader` to handle `.4C.yaml` files, which
-    store discretized finite element models. It provides functionality to
-    import the Discretization, filter elements based on material IDs, and
-    structure the data into a `Discretization` object.
+    This class extends `DiscretizationReader` to handle all formats readable
+    by `lnmmeshio`, e.g. `.4C.yaml` input files or `.vtu` meshes (such as line
+    element airway trees). It provides functionality to import the
+    Discretization, filter elements by an element field, and structure the
+    data into a `Discretization` object.
     """
 
     def _is_selected(self, ele, element_filter: dict) -> bool:
@@ -75,9 +75,9 @@ class FourCYamlReader(DiscretizationReader):
 
     def _filter_discretization(
         self,
-        dis: FourCDiscretization,
+        dis: LnmmeshioDiscretization,
         element_filter: dict,
-    ) -> FourCDiscretization:
+    ) -> LnmmeshioDiscretization:
         """Filters the discretization to include only elements whose filter
         field has one of the specified values.
 
@@ -88,13 +88,13 @@ class FourCYamlReader(DiscretizationReader):
         filtering, the nodes are sorted based on their IDs.
 
         Arguments:
-            dis (FourCDiscretization): The discretization.
+            dis (LnmmeshioDiscretization): The discretization.
             element_filter (dict): Dictionary with the keys `field` and
                 `values` to filter elements by.
 
         Returns:
-            FourCDiscretization: The filtered discretization containing only
-                the selected elements and nodes.
+            LnmmeshioDiscretization: The filtered discretization containing
+                only the selected elements and nodes.
         """
 
         dis.compute_ids(zero_based=True)
@@ -121,15 +121,14 @@ class FourCYamlReader(DiscretizationReader):
         options: dict,
         processing: Processing,
     ) -> Discretization:
-        """Loads and processes a finite element discretization from a .4C.yaml
-        file.
+        """Loads and processes a finite element discretization with lnmmeshio.
 
-        This function imports nodes and elements from a .4C.yaml file using
-        `lnmmeshio`, applies optional element filtering, and organizes
-        the data into a `Discretization` object.
+        This function imports nodes and elements from a file readable by
+        `lnmmeshio` (e.g. .4C.yaml or .vtu), applies optional element
+        filtering, and organizes the data into a `Discretization` object.
 
         Arguments:
-            file_path (Path): Path to the .4C.yaml file.
+            file_path (Path): Path to the discretization file.
             options (dict): Options for loading the discretization.
                 Filtering of elements (e.g. by the VTU cell data `block_id`
                 or the material `MAT`) can be enabled by specifying
