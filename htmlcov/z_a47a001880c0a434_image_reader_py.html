@@ -4,14 +4,14 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Coverage for src/i2pp/core/image_readers/image_reader.py: 94%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
-    <link rel="stylesheet" href="style_cb_9ff733b0.css" type="text/css">
+    <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
     <script src="coverage_html_cb_dd2e7eb5.js" defer></script>
 </head>
 <body class="pyfile">
 <header>
     <div class="content">
         <h1>
-            <span class="text">Coverage for </span><b>src&#8201;/&#8201;i2pp&#8201;/&#8201;core&#8201;/&#8201;image_readers&#8201;/&#8201;image_reader.py</b>:
+            <span class="text">Coverage for </span><b>src<span class="sep">/</span>i2pp<span class="sep">/</span>core<span class="sep">/</span>image_readers<span class="sep">/</span>image_reader.py</b>:
             <span class="pc_cov">94%</span>
         </h1>
         <aside id="help_panel_wrapper">
@@ -62,10 +62,10 @@
         <p class="text">
             <a id="prevFileLink" class="nav" href="z_a47a001880c0a434_image_format_py.html">&#xab; prev</a> &nbsp; &nbsp;
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
-            <a id="nextFileLink" class="nav" href="z_a47a001880c0a434_png_reader_py.html">&#xbb; next</a>
+            <a id="nextFileLink" class="nav" href="z_a47a001880c0a434_label_map_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-03-10 17:31 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
+            created at 2026-09-15 08:18 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -80,7 +80,7 @@
     </div>
 </header>
 <main id="source">
-    <p class="pln"><span class="n"><a id="t1" href="#t1">1</a></span><span class="t"><span class="str">"""Import image data and convert it into 3D data."""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t1" href="#t1">1</a></span><span class="t"><span class="str">&quot;&quot;&quot;Import image data and convert it into 3D data.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t2" href="#t2">2</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t3" href="#t3">3</a></span><span class="t"><span class="key">from</span> <span class="nam">abc</span> <span class="key">import</span> <span class="nam">ABC</span><span class="op">,</span> <span class="nam">abstractmethod</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t4" href="#t4">4</a></span><span class="t"><span class="key">from</span> <span class="nam">dataclasses</span> <span class="key">import</span> <span class="nam">dataclass</span>&nbsp;</span><span class="r"></span></p>
@@ -94,7 +94,7 @@
     <p class="pln"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t"><span class="key">class</span> <span class="nam">PixelValueType</span><span class="op">(</span><span class="nam">Enum</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t">    <span class="str">"""Enum for pixel value types used in image data.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Enum for pixel value types used in image data.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t"><span class="str">    This enum defines the possible types of pixel values that a slice can</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t"><span class="str">    have, determining how pixel values should be interpreted:</span>&nbsp;</span><span class="r"></span></p>
@@ -110,15 +110,15 @@
     <p class="pln"><span class="n"><a id="t28" href="#t28">28</a></span><span class="t"><span class="str">            - For RGB: The range is between 0 and 255.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t29" href="#t29">29</a></span><span class="t"><span class="str">            - For MRT: The pixel range of MRT can vary and must be calculated</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t30" href="#t30">30</a></span><span class="t"><span class="str">              separately.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t31" href="#t31">31</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t31" href="#t31">31</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t32" href="#t32">32</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t33" href="#t33">33</a></span><span class="t">    <span class="nam">CT</span> <span class="op">=</span> <span class="str">"CT"</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t34" href="#t34">34</a></span><span class="t">    <span class="nam">RGB</span> <span class="op">=</span> <span class="str">"RGB"</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t35" href="#t35">35</a></span><span class="t">    <span class="nam">MRT</span> <span class="op">=</span> <span class="str">"MR"</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t33" href="#t33">33</a></span><span class="t">    <span class="nam">CT</span> <span class="op">=</span> <span class="str">&quot;CT&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t34" href="#t34">34</a></span><span class="t">    <span class="nam">RGB</span> <span class="op">=</span> <span class="str">&quot;RGB&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t35" href="#t35">35</a></span><span class="t">    <span class="nam">MRT</span> <span class="op">=</span> <span class="str">&quot;MR&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t36" href="#t36">36</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t37" href="#t37">37</a></span><span class="t">    <span class="op">@</span><span class="nam">property</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">    <span class="key">def</span> <span class="nam">pixel_range</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-></span> <span class="nam">np</span><span class="op">.</span><span class="nam">ndarray</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t">        <span class="str">"""Returns the default pixel range for each pixel value type."""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">    <span class="key">def</span> <span class="nam">pixel_range</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">np</span><span class="op">.</span><span class="nam">ndarray</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Returns the default pixel range for each pixel value type.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t40" href="#t40">40</a></span><span class="t">        <span class="key">if</span> <span class="nam">self</span> <span class="op">==</span> <span class="nam">PixelValueType</span><span class="op">.</span><span class="nam">CT</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t">            <span class="key">return</span> <span class="nam">np</span><span class="op">.</span><span class="nam">array</span><span class="op">(</span><span class="op">[</span><span class="op">-</span><span class="num">1024</span><span class="op">,</span> <span class="num">3071</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">        <span class="key">elif</span> <span class="nam">self</span> <span class="op">==</span> <span class="nam">PixelValueType</span><span class="op">.</span><span class="nam">MRT</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -126,11 +126,11 @@
     <p class="run"><span class="n"><a id="t44" href="#t44">44</a></span><span class="t">        <span class="key">elif</span> <span class="nam">self</span> <span class="op">==</span> <span class="nam">PixelValueType</span><span class="op">.</span><span class="nam">RGB</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t45" href="#t45">45</a></span><span class="t">            <span class="key">return</span> <span class="nam">np</span><span class="op">.</span><span class="nam">array</span><span class="op">(</span><span class="op">[</span><span class="num">0</span><span class="op">,</span> <span class="num">255</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t46" href="#t46">46</a></span><span class="t">        <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t47" href="#t47">47</a></span><span class="t">            <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="fst">f"</span><span class="fst">Unsupported PixelValueType: </span><span class="op">{</span><span class="nam">self</span><span class="op">}</span><span class="fst">"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t47" href="#t47">47</a></span><span class="t">            <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="fst">f&quot;</span><span class="fst">Unsupported PixelValueType: </span><span class="op">{</span><span class="nam">self</span><span class="op">}</span><span class="fst">&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t48" href="#t48">48</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t49" href="#t49">49</a></span><span class="t">    <span class="op">@</span><span class="nam">property</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t50" href="#t50">50</a></span><span class="t">    <span class="key">def</span> <span class="nam">num_values</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-></span> <span class="nam">int</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t51" href="#t51">51</a></span><span class="t">        <span class="str">"""Return the number of values per pixel for the given pixel type.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t50" href="#t50">50</a></span><span class="t">    <span class="key">def</span> <span class="nam">num_values</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">int</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t51" href="#t51">51</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Return the number of values per pixel for the given pixel type.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t52" href="#t52">52</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t53" href="#t53">53</a></span><span class="t"><span class="str">        Returns:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t54" href="#t54">54</a></span><span class="t"><span class="str">            int:</span>&nbsp;</span><span class="r"></span></p>
@@ -139,30 +139,30 @@
     <p class="pln"><span class="n"><a id="t57" href="#t57">57</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t58" href="#t58">58</a></span><span class="t"><span class="str">        Raises:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t59" href="#t59">59</a></span><span class="t"><span class="str">            ValueError: If the PixelValueType is unsupported.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t60" href="#t60">60</a></span><span class="t"><span class="str">        """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t60" href="#t60">60</a></span><span class="t"><span class="str">        &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t61" href="#t61">61</a></span><span class="t">        <span class="key">if</span> <span class="nam">self</span> <span class="op">==</span> <span class="nam">PixelValueType</span><span class="op">.</span><span class="nam">CT</span> <span class="key">or</span> <span class="nam">self</span> <span class="op">==</span> <span class="nam">PixelValueType</span><span class="op">.</span><span class="nam">MRT</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t62" href="#t62">62</a></span><span class="t">            <span class="key">return</span> <span class="num">1</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t63" href="#t63">63</a></span><span class="t">        <span class="key">elif</span> <span class="nam">self</span> <span class="op">==</span> <span class="nam">PixelValueType</span><span class="op">.</span><span class="nam">RGB</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t64" href="#t64">64</a></span><span class="t">            <span class="key">return</span> <span class="num">3</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t65" href="#t65">65</a></span><span class="t">        <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t66" href="#t66">66</a></span><span class="t">            <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="fst">f"</span><span class="fst">Unsupported PixelValueType: </span><span class="op">{</span><span class="nam">self</span><span class="op">}</span><span class="fst">"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t66" href="#t66">66</a></span><span class="t">            <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="fst">f&quot;</span><span class="fst">Unsupported PixelValueType: </span><span class="op">{</span><span class="nam">self</span><span class="op">}</span><span class="fst">&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t67" href="#t67">67</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t68" href="#t68">68</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t69" href="#t69">69</a></span><span class="t"><span class="key">class</span> <span class="nam">SliceOrientation</span><span class="op">(</span><span class="nam">Enum</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t70" href="#t70">70</a></span><span class="t">    <span class="str">"""Enum representing different slice orientations in a 3D volume."""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t70" href="#t70">70</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Enum representing different slice orientations in a 3D volume.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t71" href="#t71">71</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t72" href="#t72">72</a></span><span class="t">    <span class="nam">XY</span> <span class="op">=</span> <span class="str">"XY"</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t73" href="#t73">73</a></span><span class="t">    <span class="nam">YZ</span> <span class="op">=</span> <span class="str">"YZ"</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t74" href="#t74">74</a></span><span class="t">    <span class="nam">XZ</span> <span class="op">=</span> <span class="str">"XZ"</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t75" href="#t75">75</a></span><span class="t">    <span class="nam">UNKNOWN</span> <span class="op">=</span> <span class="str">"Unkown"</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t72" href="#t72">72</a></span><span class="t">    <span class="nam">XY</span> <span class="op">=</span> <span class="str">&quot;XY&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t73" href="#t73">73</a></span><span class="t">    <span class="nam">YZ</span> <span class="op">=</span> <span class="str">&quot;YZ&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t74" href="#t74">74</a></span><span class="t">    <span class="nam">XZ</span> <span class="op">=</span> <span class="str">&quot;XZ&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t75" href="#t75">75</a></span><span class="t">    <span class="nam">UNKNOWN</span> <span class="op">=</span> <span class="str">&quot;Unkown&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t76" href="#t76">76</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t77" href="#t77">77</a></span><span class="t">    <span class="key">def</span> <span class="nam">get_axis_index</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-></span> <span class="nam">int</span> <span class="op">|</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t78" href="#t78">78</a></span><span class="t">        <span class="str">"""Returns the corresponding axis index for the slice orientation.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t77" href="#t77">77</a></span><span class="t">    <span class="key">def</span> <span class="nam">get_axis_index</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">int</span> <span class="op">|</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t78" href="#t78">78</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Returns the corresponding axis index for the slice orientation.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t79" href="#t79">79</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t80" href="#t80">80</a></span><span class="t"><span class="str">        Returns:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t81" href="#t81">81</a></span><span class="t"><span class="str">            (int | None): The index of the axis perpendicular to the slice</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t82" href="#t82">82</a></span><span class="t"><span class="str">                plane (0 for YZ, 1 for XZ, 2 for XY), or None if unknown.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t83" href="#t83">83</a></span><span class="t"><span class="str">        """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t83" href="#t83">83</a></span><span class="t"><span class="str">        &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t84" href="#t84">84</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t85" href="#t85">85</a></span><span class="t">        <span class="key">return</span> <span class="op">{</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t86" href="#t86">86</a></span><span class="t">            <span class="nam">SliceOrientation</span><span class="op">.</span><span class="nam">XY</span><span class="op">:</span> <span class="num">2</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
@@ -172,8 +172,8 @@
     <p class="pln"><span class="n"><a id="t90" href="#t90">90</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t91" href="#t91">91</a></span><span class="t">    <span class="key">def</span> <span class="nam">is_within_crop</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t92" href="#t92">92</a></span><span class="t">        <span class="nam">self</span><span class="op">,</span> <span class="nam">position</span><span class="op">:</span> <span class="nam">np</span><span class="op">.</span><span class="nam">ndarray</span><span class="op">,</span> <span class="nam">bounding_box</span><span class="op">:</span> <span class="nam">BoundingBox</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t93" href="#t93">93</a></span><span class="t">    <span class="op">)</span> <span class="op">-></span> <span class="nam">bool</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t94" href="#t94">94</a></span><span class="t">        <span class="str">"""Checks if a slice with a given position is within the bounding box.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t93" href="#t93">93</a></span><span class="t">    <span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">bool</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t94" href="#t94">94</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Checks if a slice with a given position is within the bounding box.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t95" href="#t95">95</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t96" href="#t96">96</a></span><span class="t"><span class="str">        Args:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t97" href="#t97">97</a></span><span class="t"><span class="str">            position (np.ndarray): The spatial position of the slice.</span>&nbsp;</span><span class="r"></span></p>
@@ -183,7 +183,7 @@
     <p class="pln"><span class="n"><a id="t101" href="#t101">101</a></span><span class="t"><span class="str">        Returns:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t102" href="#t102">102</a></span><span class="t"><span class="str">            bool: True if the position is within the bounding box limits;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t103" href="#t103">103</a></span><span class="t"><span class="str">                otherwise, False.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t104" href="#t104">104</a></span><span class="t"><span class="str">        """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t104" href="#t104">104</a></span><span class="t"><span class="str">        &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t105" href="#t105">105</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t106" href="#t106">106</a></span><span class="t">        <span class="nam">axis_index</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">get_axis_index</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t107" href="#t107">107</a></span><span class="t">        <span class="key">if</span> <span class="nam">axis_index</span> <span class="key">is</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -197,13 +197,13 @@
     <p class="pln"><span class="n"><a id="t115" href="#t115">115</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t116" href="#t116">116</a></span><span class="t"><span class="op">@</span><span class="nam">dataclass</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t117" href="#t117">117</a></span><span class="t"><span class="key">class</span> <span class="nam">GridCoords</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t118" href="#t118">118</a></span><span class="t">    <span class="str">"""Represents the spatial coordinates of a 3D grid in grid space.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t118" href="#t118">118</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Represents the spatial coordinates of a 3D grid in grid space.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t119" href="#t119">119</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t120" href="#t120">120</a></span><span class="t"><span class="str">    Attributes:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t121" href="#t121">121</a></span><span class="t"><span class="str">        slice (np.ndarray): Coordinates along the slice (depth) dimension.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t122" href="#t122">122</a></span><span class="t"><span class="str">        row (np.ndarray): Coordinates along the row (height) dimension.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t123" href="#t123">123</a></span><span class="t"><span class="str">        col (np.ndarray): Coordinates along the column (width) dimension.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t124" href="#t124">124</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t124" href="#t124">124</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t125" href="#t125">125</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t126" href="#t126">126</a></span><span class="t">    <span class="nam">slice</span><span class="op">:</span> <span class="nam">np</span><span class="op">.</span><span class="nam">ndarray</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t127" href="#t127">127</a></span><span class="t">    <span class="nam">row</span><span class="op">:</span> <span class="nam">np</span><span class="op">.</span><span class="nam">ndarray</span>&nbsp;</span><span class="r"></span></p>
@@ -212,7 +212,7 @@
     <p class="pln"><span class="n"><a id="t130" href="#t130">130</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t131" href="#t131">131</a></span><span class="t"><span class="op">@</span><span class="nam">dataclass</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t132" href="#t132">132</a></span><span class="t"><span class="key">class</span> <span class="nam">ImageData</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t133" href="#t133">133</a></span><span class="t">    <span class="str">"""Represents a 3D medical or scientific image with spatial and intensity</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t133" href="#t133">133</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Represents a 3D medical or scientific image with spatial and intensity</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t134" href="#t134">134</a></span><span class="t"><span class="str">    metadata.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t135" href="#t135">135</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t136" href="#t136">136</a></span><span class="t"><span class="str">    Attributes:</span>&nbsp;</span><span class="r"></span></p>
@@ -233,7 +233,7 @@
     <p class="pln"><span class="n"><a id="t151" href="#t151">151</a></span><span class="t"><span class="str">        pixel_range (Optional[np.ndarray]):</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t152" href="#t152">152</a></span><span class="t"><span class="str">            A 2-element array specifying the valid pixel value range</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t153" href="#t153">153</a></span><span class="t"><span class="str">                [min, max] (optional).</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t154" href="#t154">154</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t154" href="#t154">154</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t155" href="#t155">155</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t156" href="#t156">156</a></span><span class="t">    <span class="nam">pixel_data</span><span class="op">:</span> <span class="nam">np</span><span class="op">.</span><span class="nam">ndarray</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t157" href="#t157">157</a></span><span class="t">    <span class="nam">grid_coords</span><span class="op">:</span> <span class="nam">GridCoords</span>&nbsp;</span><span class="r"></span></p>
@@ -244,24 +244,24 @@
     <p class="pln"><span class="n"><a id="t162" href="#t162">162</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t163" href="#t163">163</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t164" href="#t164">164</a></span><span class="t"><span class="key">class</span> <span class="nam">ImageReader</span><span class="op">(</span><span class="nam">ABC</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t165" href="#t165">165</a></span><span class="t">    <span class="str">"""Abstract base class for reading and processing image data.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t165" href="#t165">165</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Abstract base class for reading and processing image data.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t166" href="#t166">166</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t167" href="#t167">167</a></span><span class="t"><span class="str">    This class defines a common interface for loading image data from</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t168" href="#t168">168</a></span><span class="t"><span class="str">    different file formats (e.g., PNG and DICOM) and converting it into</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t169" href="#t169">169</a></span><span class="t"><span class="str">    structured ImageData representations. It ensures a consistent</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t170" href="#t170">170</a></span><span class="t"><span class="str">    workflow for handling both medical imaging (DICOM) and standard 2D</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t171" href="#t171">171</a></span><span class="t"><span class="str">    images (PNG).</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t172" href="#t172">172</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t172" href="#t172">172</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t173" href="#t173">173</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t174" href="#t174">174</a></span><span class="t">    <span class="key">def</span> <span class="nam">__init__</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">options</span><span class="op">:</span> <span class="nam">dict</span><span class="op">,</span> <span class="nam">bounding_box</span><span class="op">:</span> <span class="nam">BoundingBox</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t175" href="#t175">175</a></span><span class="t">        <span class="str">"""Init ImageReader."""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t175" href="#t175">175</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Init ImageReader.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t176" href="#t176">176</a></span><span class="t">        <span class="nam">self</span><span class="op">.</span><span class="nam">options</span> <span class="op">=</span> <span class="nam">options</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t177" href="#t177">177</a></span><span class="t">        <span class="nam">self</span><span class="op">.</span><span class="nam">bounding_box</span> <span class="op">=</span> <span class="nam">bounding_box</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t178" href="#t178">178</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t179" href="#t179">179</a></span><span class="t">    <span class="key">def</span> <span class="nam">_get_slice_orientation</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t180" href="#t180">180</a></span><span class="t">        <span class="nam">self</span><span class="op">,</span> <span class="nam">row_direction</span><span class="op">:</span> <span class="nam">np</span><span class="op">.</span><span class="nam">ndarray</span><span class="op">,</span> <span class="nam">col_direction</span><span class="op">:</span> <span class="nam">np</span><span class="op">.</span><span class="nam">ndarray</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t181" href="#t181">181</a></span><span class="t">    <span class="op">)</span> <span class="op">-></span> <span class="nam">SliceOrientation</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t182" href="#t182">182</a></span><span class="t">        <span class="str">"""Determines the slice orientation based on the row and column</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t181" href="#t181">181</a></span><span class="t">    <span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">SliceOrientation</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t182" href="#t182">182</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Determines the slice orientation based on the row and column</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t183" href="#t183">183</a></span><span class="t"><span class="str">        direction vectors.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t184" href="#t184">184</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t185" href="#t185">185</a></span><span class="t"><span class="str">        Args:</span>&nbsp;</span><span class="r"></span></p>
@@ -283,7 +283,7 @@
     <p class="pln"><span class="n"><a id="t201" href="#t201">201</a></span><span class="t"><span class="str">                Y-axis.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t202" href="#t202">202</a></span><span class="t"><span class="str">            - UNKNOWN: If the orientation does not match any of the predefined</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t203" href="#t203">203</a></span><span class="t"><span class="str">                categories.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t204" href="#t204">204</a></span><span class="t"><span class="str">        """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t204" href="#t204">204</a></span><span class="t"><span class="str">        &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t205" href="#t205">205</a></span><span class="t">        <span class="nam">TOLERANCE</span> <span class="op">=</span> <span class="num">1e-6</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t206" href="#t206">206</a></span><span class="t">        <span class="key">if</span> <span class="nam">np</span><span class="op">.</span><span class="nam">isclose</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t207" href="#t207">207</a></span><span class="t">            <span class="nam">np</span><span class="op">.</span><span class="nam">dot</span><span class="op">(</span><span class="nam">row_direction</span><span class="op">,</span> <span class="op">[</span><span class="num">0</span><span class="op">,</span> <span class="num">0</span><span class="op">,</span> <span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">,</span> <span class="num">0</span><span class="op">,</span> <span class="nam">atol</span><span class="op">=</span><span class="nam">TOLERANCE</span>&nbsp;</span><span class="r"></span></p>
@@ -301,8 +301,8 @@
     <p class="run"><span class="n"><a id="t219" href="#t219">219</a></span><span class="t">        <span class="key">return</span> <span class="nam">SliceOrientation</span><span class="op">.</span><span class="nam">UNKNOWN</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t220" href="#t220">220</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t221" href="#t221">221</a></span><span class="t">    <span class="op">@</span><span class="nam">abstractmethod</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t222" href="#t222">222</a></span><span class="t">    <span class="key">def</span> <span class="nam">load_image</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">folder_path</span><span class="op">:</span> <span class="nam">Path</span><span class="op">)</span> <span class="op">-></span> <span class="nam">Union</span><span class="op">[</span><span class="nam">FileDataset</span><span class="op">,</span> <span class="nam">np</span><span class="op">.</span><span class="nam">ndarray</span><span class="op">]</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t223" href="#t223">223</a></span><span class="t">        <span class="str">"""Loads raw image data from a specified folder containing either PNG</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t222" href="#t222">222</a></span><span class="t">    <span class="key">def</span> <span class="nam">load_image</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">folder_path</span><span class="op">:</span> <span class="nam">Path</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">Union</span><span class="op">[</span><span class="nam">FileDataset</span><span class="op">,</span> <span class="nam">np</span><span class="op">.</span><span class="nam">ndarray</span><span class="op">]</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t223" href="#t223">223</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Loads raw image data from a specified folder containing either PNG</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t224" href="#t224">224</a></span><span class="t"><span class="str">        or DICOM files.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t225" href="#t225">225</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t226" href="#t226">226</a></span><span class="t"><span class="str">        This method reads 2D image files (either in PNG or DICOM format) from</span>&nbsp;</span><span class="r"></span></p>
@@ -317,15 +317,15 @@
     <p class="pln"><span class="n"><a id="t235" href="#t235">235</a></span><span class="t"><span class="str">            Union(FileDataset, np.ndarray): Returns either a FileDataset</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t236" href="#t236">236</a></span><span class="t"><span class="str">                containing the DICOM data or a NumPy array representing the RGB</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t237" href="#t237">237</a></span><span class="t"><span class="str">                values of the PNG (depending on the file format).</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t238" href="#t238">238</a></span><span class="t"><span class="str">        """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t238" href="#t238">238</a></span><span class="t"><span class="str">        &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t239" href="#t239">239</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t240" href="#t240">240</a></span><span class="t">        <span class="key">pass</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t241" href="#t241">241</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t242" href="#t242">242</a></span><span class="t">    <span class="op">@</span><span class="nam">abstractmethod</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t243" href="#t243">243</a></span><span class="t">    <span class="key">def</span> <span class="nam">convert_to_image_data</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t244" href="#t244">244</a></span><span class="t">        <span class="nam">self</span><span class="op">,</span> <span class="nam">raw_image</span><span class="op">:</span> <span class="nam">Union</span><span class="op">[</span><span class="nam">FileDataset</span><span class="op">,</span> <span class="nam">np</span><span class="op">.</span><span class="nam">ndarray</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t245" href="#t245">245</a></span><span class="t">    <span class="op">)</span> <span class="op">-></span> <span class="nam">ImageData</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t246" href="#t246">246</a></span><span class="t">        <span class="str">"""Converts raw image data into an ImageData object.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t245" href="#t245">245</a></span><span class="t">    <span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">ImageData</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t246" href="#t246">246</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Converts raw image data into an ImageData object.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t247" href="#t247">247</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t248" href="#t248">248</a></span><span class="t"><span class="str">        This method processes the raw input data, which can be either a</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t249" href="#t249">249</a></span><span class="t"><span class="str">        DICOM FileDataset or a PNG NumPy array, and transforms it into a</span>&nbsp;</span><span class="r"></span></p>
@@ -341,7 +341,7 @@
     <p class="pln"><span class="n"><a id="t259" href="#t259">259</a></span><span class="t"><span class="str">            ImageData:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t260" href="#t260">260</a></span><span class="t"><span class="str">                A structured representation of the 3D image, including pixel</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t261" href="#t261">261</a></span><span class="t"><span class="str">                data, grid coordinates, orientation, and metadata.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t262" href="#t262">262</a></span><span class="t"><span class="str">        """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t262" href="#t262">262</a></span><span class="t"><span class="str">        &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t263" href="#t263">263</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t264" href="#t264">264</a></span><span class="t">        <span class="key">pass</span>&nbsp;</span><span class="r"></span></p>
 </main>
@@ -350,10 +350,10 @@
         <p>
             <a class="nav" href="z_a47a001880c0a434_image_format_py.html">&#xab; prev</a> &nbsp; &nbsp;
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
-            <a class="nav" href="z_a47a001880c0a434_png_reader_py.html">&#xbb; next</a>
+            <a class="nav" href="z_a47a001880c0a434_label_map_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-03-10 17:31 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
+            created at 2026-09-15 08:18 +0000
         </p>
     </div>
 </footer>
