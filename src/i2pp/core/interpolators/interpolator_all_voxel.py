@@ -114,44 +114,6 @@ class InterpolatorAllVoxel(Interpolator):
 
         return np.all(A @ point + b <= 0)
 
-    def _filter_outliers_modified_zscore(
-        self, values: np.ndarray, threshold: float = 3.5
-    ) -> np.ndarray:
-        """Identify outliers using the Modified Z-Score method.
-
-        Supports multi-channel data (e.g., RGB) by evaluating outliers across
-        all components.
-
-        Args:
-            values (np.ndarray):
-                Array of voxel values (N_voxels x ...).
-            threshold (float):
-                Cutoff for Modified Z-Score, default 3.5.
-
-        Returns:
-            mask (np.ndarray): 1D boolean array of shape (N_voxels,), where
-                True indicates the pixel is not an outlier and should be used.
-        """
-        values = np.asarray(values)
-        if values.ndim == 1:
-            values = values[:, np.newaxis]
-
-        # Calculate median and MAD per channel (axis=0)
-        median = np.median(values, axis=0)
-
-        # Median Absolute Deviation (MAD)
-        mad = np.median(np.abs(values - median), axis=0)
-        mad = np.maximum(mad, 1e-10)  # avoid division by zero
-
-        # Modified Z-Score for each component
-        modified_z = 0.6745 * (values - median) / mad
-
-        # Mask: True if NOT an outlier across all components/channels
-        # A voxel is filtered out if any channel exceeds the threshold
-        mask = np.all(np.abs(modified_z) <= threshold, axis=1)
-
-        return mask
-
     def _compute_idw_voxel_weights(
         self,
         element_node_phys: np.ndarray,

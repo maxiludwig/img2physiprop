@@ -1,10 +1,14 @@
 """Interpolation type definitions and handling."""
 
 from enum import Enum
+from pathlib import Path
 
 from i2pp.core.interpolators.interpolator import Interpolator
 from i2pp.core.interpolators.interpolator_all_voxel import InterpolatorAllVoxel
 from i2pp.core.interpolators.interpolator_center import InterpolatorCenter
+from i2pp.core.interpolators.interpolator_label_map import (
+    InterpolatorLabelMap,
+)
 from i2pp.core.interpolators.interpolator_nodes import InterpolatorNodes
 
 
@@ -28,6 +32,9 @@ class InterpolationType(Enum):
             value is averaged over all voxels inside the element.
         ALLVOXELS_SCALED (str): Represents the interpolation method where the
             pixel value is scaled over all voxels inside the element.
+        LABELMAP (str): Represents the interpolation method where the pixel
+            value is averaged over all voxels within the region of the
+            element in a label map.
 
     Use create_interpolator to obtain a configured interpolator instance.
     """
@@ -37,6 +44,7 @@ class InterpolationType(Enum):
     CENTER = "elementcenter"
     ALLVOXELS = "allvoxels"
     ALLVOXELS_SCALED = "allvoxels_scaled"
+    LABELMAP = "labelmap"
 
     def create_interpolator(
         self,
@@ -44,6 +52,8 @@ class InterpolationType(Enum):
         filter_outliers: bool = False,
         set_node_value: float | list[float] | None = None,
         idw_power: int = 2,
+        label_map_path: Path | None = None,
+        label_field: str | None = None,
     ) -> Interpolator:
         """Creates and returns a configured interpolator instance based on the
         selected interpolation method.
@@ -60,6 +70,10 @@ class InterpolationType(Enum):
                 Defaults to None.
             idw_power (int): Power parameter for inverse distance weighting.
                 Only applicable for ALLVOXELS_SCALED method. Defaults to 2.
+            label_map_path (Path | None): Path to the NIfTI label map.
+                Required for LABELMAP method.
+            label_field (str | None): Name of the element field holding the
+                label. Required for LABELMAP method.
 
         Returns:
             Interpolator: An instance of the interpolator that matches the
@@ -88,4 +102,15 @@ class InterpolationType(Enum):
             )
         if self == InterpolationType.CENTER:
             return InterpolatorCenter()
+        if self == InterpolationType.LABELMAP:
+            if label_map_path is None or label_field is None:
+                raise ValueError(
+                    "The labelmap interpolation requires a label map path "
+                    "and a label field."
+                )
+            return InterpolatorLabelMap(
+                label_map_path=label_map_path,
+                label_field=label_field,
+                filter_outliers=filter_outliers,
+            )
         raise ValueError(f"Unsupported interpolation method: {self}")

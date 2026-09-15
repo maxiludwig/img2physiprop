@@ -1,6 +1,7 @@
 """Functions for visualizations."""
 
 import numpy as np
+import pyvista as pv
 from i2pp.core.discretization_helpers import initialize_unstructured_grid
 from i2pp.core.discretization_readers.discretization_reader import (
     Discretization,
@@ -62,5 +63,10 @@ class DiscretizationVisualizer(Visualizer):
             else unstructured_grid
         )
         self.grid_visible = unstructured_grid
+
+        # render line elements (e.g. airway trees) as thick tubes, since
+        # one pixel wide lines are hardly visible
+        if np.any(np.asarray(unstructured_grid.celltypes) == pv.CellType.LINE):
+            self.mesh_kwargs = {"line_width": 5, "render_lines_as_tubes": True}
 
         return None

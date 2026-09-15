@@ -104,6 +104,7 @@ pdoc --html --output-dir docs src/i2pp
   - `elementcenter`: Interpolates at each element centroid and assigns that value.
   - `allvoxels`: Collects all voxels whose grid coordinates lie inside the convex hull of the element nodes; assigns the mean value; optionally filters outliers.
   - `allvoxels_scaled`: Computes a voxel-weighted mean where voxel weights derive from node scaling factors and inverse node-to-voxel distances. The influence of the distance (decay) is controlled by `processing.interpolation.inverse_distance_power` p (p=1 linear, p=2 quadratic (default), p>=3 increasingly like step function); Optionally filters outliers.
+  - `labelmap`: Averages all voxels within the region of each element in an integer NIfTI label map (`processing.interpolation.labelmap.path`), e.g. the terminal unit regions exported by the tree generation. The label of each element is read from its element field `processing.interpolation.labelmap.label_field` (default `tu_label`). Each image voxel gets the label of the nearest label map voxel, so the label map may have a different resolution than the image, as long as both share the same world coordinate system. Optionally filters outliers. Labels without voxels fall back to the element center.
 
 - Element and node value overrides:
   - `processing.interpolation.set_surface_node_value`: If provided, all nodes that belong to any surface receive the fixed value (vector size must match the number of pixel channels); only relevant for `nodes` and `nodes_scaled` interpolation methods.
@@ -116,6 +117,21 @@ pdoc --html --output-dir docs src/i2pp
   - If outlier filtering removes all voxels, the method falls back to the unfiltered mean.
   - If an element contains no voxels (allvoxels modes), interpolation falls back to the element center.
   - If interpolated points fall outside the image grid, element data is NaN and a warning summary is logged after processing.
+
+### Image formats
+
+- `import.image.path` is either a folder of DICOM or PNG slices, or a single NIfTI file (`.nii` / `.nii.gz`).
+- NIfTI images are converted from RAS to the LPS coordinate system of DICOM, and only the voxels within the bounding box of the discretization are loaded. Since NIfTI files do not store the imaging modality, set it via `import.image.options.pixel_type` (`CT` (default) or `MR`).
+- Note: DICOM files without file suffix are renamed in place to `*.dcm`.
+
+### Discretization formats and element filtering
+
+- Supported discretization formats: `.4C.yaml`, `.mesh` and `.vtu`. `.vtu` files are read via `lnmmeshio`, which also supports meshes consisting of line2 elements (e.g. airway trees). For line2 elements, `nodes` averages the two node values and `elementcenter` samples at the midpoint of the line.
+- Element filtering (`import.discretization.options`):
+  - `element_filter`: Only elements whose field `field` has one of the given `values` are processed. The field is looked up in the element data (e.g. a VTU cell data array such as `block_id`) and in the element options (e.g. the material `MAT`), e.g. `element_filter: {field: block_id, values: [2]}` or `element_filter: {field: MAT, values: [1, 2]}`.
+  - `material_ids` (deprecated): Translated into `element_filter: {field: MAT, values: material_ids}` with a warning. Cannot be combined with `element_filter`.
+- Export into the input discretization (`export.type: discretization`, only for `.vtu` discretizations): writes `{file_name}.vtu`, a copy of the complete input mesh including all of its point and cell data, with the results as cell data. The user function must return a structured array with the field `index` and one or more numeric value fields; each value field is written to the cell data field of the same name, e.g. the fields `E` and `nu` become the cell data fields `E` and `nu` (vector fields become multi-component fields). `output_parameter_name` is only used for the `json` export and must not be set otherwise. Unselected elements are NaN. If the input mesh already contains the field (e.g. the output of a previous run on another element selection), only the selected elements are overwritten. This allows running i2pp consecutively on different element selections, e.g. first on the terminal units and then on the airways of a lung tree. The input file itself is never overwritten.
+- Note: the element IDs in the `json`/`txt` export refer to the numbering of the *filtered* discretization.
 
 ## Dependency Management
 

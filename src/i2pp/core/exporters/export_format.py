@@ -3,6 +3,9 @@
 from enum import Enum
 from typing import Type
 
+from i2pp.core.exporters.discretization_exporter import (
+    DiscretizationExporter,
+)
 from i2pp.core.exporters.exporter import Exporter
 from i2pp.core.exporters.json_exporter import JsonExporter
 from i2pp.core.exporters.txt_exporter import TxtExporter
@@ -15,6 +18,8 @@ class ExportFormat(Enum):
     Attributes:
         JSON: Represents the JSON format for exporting data.
         TXT: Represents the TXT format for exporting data.
+        DISCRETIZATION: Represents the export into a copy of the input
+            discretization, in the same format (currently only .vtu).
 
     This enum is used to define the format of the exported data and helps
     in determining which exporter class to use for writing the data to a file.
@@ -22,20 +27,22 @@ class ExportFormat(Enum):
 
     JSON = "json"
     TXT = "txt"
+    DISCRETIZATION = "discretization"
 
     def get_exporter(self) -> Type[Exporter]:
         """Returns the appropriate exporter class based on the export format.
 
         Returns:
             Type[Exporter]: A class that is a subclass of `Exporter`, either
-                `JsonExporter` or `TxtExporter`.
+                `JsonExporter`, `TxtExporter` or `DiscretizationExporter`.
 
         Raises:
             ValueError: If the export format is not supported.
         """
-        exporters = {
+        exporters: dict[ExportFormat, Type[Exporter]] = {
             ExportFormat.JSON: JsonExporter,
             ExportFormat.TXT: TxtExporter,
+            ExportFormat.DISCRETIZATION: DiscretizationExporter,
         }
         if self not in exporters:
             raise ValueError(f"Unsupported export format: {self}")

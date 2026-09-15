@@ -57,8 +57,8 @@ def verify_and_load_discretization(
 ) -> Discretization:
     """Loads and processes mesh data.
 
-    This function selects the appropriate reader (MeshReader or
-    FourCYamlReader), and loads the discretization data.
+    This function selects the appropriate reader (TrimeshReader or
+    LnmmeshioReader), and loads the discretization data.
     Finally, it determines the discretization's bounding box.
 
     Arguments:
@@ -111,18 +111,21 @@ def initialize_unstructured_grid(
 
     node_id_to_index = {node_id: i for i, node_id in enumerate(dis.nodes.ids)}
 
+    cell_type_by_num_nodes = {
+        2: pv.CellType.LINE,
+        3: pv.CellType.TRIANGLE,
+        4: pv.CellType.TETRA,
+        8: pv.CellType.HEXAHEDRON,
+        10: pv.CellType.QUADRATIC_TETRA,
+    }
+
     for ele in dis.elements:
         node_indices = [node_id_to_index[nid] for nid in ele.node_ids]
-        if len(node_indices) == 4:
-            cell_types.append(pv.CellType.TETRA)
-        elif len(node_indices) == 8:
-            cell_types.append(pv.CellType.HEXAHEDRON)
-        elif len(node_indices) == 10:
-            cell_types.append(pv.CellType.QUADRATIC_TETRA)
-        else:
+        if len(node_indices) not in cell_type_by_num_nodes:
             raise ValueError(
                 f"Unsupported element with {len(node_indices)} nodes."
             )
+        cell_types.append(cell_type_by_num_nodes[len(node_indices)])
 
         cells.append([len(node_indices)] + node_indices)
 

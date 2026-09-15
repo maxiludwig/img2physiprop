@@ -1,4 +1,4 @@
-"""Import Mesh data."""
+"""Import discretizations readable by trimesh (.mesh)."""
 
 from __future__ import annotations
 
@@ -18,23 +18,25 @@ if TYPE_CHECKING:
     from i2pp.core.configuration_validator.validator import Processing
 
 
-class MeshReader(DiscretizationReader):
-    """Class for reading and processing finite element models from .mesh files.
+class TrimeshReader(DiscretizationReader):
+    """Class for reading and processing finite element models with trimesh.
 
-    This class extends `DiscretizationReader` to handle `.mesh` files, which
-    store discretized finite element models. It provides functionality to
-    import the mesh, filter elements based on material IDs, and structure the
+    This class extends `DiscretizationReader` to handle `.mesh` files via
+    `trimesh`, which store discretized finite element models. It provides
+    functionality to
+    import the mesh, filter elements with an element filter, and structure the
     data into a `Discretization` object.
     """
 
     def _filter_discretization(self) -> None:
-        """Filters the finite element model to include only elements with
-        specified material IDs.
+        """Filters the finite element model to include only elements passing
+        the element filter.
 
-        This function iterates through the elements in the discretized model
-        and selects only those whose material ID matches one of the specified
-        `mat_ids`. The corresponding nodes of these elements are also
-        retained. After filtering, the nodes are sorted based on their IDs.
+        This function iterates through the elements in the discretized
+        model and selects only those whose filter field matches one of
+        the specified values. The corresponding nodes of these elements
+        are also retained. After filtering, the nodes are sorted based
+        on their IDs.
         """
         raise RuntimeError("This function is not implemented yet.")
 
@@ -63,7 +65,7 @@ class MeshReader(DiscretizationReader):
 
         raw_dis = trimesh.load(file_path)
 
-        if options["material_ids"] is not None:
+        if (options or {}).get("element_filter") is not None:
             self._filter_discretization()
 
         nodes = Nodes(

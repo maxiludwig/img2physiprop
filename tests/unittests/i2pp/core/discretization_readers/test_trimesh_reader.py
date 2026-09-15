@@ -9,14 +9,14 @@ from i2pp.core.configuration_validator.validator import (
     Processing,
     Transformation,
 )
-from i2pp.core.discretization_readers.mesh_reader import MeshReader
+from i2pp.core.discretization_readers.trimesh_reader import TrimeshReader
 
 
 def test_load_discretization_mesh(tmp_path: Path) -> None:
     """Test load_discretization if input is .mesh."""
 
     test_path = tmp_path / "test_model.mesh"
-    test_dis = MeshReader()
+    test_dis = TrimeshReader()
 
     test_config = {"material_ids": None}
     # create dummy processing config
@@ -38,7 +38,7 @@ def test_load_discretization_mesh(tmp_path: Path) -> None:
     )
 
     with patch(
-        "i2pp.core.discretization_readers.mesh_reader.Discretization",
+        "i2pp.core.discretization_readers.trimesh_reader.Discretization",
         returnValue=None,
     ) as MockClass:
         with patch("trimesh.load", returnValue=None) as mock_trimesh:

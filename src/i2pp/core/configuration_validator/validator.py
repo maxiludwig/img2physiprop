@@ -1,6 +1,7 @@
 """Module for validating and managing the configuration of the I2PP
 application."""
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -8,7 +9,58 @@ from typing import Any, Dict, Optional
 from i2pp.core.configuration_validator.validation_helpers import (
     resolve_and_validate_path,
 )
+from i2pp.core.exporters.export_format import ExportFormat
 from i2pp.core.interpolators.interpolator_types import InterpolationType
+
+
+def _normalize_element_filter(options: Dict[str, Any]) -> Dict[str, Any]:
+    """Translates the deprecated option `material_ids` into an element filter
+    and validates the element filter.
+
+    Arguments:
+        options (Dict[str, Any]): Options of the discretization.
+
+    Returns:
+        Dict[str, Any]: Options in which `material_ids` is replaced by
+            `element_filter: {field: MAT, values: material_ids}`.
+
+    Raises:
+        ValueError: If both `material_ids` and `element_filter` are given or
+            if the element filter is malformed.
+    """
+    options = dict(options)
+    material_ids = options.pop("material_ids", None)
+    element_filter = options.get("element_filter")
+
+    if material_ids:
+        if element_filter is not None:
+            raise ValueError(
+                "The discretization options 'material_ids' and "
+                "'element_filter' cannot be set at the same time. "
+                "'material_ids' is deprecated, use 'element_filter: "
+                "{field: MAT, values: [...]}' instead."
+            )
+        logging.warning(
+            "The discretization option 'material_ids' is deprecated. Use "
+            f"'element_filter: {{field: MAT, values: {list(material_ids)}}}' "
+            "instead."
+        )
+        element_filter = {"field": "MAT", "values": list(material_ids)}
+        options["element_filter"] = element_filter
+
+    if element_filter is not None and (
+        not isinstance(element_filter, dict)
+        or not isinstance(element_filter.get("field"), str)
+        or not isinstance(element_filter.get("values"), (list, tuple))
+        or len(element_filter["values"]) == 0
+    ):
+        raise ValueError(
+            "The discretization option 'element_filter' requires a 'field' "
+            "(name of the element data field, e.g. block_id or MAT) and a "
+            "non-empty list of 'values'."
+        )
+
+    return options
 
 
 @dataclass
@@ -25,7 +77,7 @@ class Discretization:
         return Discretization(
             path=resolve_and_validate_path(d["path"]),
             type=d["type"],
-            options=d.get("options", {}),  # Safe default if not provided
+            options=_normalize_element_filter(d.get("options") or {}),
         )
 
 
@@ -140,6 +192,35 @@ class NodeScaling:
 
 
 @dataclass
+class LabelMap:
+    """Class representing the label map of the labelmap interpolation."""
+
+    path: Path
+    label_field: str = "tu_label"
+
+    @staticmethod
+    def from_dict(d: Optional[Dict[str, Any]]) -> "LabelMap":
+        """Creates a LabelMap instance from a dictionary."""
+        if not d or "path" not in d:
+            raise ValueError(
+                "The interpolation method 'labelmap' requires the label map "
+                "'labelmap: {path: ..., label_field: ...}'."
+            )
+
+        label_field = d.get("label_field", "tu_label")
+        if not isinstance(label_field, str):
+            raise ValueError(
+                "'labelmap.label_field' must be the name of the element "
+                "field holding the label."
+            )
+
+        return LabelMap(
+            path=resolve_and_validate_path(d["path"]),
+            label_field=label_field,
+        )
+
+
+@dataclass
 class Interpolation:
     """Class representing the interpolation configuration."""
 
@@ -149,6 +230,7 @@ class Interpolation:
     idw_power: int = 2
     set_node_value: Optional[float | list[float]] = field(default=None)
     set_ele_value: Optional[float | list[float]] = field(default=None)
+    labelmap: Optional[LabelMap] = None
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "Interpolation":
@@ -185,6 +267,11 @@ class Interpolation:
                 d.get("node_scaling_factors")
             ),
             idw_power=d.get("inverse_distance_power", 2),
+            labelmap=(
+                LabelMap.from_dict(d.get("labelmap"))
+                if method == InterpolationType.LABELMAP.value
+                else None
+            ),
         )
 
 
@@ -223,6 +310,15 @@ class Export:
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "Export":
         """Creates an Export instance from a dictionary."""
+        if (
+            d.get("output_parameter_name") is not None
+            and d["type"] != ExportFormat.JSON.value
+        ):
+            raise ValueError(
+                "'output_parameter_name' is only used for the export type "
+                f"'json', but the export type is '{d['type']}'. Remove it "
+                "from the export configuration."
+            )
         return Export(
             folder_path=resolve_and_validate_path(
                 d["folder_path"], must_exist=False
@@ -244,8 +340,21 @@ class I2PPConfig:
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "I2PPConfig":
         """Creates an I2PPConfig instance from a dictionary."""
-        return I2PPConfig(
+        config = I2PPConfig(
             import_=Import.from_dict(d["import"]),
             processing=Processing.from_dict(d["processing"]),
             export=Export.from_dict(d["export"]),
         )
+
+        discretization_path = config.import_.discretization.path
+        if (
+            config.export.type == ExportFormat.DISCRETIZATION.value
+            and discretization_path.suffix != ".vtu"
+        ):
+            raise ValueError(
+                "The export type 'discretization' is only supported for .vtu "
+                f"discretizations, but the discretization is "
+                f"{discretization_path.name}."
+            )
+
+        return config

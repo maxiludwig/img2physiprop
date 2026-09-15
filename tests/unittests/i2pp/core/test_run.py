@@ -52,7 +52,6 @@ def minimal_valid_config(tmp_path):
             "folder_path": str(tmp_path),
             "file_name": "output",
             "type": "pattern",
-            "output_parameter_name": "parameter",
         },
     }
 
@@ -171,7 +170,6 @@ def maximal_valid_config(tmp_path):
             "folder_path": str(tmp_path),
             "file_name": "output",
             "type": "pattern",
-            "output_parameter_name": "parameter",
         },
     }
 

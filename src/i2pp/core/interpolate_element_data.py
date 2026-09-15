@@ -74,10 +74,13 @@ def interpolate_image_to_discretization(
 
     enum_interpolation_method = InterpolationType(interpolation.method)
 
+    labelmap = interpolation.labelmap
     interpolator = enum_interpolation_method.create_interpolator(
         filter_outliers=interpolation.filter_outliers,
         set_node_value=interpolation.set_node_value,
         idw_power=interpolation.idw_power,
+        label_map_path=labelmap.path if labelmap else None,
+        label_field=labelmap.label_field if labelmap else None,
     )
 
     elements = interpolator.compute_element_data(dis, image_data)

@@ -5,30 +5,36 @@ import pytest
 from i2pp.core.discretization_readers.discretization_format import (
     DiscretizationFormat,
 )
-from i2pp.core.discretization_readers.fourc_yaml_reader import FourCYamlReader
-from i2pp.core.discretization_readers.mesh_reader import MeshReader
+from i2pp.core.discretization_readers.lnmmeshio_reader import LnmmeshioReader
+from i2pp.core.discretization_readers.trimesh_reader import TrimeshReader
 
 
 def test_get_reader_for_yaml():
     """Test that the YAML reader is returned for the YAML format."""
-    assert DiscretizationFormat.YAML.get_reader() == FourCYamlReader
+    assert DiscretizationFormat.YAML.get_reader() == LnmmeshioReader
 
 
 def test_get_reader_for_mesh():
     """Test that the Mesh reader is returned for the Mesh format."""
-    assert DiscretizationFormat.MESH.get_reader() == MeshReader
+    assert DiscretizationFormat.MESH.get_reader() == TrimeshReader
+
+
+def test_get_reader_for_vtu():
+    """Test that the lnmmeshio based reader is returned for the VTU format."""
+    assert DiscretizationFormat.VTU.get_reader() == LnmmeshioReader
 
 
 def test_enum_values_are_correct():
     """Test that the enum values are correctly defined."""
     assert DiscretizationFormat.YAML.value == ".yaml"
     assert DiscretizationFormat.MESH.value == ".mesh"
+    assert DiscretizationFormat.VTU.value == ".vtu"
 
 
 def test_invalid_format_access():
     """Test that accessing an invalid format raises a KeyError."""
     with pytest.raises(KeyError):
         _ = {
-            DiscretizationFormat.MESH: MeshReader,
-            DiscretizationFormat.YAML: FourCYamlReader,
+            DiscretizationFormat.MESH: TrimeshReader,
+            DiscretizationFormat.YAML: LnmmeshioReader,
         }[".invalid"]
